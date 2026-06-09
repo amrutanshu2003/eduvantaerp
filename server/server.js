@@ -36,25 +36,45 @@ dotenv.config();
 connectDB();
 
 const app = express();
-const defaultAllowedOrigins = ["http://localhost:5173", "http://127.0.0.1:5173"];
+const defaultAllowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "https://eduvantaerp.pages.dev",
+];
 const allowedOrigins = (process.env.CLIENT_ORIGINS || defaultAllowedOrigins.join(","))
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedOriginPatterns = [
+  /^https:\/\/[a-z0-9-]+\.pages\.dev$/i,
+];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
+const isOriginAllowed = (origin) => {
+  if (!origin) {
+    return true;
+  }
 
-      callback(new Error("CORS policy: origin not allowed"));
-    },
-    credentials: true,
-  })
-);
+  if (allowedOrigins.includes(origin)) {
+    return true;
+  }
+
+  return allowedOriginPatterns.some((pattern) => pattern.test(origin));
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("CORS policy: origin not allowed"));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
