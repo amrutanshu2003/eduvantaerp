@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Eduvanta ERP</title>
+    <style>
+      html {
+        background: #f4f8fc;
+        color-scheme: light;
+      }
+
+      html.theme-dark {
+        background: #07111f;
+        color-scheme: dark;
+      }
+
+      html.theme-light {
+        background: #f4f8fc;
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+        background: inherit;
+        color: #0f172a;
+      }
+
+      html.theme-dark body {
+        background: #07111f;
+        color: #e5eefb;
+      }
+
+      html.theme-light body {
+        background: #f4f8fc;
+        color: #0f172a;
+      }
+    </style>
+    <script>
+      (function () {
+        var storedTheme = null;
+        var cachedResolvedTheme = null;
+
+        try {
+          storedTheme = localStorage.getItem("themeMode");
+          cachedResolvedTheme = localStorage.getItem("resolvedThemeCache");
+        } catch (error) {
+          storedTheme = null;
+          cachedResolvedTheme = null;
+        }
+
+        var prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        var resolvedTheme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : cachedResolvedTheme === "light" || cachedResolvedTheme === "dark"
+              ? cachedResolvedTheme
+              : prefersDark
+                ? "dark"
+                : "light";
+
+        var root = document.documentElement;
+        root.classList.remove("theme-light", "theme-dark");
+        root.classList.add(resolvedTheme === "dark" ? "theme-dark" : "theme-light");
+        root.style.colorScheme = resolvedTheme;
+        root.style.backgroundColor = resolvedTheme === "dark" ? "#07111f" : "#f4f8fc";
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+  </html>

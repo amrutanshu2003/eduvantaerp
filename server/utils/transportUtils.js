@@ -1,0 +1,56 @@
+const sanitizeTransportVehicle = (vehicle) => ({
+  _id: vehicle._id,
+  instituteId: vehicle.instituteId,
+  vehicleNumber: vehicle.vehicleNumber,
+  vehicleType: vehicle.vehicleType,
+  capacity: vehicle.capacity,
+  driverId: vehicle.driverId,
+  helperId: vehicle.helperId,
+  insuranceExpiry: vehicle.insuranceExpiry,
+  pollutionExpiry: vehicle.pollutionExpiry,
+  fitnessExpiry: vehicle.fitnessExpiry,
+  status: vehicle.status,
+  createdBy: vehicle.createdBy,
+  updatedBy: vehicle.updatedBy,
+  createdAt: vehicle.createdAt,
+  updatedAt: vehicle.updatedAt,
+});
+
+const sanitizeTransportRoute = (route) => ({
+  _id: route._id,
+  instituteId: route.instituteId,
+  routeName: route.routeName,
+  routeCode: route.routeCode,
+  vehicleId: route.vehicleId,
+  driverId: route.driverId,
+  helperId: route.helperId,
+  startPoint: route.startPoint,
+  endPoint: route.endPoint,
+  stops: route.stops || [],
+  monthlyFee: route.monthlyFee,
+  status: route.status,
+  createdBy: route.createdBy,
+  updatedBy: route.updatedBy,
+  createdAt: route.createdAt,
+  updatedAt: route.updatedAt,
+});
+
+const sanitizeTransportAllocation = (allocation) => ({
+  _id: allocation._id,
+  instituteId: allocation.instituteId,
+  studentId: allocation.studentId,
+  routeId: allocation.routeId,
+  stopName: allocation.stopName,
+  pickupTime: allocation.pickupTime,
+  dropTime: allocation.dropTime,
+  monthlyFee: allocation.monthlyFee,
+  startDate: allocation.startDate,
+  endDate: allocation.endDate,
+  status: allocation.status,
+  createdBy: allocation.createdBy,
+  updatedBy: allocation.updatedBy,
+  createdAt: allocation.createdAt,
+  updatedAt: allocation.updatedAt,
+});
+
+export { sanitizeTransportVehicle, sanitizeTransportRoute, sanitizeTransportAllocation };
