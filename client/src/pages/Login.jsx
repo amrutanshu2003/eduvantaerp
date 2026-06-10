@@ -937,21 +937,6 @@ const Login = () => {
                   >
                     Staff
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotRole("superadmin");
-                      setError("");
-                      setSuccessMessage("");
-                    }}
-                    className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
-                      forgotRole === "superadmin"
-                        ? "bg-white text-ink shadow-sm"
-                        : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    Super Admin
-                  </button>
                 </div>
 
                 {successMessage && (
@@ -1084,7 +1069,7 @@ const Login = () => {
                                 : "top-1/2 -translate-y-1/2 text-slate-400"
                           } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
                         >
-                            {forgotRole === "superadmin" ? "Enter Super Admin Email" : "Enter Registered Email"}
+                            Enter Registered Email
                           </label>
                         </div>
 
@@ -1112,7 +1097,7 @@ const Login = () => {
                                 : "top-1/2 -translate-y-1/2 text-slate-400"
                           } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
                         >
-                            {forgotRole === "superadmin" ? "Enter Super Admin Mobile Number" : "Enter Phone Number"}
+                            Enter Phone Number
                           </label>
                         </div>
                       </>
