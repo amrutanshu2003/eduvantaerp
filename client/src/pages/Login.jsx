@@ -308,16 +308,18 @@ const Login = () => {
       return;
     }
 
-    if (!captchaVal) {
-      setShakeKey((current) => current + 1);
-      setError("Captcha is required");
-      return;
-    }
+    if (settings.captchaEnabled) {
+      if (!captchaVal) {
+        setShakeKey((current) => current + 1);
+        setError("Captcha is required");
+        return;
+      }
 
-    if (captchaVal !== captchaText) {
-      setShakeKey((current) => current + 1);
-      setError("Invalid captcha. Please try again.");
-      return;
+      if (captchaVal !== captchaText) {
+        setShakeKey((current) => current + 1);
+        setError("Invalid captcha. Please try again.");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -603,11 +605,16 @@ const Login = () => {
                     ref={themeToggleRef}
                     type="button"
                     onClick={handleThemeToggle}
-                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border transition-all duration-500 ease-in-out hover:scale-105 hover:rotate-6"
+                    className="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border transition-all duration-500 ease-in-out hover:scale-105 hover:rotate-6"
                     style={{
-                      backgroundColor: "color-mix(in srgb, var(--theme-surface-strong) 88%, transparent)",
-                      borderColor: "var(--theme-border)",
+                      backgroundColor: isDark
+                        ? "color-mix(in srgb, var(--theme-surface-strong) 88%, transparent)"
+                        : "color-mix(in srgb, #ffffff 94%, #f8fafc 6%)",
+                      borderColor: isDark ? "var(--theme-border)" : "rgba(148, 163, 184, 0.4)",
                       color: "var(--theme-text-soft)",
+                      boxShadow: isDark
+                        ? "0 10px 24px rgba(2, 6, 23, 0.22)"
+                        : "0 12px 28px rgba(148, 163, 184, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.82) inset",
                     }}
                     aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
                     title={isDark ? "Switch to light mode" : "Switch to dark mode"}
@@ -622,7 +629,11 @@ const Login = () => {
                           : undefined
                       }
                     >
-                      {isDark ? <FiMoon className="h-5 w-5 text-slate-200" /> : <FiSun className="h-5 w-5 text-amber-500" />}
+                      {isDark ? (
+                        <FiMoon className="h-5 w-5 text-slate-200" />
+                      ) : (
+                        <FiSun className="h-[1.35rem] w-[1.35rem] text-amber-500" />
+                      )}
                     </span>
                   </button>
                 </div>
@@ -781,83 +792,85 @@ const Login = () => {
                     </p>
                   </div>
 
-                  <div
-                    className="space-y-2"
-                    style={{
-                      animation: captchaError ? "login-shake 0.35s ease-in-out" : undefined,
-                    }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex h-11 min-w-[112px] select-none items-center justify-center rounded-xl border border-dashed px-3 text-center text-sm font-semibold tracking-[0.3em]"
-                        style={{
-                          backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 72%, transparent)",
-                          borderColor: "var(--theme-border-strong)",
-                          color: "var(--theme-text-soft)",
-                        }}
-                        aria-label={`Captcha code ${captchaText.split("").join(" ")}`}
-                      >
-                        {captchaText}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={refreshCaptcha}
-                        className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border transition duration-200 hover:scale-[1.03]"
-                        style={{
-                          backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 78%, transparent)",
-                          borderColor: "var(--theme-border)",
-                          color: "var(--theme-text-muted)",
-                        }}
-                        aria-label="Refresh captcha"
-                        title="Refresh captcha"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                          <path d="M20 11a8 8 0 00-14.9-3M4 13a8 8 0 0014.9 3" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M4 4v4h4M20 20v-4h-4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </button>
-
-                      <div className="relative min-w-0 flex-1">
-                        <span className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex h-11 w-11 items-center justify-center ${captchaError ? "text-red-400" : "text-slate-400"}`}>
-                          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M4 12h16M4 7h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </span>
-                        <input
-                          id="captcha"
-                          name="captcha"
-                          type="text"
-                          value={captchaInput}
-                          onChange={(event) => {
-                            setCaptchaInput(event.target.value.toUpperCase());
-                            if (captchaError) {
-                              setError("");
-                            }
+                  {settings.captchaEnabled ? (
+                    <div
+                      className="space-y-2"
+                      style={{
+                        animation: captchaError ? "login-shake 0.35s ease-in-out" : undefined,
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="flex h-11 min-w-[112px] select-none items-center justify-center rounded-xl border border-dashed px-3 text-center text-sm font-semibold tracking-[0.3em]"
+                          style={{
+                            backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 72%, transparent)",
+                            borderColor: "var(--theme-border-strong)",
+                            color: "var(--theme-text-soft)",
                           }}
-                          className={`peer h-11 w-full rounded-xl border bg-transparent px-4 pb-2 pt-4 pl-11 text-sm uppercase tracking-[0.24em] outline-none transition ${
-                            captchaError ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
-                          }`}
-                          placeholder=" "
-                          autoComplete="off"
-                          spellCheck="false"
-                          maxLength={6}
-                          required
-                        />
-                        <label
-                          htmlFor="captcha"
-                          className={`pointer-events-none absolute left-10 z-10 px-1 text-xs font-medium transition-all duration-200 -top-2 translate-y-0 ${
-                            captchaError
-                              ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
-                              : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
-                          } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                          style={{ backgroundColor: loginPanelSurfaceColor }}
+                          aria-label={`Captcha code ${captchaText.split("").join(" ")}`}
                         >
-                          {captchaError || "Enter captcha"}
-                        </label>
+                          {captchaText}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={refreshCaptcha}
+                          className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border transition duration-200 hover:scale-[1.03]"
+                          style={{
+                            backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 78%, transparent)",
+                            borderColor: "var(--theme-border)",
+                            color: "var(--theme-text-muted)",
+                          }}
+                          aria-label="Refresh captcha"
+                          title="Refresh captcha"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+                            <path d="M20 11a8 8 0 00-14.9-3M4 13a8 8 0 0014.9 3" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M4 4v4h4M20 20v-4h-4" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </button>
+
+                        <div className="relative min-w-0 flex-1">
+                          <span className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex h-11 w-11 items-center justify-center ${captchaError ? "text-red-400" : "text-slate-400"}`}>
+                            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+                              <path d="M4 12h16M4 7h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </span>
+                          <input
+                            id="captcha"
+                            name="captcha"
+                            type="text"
+                            value={captchaInput}
+                            onChange={(event) => {
+                              setCaptchaInput(event.target.value.toUpperCase());
+                              if (captchaError) {
+                                setError("");
+                              }
+                            }}
+                            className={`peer h-11 w-full rounded-xl border bg-transparent px-4 pb-2 pt-4 pl-11 text-sm uppercase tracking-[0.24em] outline-none transition ${
+                              captchaError ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
+                            }`}
+                            placeholder=" "
+                            autoComplete="off"
+                            spellCheck="false"
+                            maxLength={6}
+                            required
+                          />
+                          <label
+                            htmlFor="captcha"
+                            className={`pointer-events-none absolute left-10 z-10 px-1 text-xs font-medium transition-all duration-200 -top-2 translate-y-0 ${
+                              captchaError
+                                ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
+                                : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
+                            } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
+                            style={{ backgroundColor: loginPanelSurfaceColor }}
+                          >
+                            {captchaError || "Enter captcha"}
+                          </label>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : null}
 
                   </div>
 

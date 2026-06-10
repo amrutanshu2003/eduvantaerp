@@ -12,6 +12,7 @@ const defaultGlobalSettings = {
   buttonStyle: "rounded",
   themeMode: "system",
   footerText: "Smart ERP for Schools, Colleges & Universities",
+  captchaEnabled: true,
 };
 
 const getGlobalUISettings = async (req, res, next) => {
@@ -38,6 +39,7 @@ const updateGlobalUISettings = async (req, res, next) => {
       buttonStyle: req.body.buttonStyle || defaultGlobalSettings.buttonStyle,
       themeMode: req.body.themeMode || defaultGlobalSettings.themeMode,
       footerText: req.body.footerText?.trim() || defaultGlobalSettings.footerText,
+      captchaEnabled: typeof req.body.captchaEnabled === "boolean" ? req.body.captchaEnabled : defaultGlobalSettings.captchaEnabled,
       instituteId: null,
     };
 

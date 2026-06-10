@@ -46,6 +46,10 @@ const uiSettingsSchema = new mongoose.Schema(
       type: String,
       default: "Smart ERP for Schools, Colleges & Universities",
     },
+    captchaEnabled: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
     timestamps: true,

@@ -14,6 +14,7 @@ const defaultSettings = {
   buttonStyle: "rounded",
   themeMode: "system",
   footerText: "Smart ERP for Schools, Colleges & Universities",
+  captchaEnabled: true,
 };
 
 const getBootstrappedThemeMode = () => {

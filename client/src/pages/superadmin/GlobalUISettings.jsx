@@ -18,6 +18,10 @@ const GlobalUISettings = () => {
     setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
   };
 
+  const handleToggleChange = (event) => {
+    setFormData((current) => ({ ...current, [event.target.name]: event.target.checked }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSubmitting(true);
@@ -92,6 +96,30 @@ const GlobalUISettings = () => {
               <label className="mb-2 block text-sm font-medium text-slate-700">Login Background URL</label>
               <input name="loginBackground" value={formData.loginBackground || ""} onChange={handleChange} className={inputClassName} />
             </div>
+            <div className="rounded-[1.5rem] border border-slate-200 p-4 md:col-span-2">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Show Captcha On Login Page</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Turn this on if you want the login page to require captcha verification.
+                  </p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    name="captchaEnabled"
+                    checked={Boolean(formData.captchaEnabled)}
+                    onChange={handleToggleChange}
+                    className="peer sr-only"
+                  />
+                  <span
+                    className="h-7 w-14 rounded-full transition-colors duration-200"
+                    style={{ backgroundColor: formData.captchaEnabled ? formData.primaryColor : "#cbd5e1" }}
+                  />
+                  <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${formData.captchaEnabled ? "translate-x-7" : "translate-x-0"}`} />
+                </label>
+              </div>
+            </div>
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Footer Text</label>
               <textarea
@@ -130,6 +158,12 @@ const GlobalUISettings = () => {
               <p className="mt-3 text-sm text-white/80">{formData.footerText}</p>
             </div>
             <div className="space-y-4 p-6">
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                <span>Captcha on login</span>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.captchaEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                  {formData.captchaEnabled ? "Enabled" : "Disabled"}
+                </span>
+              </div>
               <button
                 type="button"
                 style={{
