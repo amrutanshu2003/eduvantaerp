@@ -93,8 +93,8 @@ const Settings = () => {
         params: { search: searchQuery },
       });
       setTeam(data.superadmins || []);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // silently ignore — team fetch errors are shown via empty state
     } finally {
       setLoadingTeam(false);
     }
@@ -249,6 +249,9 @@ const Settings = () => {
                   type="text"
                   value={profilePhone}
                   onChange={(e) => setProfilePhone(e.target.value)}
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  title="Phone number must be exactly 10 digits"
                   className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900/10"
                 />
               </div>
@@ -420,6 +423,9 @@ const Settings = () => {
                   type="text"
                   value={adminPhone}
                   onChange={(e) => setAdminPhone(e.target.value)}
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  title="Phone number must be exactly 10 digits"
                   className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"
                 />
               </div>

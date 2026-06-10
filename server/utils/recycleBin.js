@@ -1,5 +1,9 @@
 import Student from "../models/Student.js";
-import User from "../models/User.js";
+import Teacher from "../models/Teacher.js";
+import Parent from "../models/Parent.js";
+import StaffMember from "../models/StaffMember.js";
+import Admin from "../models/Admin.js";
+import SuperAdmin from "../models/SuperAdmin.js";
 import AcademicGroup from "../models/AcademicGroup.js";
 import Assignment from "../models/Assignment.js";
 import AssignmentSubmission from "../models/AssignmentSubmission.js";
@@ -50,6 +54,14 @@ const GENERIC_RECYCLE_BIN_MODELS = [
   Institute,
 ];
 
+const roleModelMap = {
+  teacher: Teacher,
+  parent: Parent,
+  staff: StaffMember,
+  admin: Admin,
+  superadmin: SuperAdmin,
+};
+
 const getRecycleBinExpiryDate = (baseDate = new Date()) =>
   new Date(new Date(baseDate).getTime() + RECYCLE_BIN_RETENTION_MS);
 
@@ -79,7 +91,10 @@ const hardDeleteUserRecord = async (user) => {
     );
   }
 
-  await User.deleteOne({ _id: user._id });
+  const Model = roleModelMap[user.role];
+  if (Model) {
+    await Model.deleteOne({ _id: user._id });
+  }
 };
 
 const hardDeleteStudentRecord = async (student) => {
@@ -87,18 +102,14 @@ const hardDeleteStudentRecord = async (student) => {
     return;
   }
 
-  await User.updateMany(
-    { role: "parent", linkedStudentIds: student._id },
+  await Parent.updateMany(
+    { linkedStudentIds: student._id },
     {
       $pull: { linkedStudentIds: student._id },
     }
   );
 
   await Student.deleteOne({ _id: student._id });
-
-  if (student.userId) {
-    await User.deleteOne({ _id: student.userId });
-  }
 };
 
 const purgeExpiredRecycleBinData = async () => {
@@ -115,24 +126,27 @@ const purgeExpiredRecycleBinData = async () => {
         deletedAt: { $lte: fallbackThreshold },
       },
     ],
-  }).select("_id userId parentIds deletedAt recycleBinExpiresAt");
+  }).select("_id parentIds deletedAt recycleBinExpiresAt");
 
   for (const student of expiredStudents) {
     await hardDeleteStudentRecord(student);
   }
 
-  const expiredUsers = await User.find({
-    isDeleted: true,
-    role: { $ne: "student" },
-    deletedAt: { $ne: null },
-    $or: [
-      { recycleBinExpiresAt: { $lte: now } },
-      {
-        recycleBinExpiresAt: null,
-        deletedAt: { $lte: fallbackThreshold },
-      },
-    ],
-  }).select("_id role deletedAt recycleBinExpiresAt");
+  const expiredUsers = [];
+  for (const [role, Model] of Object.entries(roleModelMap)) {
+    const expired = await Model.find({
+      isDeleted: true,
+      deletedAt: { $ne: null },
+      $or: [
+        { recycleBinExpiresAt: { $lte: now } },
+        {
+          recycleBinExpiresAt: null,
+          deletedAt: { $lte: fallbackThreshold },
+        },
+      ],
+    }).select("_id role deletedAt recycleBinExpiresAt");
+    expiredUsers.push(...expired);
+  }
 
   for (const user of expiredUsers) {
     await hardDeleteUserRecord(user);

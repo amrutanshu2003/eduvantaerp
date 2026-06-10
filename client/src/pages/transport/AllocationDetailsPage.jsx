@@ -38,7 +38,7 @@ const AllocationDetailsPage = ({ basePath, eyebrow }) => {
     <section className="space-y-6">
       <PageHeader
         eyebrow={eyebrow}
-        title={allocation?.student?.userId?.name || "Allocation Details"}
+        title={allocation?.student?.name || "Allocation Details"}
         description="Review allocated route, stop, timings, and transport fee for this student."
         actions={allocation ? <Link to={`${basePath}/allocations/${allocation._id}/edit`} className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Edit Allocation</Link> : null}
       />
@@ -53,7 +53,7 @@ const AllocationDetailsPage = ({ basePath, eyebrow }) => {
             <StatusBadge value={allocation.status} />
           </div>
           <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Student</p><p className="mt-2 font-semibold text-ink">{allocation.student?.userId?.name || "-"}</p></div>
+            <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Student</p><p className="mt-2 font-semibold text-ink">{allocation.student?.name || "-"}</p></div>
             <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Vehicle</p><p className="mt-2 font-semibold text-ink">{allocation.route?.vehicle?.vehicleNumber || "-"}</p></div>
             <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Driver</p><p className="mt-2 font-semibold text-ink">{allocation.route?.driver?.name || "-"}</p></div>
             <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Helper</p><p className="mt-2 font-semibold text-ink">{allocation.route?.helper?.name || "-"}</p></div>

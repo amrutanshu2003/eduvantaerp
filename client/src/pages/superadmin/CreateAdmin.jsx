@@ -97,7 +97,7 @@ const CreateAdmin = () => {
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Phone</label>
-            <input name="phone" value={formData.phone} onChange={handleChange} className={inputClassName} />
+            <input name="phone" maxLength={10} pattern="[0-9]{10}" title="Phone number must be exactly 10 digits" value={formData.phone} onChange={handleChange} className={inputClassName} />
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>

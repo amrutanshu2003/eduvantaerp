@@ -100,7 +100,7 @@ const Fees = () => {
         />
         <select value={filters.studentId} onChange={(event) => setFilters((current) => ({ ...current, studentId: event.target.value }))} className={filterClass}>
           <option value="all">All Students</option>
-          {students.map((student) => <option key={student._id} value={student._id}>{student.user?.name}</option>)}
+          {students.map((student) => <option key={student._id} value={student._id}>{student.name}</option>)}
         </select>
         <select value={filters.academicGroupId} onChange={(event) => setFilters((current) => ({ ...current, academicGroupId: event.target.value }))} className={filterClass}>
           <option value="all">All Groups</option>

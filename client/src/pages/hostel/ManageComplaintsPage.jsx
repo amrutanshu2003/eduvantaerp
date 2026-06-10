@@ -107,7 +107,7 @@ const ManageComplaintsPage = ({ basePath, eyebrow, title, description, mode }) =
             <option value="all">All Students</option>
             {supportData.students.map((student) => (
               <option key={student._id} value={student._id}>
-                {student.userId?.name || student.admissionNumber}
+                {student.name || student.admissionNumber}
               </option>
             ))}
           </select>
@@ -165,7 +165,7 @@ const ManageComplaintsPage = ({ basePath, eyebrow, title, description, mode }) =
                 <div>
                   <h3 className="text-xl font-semibold text-ink">{complaint.title}</h3>
                   <p className="mt-2 text-sm text-slate-600">
-                    {complaint.student?.userId?.name || "Student"} | {complaint.complaintType}
+                    {complaint.student?.name || "Student"} | {complaint.complaintType}
                   </p>
                 </div>
                 <StatusBadge value={complaint.status} />

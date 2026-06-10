@@ -1,6 +1,10 @@
 import AuditLog from "../models/AuditLog.js";
-import User from "../models/User.js";
 import Student from "../models/Student.js";
+import Teacher from "../models/Teacher.js";
+import Parent from "../models/Parent.js";
+import StaffMember from "../models/StaffMember.js";
+import Admin from "../models/Admin.js";
+import SuperAdmin from "../models/SuperAdmin.js";
 import UISettings from "../models/UISettings.js";
 import generateToken from "../utils/generateToken.js";
 import { serializeUser } from "../utils/serializers.js";
@@ -17,7 +21,6 @@ const findMatchingUserByPassword = async (users, password) => {
       return candidate;
     }
   }
-
   return null;
 };
 
@@ -32,47 +35,41 @@ const loginUser = async (req, res, next) => {
     }
 
     const normalizedEmail = normalizedIdentifier.toLowerCase();
-    const [emailUsers, phoneUsers, employeeIdUsers, staffIdUsers, studentProfiles] = await Promise.all([
-      User.find({
-        email: normalizedEmail,
-        ...notDeletedFilter,
-      })
-        .select("+password")
-        .populate("instituteId", "name instituteCode instituteType status"),
-      User.find({
-        phone: normalizedIdentifier,
-        ...notDeletedFilter,
-      })
-        .select("+password")
-        .populate("instituteId", "name instituteCode instituteType status"),
-      User.find({
-        employeeId: normalizedIdentifier,
-        ...notDeletedFilter,
-      })
-        .select("+password")
-        .populate("instituteId", "name instituteCode instituteType status"),
-      User.find({
-        staffId: normalizedIdentifier,
-        ...notDeletedFilter,
-      })
-        .select("+password")
-        .populate("instituteId", "name instituteCode instituteType status"),
-      Student.find({
-        rollNumber: normalizedIdentifier,
-        ...notDeletedFilter,
-      }),
+    const [
+      studentEmail, teacherEmail, parentEmail, staffEmail, adminEmail, superAdminEmail,
+      studentPhone, teacherPhone, parentPhone, staffPhone, adminPhone, superAdminPhone,
+      studentRoll,
+      teacherEmployee,
+      staffIdQuery
+    ] = await Promise.all([
+      // Email queries
+      Student.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      Teacher.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      Parent.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      StaffMember.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      Admin.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      SuperAdmin.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password"),
+
+      // Phone queries
+      Student.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      Teacher.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      Parent.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      StaffMember.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      Admin.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      SuperAdmin.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password"),
+
+      // Role-specific identifiers
+      Student.find({ rollNumber: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      Teacher.find({ employeeId: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      StaffMember.find({ staffId: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
     ]);
 
-    const studentUsers = studentProfiles.length
-      ? await User.find({
-          _id: { $in: studentProfiles.map((profile) => profile.userId) },
-          ...notDeletedFilter,
-        })
-          .select("+password")
-          .populate("instituteId", "name instituteCode instituteType status")
-      : [];
+    const allCandidates = [
+      ...studentEmail, ...teacherEmail, ...parentEmail, ...staffEmail, ...adminEmail, ...superAdminEmail,
+      ...studentPhone, ...teacherPhone, ...parentPhone, ...staffPhone, ...adminPhone, ...superAdminPhone,
+      ...studentRoll, ...teacherEmployee, ...staffIdQuery
+    ];
 
-    const allCandidates = [...emailUsers, ...phoneUsers, ...employeeIdUsers, ...staffIdUsers, ...studentUsers];
     const uniqueCandidates = [];
     const seenIds = new Set();
 
@@ -96,6 +93,11 @@ const loginUser = async (req, res, next) => {
       throw new Error("Invalid username or password");
     }
 
+    if (user.isDeleted) {
+      res.status(401);
+      throw new Error("Invalid username or password");
+    }
+
     if (user.status !== "active") {
       res.status(403);
       throw new Error("Your account is inactive");
@@ -107,14 +109,14 @@ const loginUser = async (req, res, next) => {
       action: "login",
       module: "auth",
       targetId: user._id,
-      targetType: "User",
+      targetType: user.role.charAt(0).toUpperCase() + user.role.slice(1),
       metadata: { role: user.role },
       ipAddress: req.ip,
     });
 
     res.json({
       message: "Login successful",
-      token: generateToken(user._id),
+      token: generateToken(user._id, user.role),
       user: serializeUser(user),
     });
   } catch (error) {
@@ -146,15 +148,14 @@ const forgotPassword = async (req, res, next) => {
       const student = await Student.findOne({
         rollNumber: rollNumber.trim(),
         ...notDeletedFilter,
-      })
-        .populate("userId");
+      }).select("+password");
 
-      if (!student || !student.userId) {
+      if (!student) {
         res.status(404);
         throw new Error("Student profile not found with the given roll number");
       }
 
-      if (student.userId.email.toLowerCase() !== email.trim().toLowerCase()) {
+      if (student.email.toLowerCase() !== email.trim().toLowerCase()) {
         res.status(400);
         throw new Error("Verification failed: Email does not match student record");
       }
@@ -175,9 +176,8 @@ const forgotPassword = async (req, res, next) => {
         throw new Error("Verification failed: Date of Birth does not match");
       }
 
-      const user = await User.findById(student.userId._id).select("+password");
-      user.password = newPassword.trim();
-      await user.save();
+      student.password = newPassword.trim();
+      await student.save();
 
       return res.json({ success: true, message: "Password reset successfully. You can now login with your new password." });
     } else {
@@ -186,12 +186,26 @@ const forgotPassword = async (req, res, next) => {
         throw new Error("Email and phone number are required for verification");
       }
 
-      const user = await User.findOne({
+      const modelMap = {
+        teacher: Teacher,
+        parent: Parent,
+        staff: StaffMember,
+        admin: Admin,
+        superadmin: SuperAdmin,
+      };
+
+      const Model = modelMap[role];
+      if (!Model) {
+        res.status(400);
+        throw new Error("Invalid role specified");
+      }
+
+      const user = await Model.findOne({
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
-        ...(role ? { role } : {}),
         ...notDeletedFilter,
-      });
+      }).select("+password");
+
       if (!user) {
         res.status(400);
         throw new Error("Verification failed: Email or phone number does not match our records");
@@ -220,7 +234,22 @@ const changePassword = async (req, res, next) => {
       throw new Error("New password must be at least 6 characters");
     }
 
-    const user = await User.findById(req.user._id).select("+password");
+    const modelMap = {
+      student: Student,
+      teacher: Teacher,
+      parent: Parent,
+      staff: StaffMember,
+      admin: Admin,
+      superadmin: SuperAdmin,
+    };
+
+    const Model = modelMap[req.user.role];
+    if (!Model) {
+      res.status(404);
+      throw new Error("Role model not found");
+    }
+
+    const user = await Model.findById(req.user._id).select("+password");
     if (!user) {
       res.status(404);
       throw new Error("User not found");
@@ -270,44 +299,32 @@ const resetManagedUserPassword = async (req, res, next) => {
       throw new Error("You are not allowed to reset the password for this role");
     }
 
-    let targetUser = null;
-    let instituteId = null;
-    let auditTargetId = targetId;
-    let auditTargetType = "User";
+    const modelMap = {
+      student: Student,
+      teacher: Teacher,
+      parent: Parent,
+      staff: StaffMember,
+      admin: Admin,
+      superadmin: SuperAdmin,
+    };
 
-    if (targetRole === "student") {
-      const student = await Student.findOne({
-        _id: targetId,
-        ...notDeletedFilter,
-      });
-
-      if (!student) {
-        res.status(404);
-        throw new Error("Student not found");
-      }
-
-      targetUser = await User.findById(student.userId).select("+password");
-      if (!targetUser || targetUser.isDeleted) {
-        res.status(404);
-        throw new Error("Student login account not found");
-      }
-
-      instituteId = student.instituteId;
-      auditTargetType = "Student";
-    } else {
-      targetUser = await User.findOne({
-        _id: targetId,
-        role: targetRole,
-        ...notDeletedFilter,
-      }).select("+password");
-
-      if (!targetUser) {
-        res.status(404);
-        throw new Error("Target user not found");
-      }
-
-      instituteId = targetUser.instituteId || null;
+    const Model = modelMap[targetRole];
+    if (!Model) {
+      res.status(400);
+      throw new Error("Invalid target role");
     }
+
+    const targetUser = await Model.findOne({
+      _id: targetId,
+      ...notDeletedFilter,
+    }).select("+password");
+
+    if (!targetUser) {
+      res.status(404);
+      throw new Error("Target user not found");
+    }
+
+    const instituteId = targetUser.instituteId || null;
 
     if (
       req.user.role === "admin" &&
@@ -325,8 +342,8 @@ const resetManagedUserPassword = async (req, res, next) => {
       userId: req.user._id,
       action: "managed_password_reset",
       module: "auth",
-      targetId: auditTargetId,
-      targetType: auditTargetType,
+      targetId: targetId,
+      targetType: targetRole.charAt(0).toUpperCase() + targetRole.slice(1),
       metadata: {
         targetRole,
         resetByRole: req.user.role,
@@ -375,8 +392,13 @@ const recoverPrivilegedAccountPassword = async (req, res, next) => {
       throw new Error("Recovery verification failed");
     }
 
-    const user = await User.findOne({
-      role,
+    const modelMap = {
+      admin: Admin,
+      superadmin: SuperAdmin,
+    };
+
+    const Model = modelMap[role];
+    const user = await Model.findOne({
       email: email.trim().toLowerCase(),
       phone: phone.trim(),
       ...notDeletedFilter,
@@ -396,7 +418,7 @@ const recoverPrivilegedAccountPassword = async (req, res, next) => {
       action: "privileged_recovery_reset",
       module: "auth",
       targetId: user._id,
-      targetType: "User",
+      targetType: role === "superadmin" ? "SuperAdmin" : "Admin",
       metadata: {
         role,
         recoveredFromPublicFlow: true,
@@ -421,31 +443,42 @@ const updateProfile = async (req, res, next) => {
       throw new Error("Name and email are required");
     }
 
-    const user = await User.findById(req.user._id);
+    const modelMap = {
+      student: Student,
+      teacher: Teacher,
+      parent: Parent,
+      staff: StaffMember,
+      admin: Admin,
+      superadmin: SuperAdmin,
+    };
+
+    const models = [Student, Teacher, Parent, StaffMember, Admin, SuperAdmin];
+    const Model = modelMap[req.user.role];
+    const user = await Model.findById(req.user._id);
     if (!user) {
       res.status(404);
       throw new Error("User not found");
     }
 
-    // Check for email uniqueness if changed
+    // Check for email uniqueness across all collections
     if (email.toLowerCase().trim() !== user.email.toLowerCase().trim()) {
-      const duplicate = await User.findOne({
-        email: email.toLowerCase().trim(),
-        ...notDeletedFilter,
-      });
-      if (duplicate) {
+      const emailToCheck = email.toLowerCase().trim();
+      const duplicates = await Promise.all(
+        models.map((M) => M.findOne({ email: emailToCheck, ...notDeletedFilter }))
+      );
+      if (duplicates.some((dup) => dup)) {
         res.status(400);
         throw new Error("Email is already taken by another account");
       }
     }
 
-    // Check for phone uniqueness if changed
+    // Check for phone uniqueness across all collections
     if (phone && phone.trim() !== user.phone) {
-      const duplicate = await User.findOne({
-        phone: phone.trim(),
-        ...notDeletedFilter,
-      });
-      if (duplicate) {
+      const phoneToCheck = phone.trim();
+      const duplicates = await Promise.all(
+        models.map((M) => M.findOne({ phone: phoneToCheck, ...notDeletedFilter }))
+      );
+      if (duplicates.some((dup) => dup)) {
         res.status(400);
         throw new Error("Phone number is already taken by another account");
       }
@@ -465,7 +498,7 @@ const updateProfile = async (req, res, next) => {
       action: "update_profile",
       module: "auth",
       targetId: user._id,
-      targetType: "User",
+      targetType: user.role.charAt(0).toUpperCase() + user.role.slice(1),
       metadata: { role: user.role },
       ipAddress: req.ip,
     });

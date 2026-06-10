@@ -95,7 +95,7 @@ const ManageAllocationsPage = ({ basePath, eyebrow, title, description }) => {
         </select>
         <select value={filters.studentId} onChange={(event) => setFilters((current) => ({ ...current, studentId: event.target.value }))} className={filterClass}>
           <option value="all">All Students</option>
-          {students.map((student) => <option key={student._id} value={student._id}>{student.userId?.name || student.user?.name || student.admissionNumber}</option>)}
+          {students.map((student) => <option key={student._id} value={student._id}>{student.name || student.admissionNumber}</option>)}
         </select>
         <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className={filterClass}>
           <option value="all">All Status</option>
@@ -112,7 +112,7 @@ const ManageAllocationsPage = ({ basePath, eyebrow, title, description }) => {
             <div key={allocation._id} className="rounded-[1.75rem] bg-white p-6 shadow-card">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-xl font-semibold text-ink">{allocation.student?.userId?.name || "Student"}</h3>
+                  <h3 className="text-xl font-semibold text-ink">{allocation.student?.name || "Student"}</h3>
                   <p className="mt-2 text-sm text-slate-600">{allocation.route?.routeName || "-"} • Stop {allocation.stopName}</p>
                 </div>
                 <StatusBadge value={allocation.status} />

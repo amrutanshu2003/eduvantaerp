@@ -142,7 +142,7 @@ const AllocationFormPage = ({ basePath, eyebrow, mode = "create" }) => {
         <div className="grid gap-4 md:grid-cols-2">
           <select name="studentId" value={form.studentId} onChange={handleChange} className={inputClass}>
             <option value="">Select Student</option>
-            {students.map((student) => <option key={student._id} value={student._id}>{student.userId?.name || student.user?.name || student.admissionNumber}</option>)}
+            {students.map((student) => <option key={student._id} value={student._id}>{student.name || student.admissionNumber}</option>)}
           </select>
           <select name="routeId" value={form.routeId} onChange={handleChange} className={inputClass}>
             <option value="">Select Route</option>

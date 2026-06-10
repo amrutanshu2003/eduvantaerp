@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import Admin from "../models/Admin.js";
 import Institute from "../models/Institute.js";
 import AuditLog from "../models/AuditLog.js";
 import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
@@ -8,7 +8,7 @@ import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 const getAdmins = async (req, res, next) => {
   try {
     const { search = "", status = "all", instituteId = "all" } = req.query;
-    const query = { role: "admin", isDeleted: false };
+    const query = { isDeleted: false };
 
     if (status !== "all") {
       query.status = status;
@@ -26,7 +26,7 @@ const getAdmins = async (req, res, next) => {
       ];
     }
 
-    const admins = await User.find(query)
+    const admins = await Admin.find(query)
       .populate("instituteId", "name instituteCode instituteType status")
       .sort({ createdAt: -1 });
 
@@ -40,7 +40,7 @@ const getAdmins = async (req, res, next) => {
 
 const getAdminById = async (req, res, next) => {
   try {
-    const admin = await User.findOne({ _id: req.params.id, role: "admin", isDeleted: false })
+    const admin = await Admin.findOne({ _id: req.params.id, isDeleted: false })
       .populate("instituteId", "name instituteCode instituteType status");
 
     if (!admin) {
@@ -75,7 +75,7 @@ const createAdmin = async (req, res, next) => {
       throw new Error("Institute not found");
     }
 
-    const adminUser = await User.create({
+    const adminUser = await Admin.create({
       name: name.trim(),
       email: normalizedEmail,
       phone: phone?.trim() || "",
@@ -85,6 +85,7 @@ const createAdmin = async (req, res, next) => {
       permissions,
       status,
       createdBy: req.user._id,
+      createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
     });
 
     await AuditLog.create({
@@ -93,7 +94,7 @@ const createAdmin = async (req, res, next) => {
       action: "create_admin",
       module: "admin_management",
       targetId: adminUser._id,
-      targetType: "User",
+      targetType: "Admin",
       metadata: { instituteCode: institute.instituteCode, role: "admin" },
       ipAddress: req.ip,
     });
@@ -109,7 +110,7 @@ const createAdmin = async (req, res, next) => {
 
 const updateAdmin = async (req, res, next) => {
   try {
-    const admin = await User.findOne({ _id: req.params.id, role: "admin", isDeleted: false }).select("+password");
+    const admin = await Admin.findOne({ _id: req.params.id, isDeleted: false }).select("+password");
 
     if (!admin) {
       res.status(404);
@@ -151,7 +152,7 @@ const updateAdmin = async (req, res, next) => {
       action: "update_admin",
       module: "admin_management",
       targetId: admin._id,
-      targetType: "User",
+      targetType: "Admin",
       metadata: { role: "admin" },
       ipAddress: req.ip,
     });
@@ -173,7 +174,7 @@ const updateAdminStatus = async (req, res, next) => {
       throw new Error("Status must be active or inactive");
     }
 
-    const admin = await User.findOne({ _id: req.params.id, role: "admin", isDeleted: false });
+    const admin = await Admin.findOne({ _id: req.params.id, isDeleted: false });
 
     if (!admin) {
       res.status(404);
@@ -189,7 +190,7 @@ const updateAdminStatus = async (req, res, next) => {
       action: "status_update",
       module: "admin_management",
       targetId: admin._id,
-      targetType: "User",
+      targetType: "Admin",
       metadata: { status },
       ipAddress: req.ip,
     });
@@ -202,7 +203,7 @@ const updateAdminStatus = async (req, res, next) => {
 
 const deleteAdmin = async (req, res, next) => {
   try {
-    const admin = await User.findOne({ _id: req.params.id, role: "admin", isDeleted: false });
+    const admin = await Admin.findOne({ _id: req.params.id, isDeleted: false });
 
     if (!admin) {
       res.status(404);
@@ -221,7 +222,7 @@ const deleteAdmin = async (req, res, next) => {
       action: "soft_delete",
       module: "admin_management",
       targetId: admin._id,
-      targetType: "User",
+      targetType: "Admin",
       metadata: { role: "admin" },
       ipAddress: req.ip,
     });

@@ -1,5 +1,5 @@
 import Student from "../models/Student.js";
-import User from "../models/User.js";
+import Parent from "../models/Parent.js";
 import createAuditLog from "../utils/audit.js";
 import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
@@ -7,7 +7,7 @@ import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const buildParentQuery = (req) => {
-  const query = { role: "parent", isDeleted: false };
+  const query = { isDeleted: false };
   const instituteId = getScopedInstituteId(req, true);
   if (instituteId) {
     query.instituteId = instituteId;
@@ -52,7 +52,7 @@ const createParent = async (req, res, next) => {
       }
     }
 
-    const parent = await User.create({
+    const parent = await Parent.create({
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: phone?.trim() || "",
@@ -64,6 +64,7 @@ const createParent = async (req, res, next) => {
       address: address.trim(),
       status,
       createdBy: req.user._id,
+      createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
     });
 
     await createAuditLog({
@@ -86,9 +87,9 @@ const createParent = async (req, res, next) => {
 
 const getParents = async (req, res, next) => {
   try {
-    const parents = await User.find(buildParentQuery(req))
+    const parents = await Parent.find(buildParentQuery(req))
       .select("-password")
-      .populate("linkedStudentIds", "rollNumber admissionNumber");
+      .populate("linkedStudentIds", "rollNumber admissionNumber name email phone");
 
     res.json({ parents: parents.map(serializeUser) });
   } catch (error) {
@@ -98,9 +99,9 @@ const getParents = async (req, res, next) => {
 
 const getParentById = async (req, res, next) => {
   try {
-    const parent = await User.findOne({ _id: req.params.id, role: "parent", isDeleted: false })
+    const parent = await Parent.findOne({ _id: req.params.id, isDeleted: false })
       .select("-password")
-      .populate("linkedStudentIds", "rollNumber admissionNumber");
+      .populate("linkedStudentIds", "rollNumber admissionNumber name email phone");
 
     if (!parent) {
       res.status(404);
@@ -120,7 +121,7 @@ const getParentById = async (req, res, next) => {
 
 const updateParent = async (req, res, next) => {
   try {
-    const parent = await User.findOne({ _id: req.params.id, role: "parent", isDeleted: false }).select("+password");
+    const parent = await Parent.findOne({ _id: req.params.id, isDeleted: false }).select("+password");
     if (!parent) {
       res.status(404);
       throw new Error("Parent not found");
@@ -188,7 +189,7 @@ const updateParentStatus = async (req, res, next) => {
       throw new Error("Status must be active or inactive");
     }
 
-    const parent = await User.findOne({ _id: req.params.id, role: "parent", isDeleted: false });
+    const parent = await Parent.findOne({ _id: req.params.id, isDeleted: false });
     if (!parent) {
       res.status(404);
       throw new Error("Parent not found");
@@ -219,7 +220,7 @@ const updateParentStatus = async (req, res, next) => {
 
 const deleteParent = async (req, res, next) => {
   try {
-    const parent = await User.findOne({ _id: req.params.id, role: "parent", isDeleted: false });
+    const parent = await Parent.findOne({ _id: req.params.id, isDeleted: false });
     if (!parent) {
       res.status(404);
       throw new Error("Parent not found");
@@ -230,10 +231,10 @@ const deleteParent = async (req, res, next) => {
       throw new Error("Access denied for this parent");
     }
 
-      parent.isDeleted = true;
-      parent.deletedAt = new Date();
-      parent.recycleBinExpiresAt = getRecycleBinExpiryDate(parent.deletedAt);
-      parent.status = "inactive";
+    parent.isDeleted = true;
+    parent.deletedAt = new Date();
+    parent.recycleBinExpiresAt = getRecycleBinExpiryDate(parent.deletedAt);
+    parent.status = "inactive";
     await parent.save();
 
     await createAuditLog({
@@ -253,7 +254,7 @@ const deleteParent = async (req, res, next) => {
 
 const linkStudentsToParent = async (req, res, next) => {
   try {
-    const parent = await User.findOne({ _id: req.params.id, role: "parent", isDeleted: false });
+    const parent = await Parent.findOne({ _id: req.params.id, isDeleted: false });
     if (!parent) {
       res.status(404);
       throw new Error("Parent not found");

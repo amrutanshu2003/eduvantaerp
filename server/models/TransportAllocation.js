@@ -52,13 +52,23 @@ const transportAllocationSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "createdByModel",
       default: null,
+    },
+    createdByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember", "Student", "Parent"],
+      default: "Admin",
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "updatedByModel",
       default: null,
+    },
+    updatedByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember", "Student", "Parent"],
+      default: "Admin",
     },
     isDeleted: {
       type: Boolean,

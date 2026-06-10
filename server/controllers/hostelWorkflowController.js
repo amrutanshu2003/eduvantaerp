@@ -5,7 +5,7 @@ import HostelComplaint from "../models/HostelComplaint.js";
 import HostelOutpass from "../models/HostelOutpass.js";
 import HostelRoom from "../models/HostelRoom.js";
 import Student from "../models/Student.js";
-import User from "../models/User.js";
+import StaffMember from "../models/StaffMember.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureParentStudentAccess, getStudentProfileForUser } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
@@ -14,7 +14,6 @@ const allocationPopulate = [
   {
     path: "studentId",
     populate: [
-      { path: "userId", select: "name email phone status" },
       { path: "academicGroupId", select: "className section department course semester year batch" },
     ],
   },
@@ -28,7 +27,6 @@ const allocationPopulate = [
 const outpassPopulate = [
   {
     path: "studentId",
-    populate: [{ path: "userId", select: "name email phone status" }],
   },
   {
     path: "hostelAllocationId",
@@ -47,7 +45,6 @@ const outpassPopulate = [
 const complaintPopulate = [
   {
     path: "studentId",
-    populate: [{ path: "userId", select: "name email phone status" }],
   },
   {
     path: "hostelAllocationId",
@@ -232,7 +229,6 @@ const getAllocationSupportData = async (req, res, next) => {
     const instituteId = getScopedInstituteId(req, true);
     const [students, hostels, rooms, beds] = await Promise.all([
       Student.find({ instituteId, isDeleted: false, status: "active" })
-        .populate("userId", "name email phone status")
         .populate("academicGroupId", "className section department course semester year batch")
         .sort({ createdAt: -1 }),
       Hostel.find({ instituteId, isDeleted: false, status: { $ne: "inactive" } }).sort({ hostelName: 1 }),
@@ -1165,10 +1161,9 @@ const assignHostelComplaint = async (req, res, next) => {
 
     const assignedTo = req.body.assignedTo || null;
     if (assignedTo) {
-      const staff = await User.findOne({
+      const staff = await StaffMember.findOne({
         _id: assignedTo,
         instituteId: complaint.instituteId,
-        role: "staff",
         isDeleted: false,
       });
       if (!staff) {

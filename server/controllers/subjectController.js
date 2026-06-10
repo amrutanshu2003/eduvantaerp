@@ -1,6 +1,6 @@
 import AcademicGroup from "../models/AcademicGroup.js";
 import Subject from "../models/Subject.js";
-import User from "../models/User.js";
+import Teacher from "../models/Teacher.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 
@@ -48,10 +48,9 @@ const validateSubject = async (req, payload, subjectId = null) => {
   }
 
   if (payload.teacherId) {
-    const teacher = await User.findOne({
+    const teacher = await Teacher.findOne({
       _id: payload.teacherId,
       instituteId,
-      role: "teacher",
       isDeleted: false,
     });
     if (!teacher) {
@@ -239,10 +238,9 @@ const assignTeacherToSubject = async (req, res, next) => {
       throw new Error("Access denied for this subject");
     }
 
-    const teacher = await User.findOne({
+    const teacher = await Teacher.findOne({
       _id: req.body.teacherId,
       instituteId: subject.instituteId,
-      role: "teacher",
       isDeleted: false,
     });
     if (!teacher) {

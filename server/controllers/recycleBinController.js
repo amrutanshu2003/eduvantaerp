@@ -1,6 +1,10 @@
 import AuditLog from "../models/AuditLog.js";
 import Student from "../models/Student.js";
-import User from "../models/User.js";
+import Teacher from "../models/Teacher.js";
+import Parent from "../models/Parent.js";
+import StaffMember from "../models/StaffMember.js";
+import Admin from "../models/Admin.js";
+import SuperAdmin from "../models/SuperAdmin.js";
 import AcademicGroup from "../models/AcademicGroup.js";
 import Assignment from "../models/Assignment.js";
 import AssignmentSubmission from "../models/AssignmentSubmission.js";
@@ -61,6 +65,14 @@ const createRecycleBinItem = ({ entityType, role, id, name, email = "", phone = 
   meta,
 });
 
+const roleModelMap = {
+  teacher: Teacher,
+  parent: Parent,
+  staff: StaffMember,
+  admin: Admin,
+  superadmin: SuperAdmin,
+};
+
 const ENTITY_CONFIG = {
   subject: {
     model: Subject,
@@ -94,10 +106,10 @@ const ENTITY_CONFIG = {
     model: Fee,
     searchFields: ["title", "feeType"],
     populate: [
-      { path: "studentId", populate: { path: "userId", select: "name" } },
+      { path: "studentId", select: "name email" },
     ],
     getName: (item) => item.title,
-    getEmail: (item) => `Student: ${item.studentId?.userId?.name || "Unknown"} | Type: ${item.feeType}`,
+    getEmail: (item) => `Student: ${item.studentId?.name || "Unknown"} | Type: ${item.feeType}`,
     getPhone: (item) => `Amount: ₹${item.amount}`,
     getMeta: (item) => ({
       status: item.status,
@@ -236,7 +248,7 @@ const listRecycleBinItems = async (req, res, next) => {
       const config = ENTITY_CONFIG[role];
       const Model = config.model;
       const query = { isDeleted: true };
-      
+
       if (requestedInstituteId && role !== "institute") {
         query.instituteId = requestedInstituteId;
       }
@@ -283,25 +295,6 @@ const listRecycleBinItems = async (req, res, next) => {
     const userRoles = (role === "all" ? allowedRoles : [role]).filter((item) => item !== "student");
     const shouldIncludeStudents = role === "all" || role === "student";
 
-    const userQuery = {
-      isDeleted: true,
-      role: { $in: userRoles.length ? userRoles : ["__none__"] },
-    };
-
-    if (requestedInstituteId) {
-      userQuery.instituteId = requestedInstituteId;
-    }
-
-    if (normalizedSearch) {
-      userQuery.$or = [
-        { name: { $regex: normalizedSearch, $options: "i" } },
-        { email: { $regex: normalizedSearch, $options: "i" } },
-        { phone: { $regex: normalizedSearch, $options: "i" } },
-        { employeeId: { $regex: normalizedSearch, $options: "i" } },
-        { staffId: { $regex: normalizedSearch, $options: "i" } },
-      ];
-    }
-
     const studentQuery = {
       isDeleted: true,
     };
@@ -312,25 +305,50 @@ const listRecycleBinItems = async (req, res, next) => {
 
     if (normalizedSearch) {
       studentQuery.$or = [
+        { name: { $regex: normalizedSearch, $options: "i" } },
+        { email: { $regex: normalizedSearch, $options: "i" } },
+        { phone: { $regex: normalizedSearch, $options: "i" } },
         { rollNumber: { $regex: normalizedSearch, $options: "i" } },
         { admissionNumber: { $regex: normalizedSearch, $options: "i" } },
         { registrationNumber: { $regex: normalizedSearch, $options: "i" } },
       ];
     }
 
-    const [users, students] = await Promise.all([
-      userRoles.length
-        ? User.find(userQuery)
-            .populate("instituteId", "name instituteCode")
-            .sort({ deletedAt: -1 })
-        : [],
+    // Query non-student role collections
+    const userQueries = userRoles.map(async (r) => {
+      const Model = roleModelMap[r];
+      if (!Model) return [];
+      const query = { isDeleted: true };
+      if (requestedInstituteId && r !== "superadmin") {
+        query.instituteId = requestedInstituteId;
+      }
+      if (normalizedSearch) {
+        query.$or = [
+          { name: { $regex: normalizedSearch, $options: "i" } },
+          { email: { $regex: normalizedSearch, $options: "i" } },
+          { phone: { $regex: normalizedSearch, $options: "i" } },
+        ];
+        if (r === "teacher") {
+          query.$or.push({ employeeId: { $regex: normalizedSearch, $options: "i" } });
+        } else if (r === "staff") {
+          query.$or.push({ staffId: { $regex: normalizedSearch, $options: "i" } });
+        }
+      }
+      return Model.find(query)
+        .populate("instituteId", "name instituteCode")
+        .sort({ deletedAt: -1 });
+    });
+
+    const [userResults, students] = await Promise.all([
+      Promise.all(userQueries),
       shouldIncludeStudents
         ? Student.find(studentQuery)
-            .populate("userId", "name email phone")
             .populate("instituteId", "name instituteCode")
             .sort({ deletedAt: -1 })
         : [],
     ]);
+
+    const users = userResults.flat();
 
     // Format Users and Students
     const userItems = users.map((user) =>
@@ -362,9 +380,9 @@ const listRecycleBinItems = async (req, res, next) => {
         entityType: "student",
         role: "student",
         id: student._id,
-        name: student.userId?.name || "Student",
-        email: student.userId?.email || "",
-        phone: student.userId?.phone || "",
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
         institute: student.instituteId
           ? {
               _id: student.instituteId._id,
@@ -460,12 +478,6 @@ const restoreRecycleBinItem = async (req, res, next) => {
         throw new Error("Access denied for this recycle bin record");
       }
 
-      const user = await User.findById(student.userId).select("+password");
-      if (!user) {
-        res.status(404);
-        throw new Error("Student login record not found");
-      }
-
       await ensureUniqueStudentFields({
         rollNumber: student.rollNumber,
         admissionNumber: student.admissionNumber,
@@ -478,12 +490,6 @@ const restoreRecycleBinItem = async (req, res, next) => {
       student.recycleBinExpiresAt = null;
       student.status = "active";
       await student.save();
-
-      user.isDeleted = false;
-      user.deletedAt = null;
-      user.recycleBinExpiresAt = null;
-      user.status = "active";
-      await user.save();
 
       await AuditLog.create({
         instituteId: student.instituteId,
@@ -500,7 +506,15 @@ const restoreRecycleBinItem = async (req, res, next) => {
     }
 
     if (entityType === "user") {
-      const user = await User.findOne({ _id: id, isDeleted: true });
+      const models = [Teacher, Parent, StaffMember, Admin, SuperAdmin];
+      let user = null;
+      for (const M of models) {
+        user = await M.findOne({ _id: id, isDeleted: true });
+        if (user) {
+          break;
+        }
+      }
+
       if (!user) {
         res.status(404);
         throw new Error("Deleted user not found");
@@ -536,7 +550,7 @@ const restoreRecycleBinItem = async (req, res, next) => {
         action: "restore",
         module: "recycle_bin",
         targetId: user._id,
-        targetType: "User",
+        targetType: user.role.charAt(0).toUpperCase() + user.role.slice(1),
         metadata: { role: user.role },
         ipAddress: req.ip,
       });
@@ -634,7 +648,15 @@ const permanentlyDeleteRecycleBinItem = async (req, res, next) => {
     }
 
     if (entityType === "user") {
-      const user = await User.findOne({ _id: id, isDeleted: true });
+      const models = [Teacher, Parent, StaffMember, Admin, SuperAdmin];
+      let user = null;
+      for (const M of models) {
+        user = await M.findOne({ _id: id, isDeleted: true });
+        if (user) {
+          break;
+        }
+      }
+
       if (!user) {
         res.status(404);
         throw new Error("Deleted user not found");
@@ -658,7 +680,7 @@ const permanentlyDeleteRecycleBinItem = async (req, res, next) => {
         action: "permanent_delete",
         module: "recycle_bin",
         targetId: user._id,
-        targetType: "User",
+        targetType: user.role.charAt(0).toUpperCase() + user.role.slice(1),
         metadata: { role: user.role },
         ipAddress: req.ip,
       });
@@ -709,4 +731,3 @@ export {
   restoreRecycleBinItem,
   permanentlyDeleteRecycleBinItem,
 };
-

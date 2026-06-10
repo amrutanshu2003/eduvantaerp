@@ -29,6 +29,12 @@ const instituteSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
+      validate: {
+        validator: function (v) {
+          return !v || /^\d{10}$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid 10-digit phone number!`,
+      },
     },
     address: {
       type: String,
@@ -59,8 +65,13 @@ const instituteSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "createdByModel",
       default: null,
+    },
+    createdByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin"],
+      default: "SuperAdmin",
     },
     isDeleted: {
       type: Boolean,

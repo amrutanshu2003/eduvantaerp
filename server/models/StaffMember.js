@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
+const staffMemberSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -17,6 +17,13 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       trim: true,
+      default: "",
+      validate: {
+        validator: function (v) {
+          return v === "" || /^\d{10}$/.test(v);
+        },
+        message: (props) => `${props.value} is not a valid 10-digit phone number!`,
+      },
     },
     password: {
       type: String,
@@ -26,68 +33,17 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["superadmin", "admin", "teacher", "student", "parent", "staff"],
-      required: true,
+      default: "staff",
     },
     instituteId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Institute",
-      default: null,
-    },
-    employeeId: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    qualification: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    experience: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    department: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    assignedAcademicGroups: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "AcademicGroup",
-      },
-    ],
-    relation: {
-      type: String,
-      enum: ["father", "mother", "guardian", "other", null],
-      default: null,
-    },
-    linkedStudentIds: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Student",
-      },
-    ],
-    address: {
-      type: String,
-      trim: true,
-      default: "",
+      required: true,
     },
     staffId: {
       type: String,
       trim: true,
       default: "",
-    },
-    joiningDate: {
-      type: Date,
-      default: null,
-    },
-    salary: {
-      type: Number,
-      default: null,
     },
     designation: {
       type: String,
@@ -108,6 +64,19 @@ const userSchema = new mongoose.Schema(
         "exam_coordinator",
       ],
       default: null,
+    },
+    joiningDate: {
+      type: Date,
+      default: null,
+    },
+    salary: {
+      type: Number,
+      default: null,
+    },
+    address: {
+      type: String,
+      trim: true,
+      default: "",
     },
     permissions: {
       type: [String],
@@ -136,8 +105,13 @@ const userSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "createdByModel",
       default: null,
+    },
+    createdByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember"],
+      default: "Admin",
     },
   },
   {
@@ -145,7 +119,7 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-userSchema.index(
+staffMemberSchema.index(
   { email: 1 },
   {
     unique: true,
@@ -155,7 +129,7 @@ userSchema.index(
   }
 );
 
-userSchema.index(
+staffMemberSchema.index(
   { phone: 1 },
   {
     unique: true,
@@ -166,18 +140,7 @@ userSchema.index(
   }
 );
 
-userSchema.index(
-  { employeeId: 1 },
-  {
-    unique: true,
-    partialFilterExpression: {
-      isDeleted: false,
-      employeeId: { $type: "string", $gt: "" },
-    },
-  }
-);
-
-userSchema.index(
+staffMemberSchema.index(
   { staffId: 1 },
   {
     unique: true,
@@ -188,7 +151,7 @@ userSchema.index(
   }
 );
 
-userSchema.pre("save", async function hashPassword(next) {
+staffMemberSchema.pre("save", async function hashPassword(next) {
   if (!this.isModified("password")) {
     return next();
   }
@@ -198,10 +161,10 @@ userSchema.pre("save", async function hashPassword(next) {
   next();
 });
 
-userSchema.methods.matchPassword = async function matchPassword(enteredPassword) {
+staffMemberSchema.methods.matchPassword = async function matchPassword(enteredPassword) {
   return bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model("User", userSchema);
+const StaffMember = mongoose.model("StaffMember", staffMemberSchema);
 
-export default User;
+export default StaffMember;

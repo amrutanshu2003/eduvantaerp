@@ -72,7 +72,7 @@ const LinkParentStudents = () => {
           {students.map((student) => (
             <label key={student._id} className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
               <input type="checkbox" checked={selectedIds.includes(student._id)} onChange={() => toggleStudent(student._id)} />
-              <span className="text-sm text-ink">{student.user?.name} - {student.rollNumber}</span>
+              <span className="text-sm text-ink">{student.name} - {student.rollNumber}</span>
             </label>
           ))}
         </div>

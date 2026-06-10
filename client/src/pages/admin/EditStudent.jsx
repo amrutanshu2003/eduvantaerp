@@ -40,9 +40,9 @@ const EditStudent = () => {
         const student = studentData.student;
         setGroups(groupsData.academicGroups);
         setFormData({
-          name: student.user?.name || "",
-          email: student.user?.email || "",
-          phone: student.user?.phone || "",
+          name: student.name || "",
+          email: student.email || "",
+          phone: student.phone || "",
           password: "",
           academicGroupId: student.academicGroupId?._id || "",
           rollNumber: student.rollNumber || "",

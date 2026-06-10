@@ -46,7 +46,7 @@ const hostelOutpassSchema = new mongoose.Schema(
     },
     parentApprovedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Parent",
       default: null,
     },
     parentApprovedAt: {
@@ -60,7 +60,7 @@ const hostelOutpassSchema = new mongoose.Schema(
     },
     wardenApprovedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "StaffMember",
       default: null,
     },
     wardenApprovedAt: {
@@ -79,13 +79,23 @@ const hostelOutpassSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "createdByModel",
       default: null,
+    },
+    createdByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember", "Student", "Parent"],
+      default: "Admin",
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "updatedByModel",
       default: null,
+    },
+    updatedByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember", "Student", "Parent"],
+      default: "Admin",
     },
     isDeleted: {
       type: Boolean,

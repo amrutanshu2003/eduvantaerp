@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 import connectDB from "../config/db.js";
-import User from "../models/User.js";
+import SuperAdmin from "../models/SuperAdmin.js";
 
 dotenv.config();
 
@@ -8,7 +8,7 @@ const seedSuperAdmin = async () => {
   try {
     await connectDB();
 
-    const existingUser = await User.findOne({ email: "superadmin@eduvanta.com" });
+    const existingUser = await SuperAdmin.findOne({ email: "superadmin@eduvanta.com" });
 
     if (existingUser) {
       if (existingUser.isDeleted !== false || existingUser.status !== "active") {
@@ -23,7 +23,7 @@ const seedSuperAdmin = async () => {
       process.exit(0);
     }
 
-    await User.create({
+    await SuperAdmin.create({
       name: "Super Admin",
       email: "superadmin@eduvanta.com",
       password: "SuperAdmin@123",

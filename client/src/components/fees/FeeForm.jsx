@@ -34,7 +34,7 @@ const FeeForm = ({
               <option value="">Select Student</option>
               {students.map((student) => (
                 <option key={student._id} value={student._id}>
-                  {student.user?.name} ({student.rollNumber})
+                  {student.name} ({student.rollNumber})
                 </option>
               ))}
             </select>

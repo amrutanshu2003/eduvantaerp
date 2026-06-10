@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import StaffMember from "../models/StaffMember.js";
 import createAuditLog from "../utils/audit.js";
 import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
@@ -6,7 +6,7 @@ import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const buildStaffQuery = (req) => {
-  const query = { role: "staff", isDeleted: false };
+  const query = { isDeleted: false };
   const instituteId = getScopedInstituteId(req, true);
   if (instituteId) {
     query.instituteId = instituteId;
@@ -41,7 +41,7 @@ const createStaff = async (req, res, next) => {
       staffId,
     });
 
-    const staff = await User.create({
+    const staff = await StaffMember.create({
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: phone?.trim() || "",
@@ -57,6 +57,7 @@ const createStaff = async (req, res, next) => {
       permissions,
       status,
       createdBy: req.user._id,
+      createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
     });
 
     await createAuditLog({
@@ -76,7 +77,7 @@ const createStaff = async (req, res, next) => {
 
 const getStaffMembers = async (req, res, next) => {
   try {
-    const staffMembers = await User.find(buildStaffQuery(req)).select("-password").sort({ createdAt: -1 });
+    const staffMembers = await StaffMember.find(buildStaffQuery(req)).select("-password").sort({ createdAt: -1 });
     res.json({ staff: staffMembers.map(serializeUser) });
   } catch (error) {
     next(error);
@@ -85,7 +86,7 @@ const getStaffMembers = async (req, res, next) => {
 
 const getStaffById = async (req, res, next) => {
   try {
-    const staff = await User.findOne({ _id: req.params.id, role: "staff", isDeleted: false }).select("-password");
+    const staff = await StaffMember.findOne({ _id: req.params.id, isDeleted: false }).select("-password");
     if (!staff) {
       res.status(404);
       throw new Error("Staff not found");
@@ -104,7 +105,7 @@ const getStaffById = async (req, res, next) => {
 
 const updateStaff = async (req, res, next) => {
   try {
-    const staff = await User.findOne({ _id: req.params.id, role: "staff", isDeleted: false }).select("+password");
+    const staff = await StaffMember.findOne({ _id: req.params.id, isDeleted: false }).select("+password");
     if (!staff) {
       res.status(404);
       throw new Error("Staff not found");
@@ -165,7 +166,7 @@ const updateStaffStatus = async (req, res, next) => {
       throw new Error("Status must be active or inactive");
     }
 
-    const staff = await User.findOne({ _id: req.params.id, role: "staff", isDeleted: false });
+    const staff = await StaffMember.findOne({ _id: req.params.id, isDeleted: false });
     if (!staff) {
       res.status(404);
       throw new Error("Staff not found");
@@ -196,7 +197,7 @@ const updateStaffStatus = async (req, res, next) => {
 
 const deleteStaff = async (req, res, next) => {
   try {
-    const staff = await User.findOne({ _id: req.params.id, role: "staff", isDeleted: false });
+    const staff = await StaffMember.findOne({ _id: req.params.id, isDeleted: false });
     if (!staff) {
       res.status(404);
       throw new Error("Staff not found");
@@ -207,10 +208,10 @@ const deleteStaff = async (req, res, next) => {
       throw new Error("Access denied for this staff member");
     }
 
-      staff.isDeleted = true;
-      staff.deletedAt = new Date();
-      staff.recycleBinExpiresAt = getRecycleBinExpiryDate(staff.deletedAt);
-      staff.status = "inactive";
+    staff.isDeleted = true;
+    staff.deletedAt = new Date();
+    staff.recycleBinExpiresAt = getRecycleBinExpiryDate(staff.deletedAt);
+    staff.status = "inactive";
     await staff.save();
 
     await createAuditLog({
@@ -230,7 +231,7 @@ const deleteStaff = async (req, res, next) => {
 
 const updateStaffPermissions = async (req, res, next) => {
   try {
-    const staff = await User.findOne({ _id: req.params.id, role: "staff", isDeleted: false });
+    const staff = await StaffMember.findOne({ _id: req.params.id, isDeleted: false });
     if (!staff) {
       res.status(404);
       throw new Error("Staff not found");

@@ -124,7 +124,7 @@ const ManageOutpassesPage = ({ basePath, eyebrow, title, description, mode }) =>
             <option value="all">All Students</option>
             {supportData.students.map((student) => (
               <option key={student._id} value={student._id}>
-                {student.userId?.name || student.admissionNumber}
+                {student.name || student.admissionNumber}
               </option>
             ))}
           </select>
@@ -168,7 +168,7 @@ const ManageOutpassesPage = ({ basePath, eyebrow, title, description, mode }) =>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="text-xl font-semibold text-ink">
-                    {outpass.student?.userId?.name || "Outpass Request"}
+                    {outpass.student?.name || "Outpass Request"}
                   </h3>
                   <p className="mt-2 text-sm text-slate-600">
                     {outpass.reason} | {outpass.destination}

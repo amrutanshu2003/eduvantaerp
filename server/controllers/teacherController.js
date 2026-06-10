@@ -1,5 +1,5 @@
 import AcademicGroup from "../models/AcademicGroup.js";
-import User from "../models/User.js";
+import Teacher from "../models/Teacher.js";
 import createAuditLog from "../utils/audit.js";
 import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
@@ -8,7 +8,6 @@ import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const buildTeacherQuery = (req) => {
   const query = {
-    role: "teacher",
     isDeleted: false,
   };
 
@@ -60,12 +59,13 @@ const createTeacher = async (req, res, next) => {
       employeeId: req.body.employeeId,
     });
 
-    const teacher = await User.create({
+    const teacher = await Teacher.create({
       ...req.body,
       email: req.body.email.trim().toLowerCase(),
       role: "teacher",
       instituteId,
       createdBy: req.user._id,
+      createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
     });
 
     await createAuditLog({
@@ -88,7 +88,7 @@ const createTeacher = async (req, res, next) => {
 
 const getTeachers = async (req, res, next) => {
   try {
-    const teachers = await User.find(buildTeacherQuery(req))
+    const teachers = await Teacher.find(buildTeacherQuery(req))
       .select("-password")
       .populate("assignedAcademicGroups", "className section department course semester year")
       .sort({ createdAt: -1 });
@@ -103,9 +103,8 @@ const getTeachers = async (req, res, next) => {
 
 const getTeacherById = async (req, res, next) => {
   try {
-    const teacher = await User.findOne({
+    const teacher = await Teacher.findOne({
       _id: req.params.id,
-      role: "teacher",
       isDeleted: false,
     })
       .select("-password")
@@ -129,9 +128,8 @@ const getTeacherById = async (req, res, next) => {
 
 const updateTeacher = async (req, res, next) => {
   try {
-    const teacher = await User.findOne({
+    const teacher = await Teacher.findOne({
       _id: req.params.id,
-      role: "teacher",
       isDeleted: false,
     }).select("+password");
 
@@ -202,9 +200,8 @@ const updateTeacherStatus = async (req, res, next) => {
       throw new Error("Status must be active or inactive");
     }
 
-    const teacher = await User.findOne({
+    const teacher = await Teacher.findOne({
       _id: req.params.id,
-      role: "teacher",
       isDeleted: false,
     });
 
@@ -238,9 +235,8 @@ const updateTeacherStatus = async (req, res, next) => {
 
 const deleteTeacher = async (req, res, next) => {
   try {
-    const teacher = await User.findOne({
+    const teacher = await Teacher.findOne({
       _id: req.params.id,
-      role: "teacher",
       isDeleted: false,
     });
 
@@ -254,10 +250,10 @@ const deleteTeacher = async (req, res, next) => {
       throw new Error("Access denied for this teacher");
     }
 
-      teacher.isDeleted = true;
-      teacher.deletedAt = new Date();
-      teacher.recycleBinExpiresAt = getRecycleBinExpiryDate(teacher.deletedAt);
-      teacher.status = "inactive";
+    teacher.isDeleted = true;
+    teacher.deletedAt = new Date();
+    teacher.recycleBinExpiresAt = getRecycleBinExpiryDate(teacher.deletedAt);
+    teacher.status = "inactive";
     await teacher.save();
 
     await createAuditLog({
@@ -277,9 +273,8 @@ const deleteTeacher = async (req, res, next) => {
 
 const assignAcademicGroupsToTeacher = async (req, res, next) => {
   try {
-    const teacher = await User.findOne({
+    const teacher = await Teacher.findOne({
       _id: req.params.id,
-      role: "teacher",
       isDeleted: false,
     });
 

@@ -334,7 +334,7 @@ const SecureAccountRecovery = () => {
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Registered Mobile Number</label>
                 <input
-                  name="phone"
+                  name="phone" maxLength={10} pattern="[0-9]{10}" title="Phone number must be exactly 10 digits"
                   type="text"
                   value={formData.phone}
                   onChange={handleChange}

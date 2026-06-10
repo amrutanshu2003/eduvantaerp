@@ -29,8 +29,8 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
           localStorage.setItem("activeInstituteId", activeList[0]._id);
           setActiveInstId(activeList[0]._id);
         }
-      } catch (error) {
-        console.error("Unable to load institutes in navbar", error);
+      } catch {
+        // silently ignore — navbar institute list is non-critical
       }
     };
 

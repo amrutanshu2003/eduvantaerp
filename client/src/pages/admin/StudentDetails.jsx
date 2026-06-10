@@ -38,7 +38,7 @@ const StudentDetails = () => {
 
   return (
     <section className="space-y-6">
-      <PageHeader eyebrow="Student" title={student.user?.name} description="Review student login and academic details." actions={<div className="flex flex-wrap gap-3"><button type="button" onClick={() => setShowResetModal(true)} className="rounded-full border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-700">Reset Password</button><Link to={`/admin/students/${id}/edit`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Edit Student</Link></div>} />
+      <PageHeader eyebrow="Student" title={student.name} description="Review student login and academic details." actions={<div className="flex flex-wrap gap-3"><button type="button" onClick={() => setShowResetModal(true)} className="rounded-full border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-700">Reset Password</button><Link to={`/admin/students/${id}/edit`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Edit Student</Link></div>} />
       {message ? <AlertMessage tone="success" message={message} /> : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Roll Number</p><p className="mt-3 font-semibold text-ink">{student.rollNumber}</p></div>
@@ -51,7 +51,7 @@ const StudentDetails = () => {
         onClose={() => setShowResetModal(false)}
         targetId={student._id}
         targetRole="student"
-        targetLabel={student.user?.name || "Student"}
+        targetLabel={student.name || "Student"}
         onSuccess={setMessage}
       />
     </section>

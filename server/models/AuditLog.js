@@ -9,8 +9,13 @@ const auditLogSchema = new mongoose.Schema(
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "userModel",
       default: null,
+    },
+    userModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember", "Student", "Parent"],
+      default: "Admin",
     },
     action: {
       type: String,
@@ -41,8 +46,13 @@ const auditLogSchema = new mongoose.Schema(
     },
     actorId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "actorModel",
       default: null,
+    },
+    actorModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember", "Student", "Parent"],
+      default: "Admin",
     },
     entity: {
       type: String,

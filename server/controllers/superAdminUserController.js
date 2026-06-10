@@ -1,4 +1,4 @@
-import User from "../models/User.js";
+import SuperAdmin from "../models/SuperAdmin.js";
 import AuditLog from "../models/AuditLog.js";
 import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
@@ -7,7 +7,7 @@ import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 const getSuperAdmins = async (req, res, next) => {
   try {
     const { search = "" } = req.query;
-    const query = { role: "superadmin", isDeleted: false };
+    const query = { isDeleted: false };
 
     if (search.trim()) {
       query.$or = [
@@ -17,7 +17,7 @@ const getSuperAdmins = async (req, res, next) => {
       ];
     }
 
-    const superAdmins = await User.find(query).sort({ createdAt: -1 });
+    const superAdmins = await SuperAdmin.find(query).sort({ createdAt: -1 });
 
     res.json({
       superadmins: superAdmins.map(serializeUser),
@@ -42,7 +42,7 @@ const createSuperAdmin = async (req, res, next) => {
       phone,
     });
 
-    const superAdminUser = await User.create({
+    const superAdminUser = await SuperAdmin.create({
       name: name.trim(),
       email: normalizedEmail,
       phone: phone?.trim() || "",
@@ -50,7 +50,6 @@ const createSuperAdmin = async (req, res, next) => {
       role: "superadmin",
       permissions: ["*"],
       status: "active",
-      createdBy: req.user._id,
     });
 
     await AuditLog.create({
@@ -59,7 +58,7 @@ const createSuperAdmin = async (req, res, next) => {
       action: "create_superadmin",
       module: "superadmin_management",
       targetId: superAdminUser._id,
-      targetType: "User",
+      targetType: "SuperAdmin",
       ipAddress: req.ip,
     });
 
@@ -74,7 +73,7 @@ const createSuperAdmin = async (req, res, next) => {
 
 const updateSuperAdmin = async (req, res, next) => {
   try {
-    const superAdmin = await User.findOne({ _id: req.params.id, role: "superadmin", isDeleted: false }).select("+password");
+    const superAdmin = await SuperAdmin.findOne({ _id: req.params.id, isDeleted: false }).select("+password");
 
     if (!superAdmin) {
       res.status(404);
@@ -106,7 +105,7 @@ const updateSuperAdmin = async (req, res, next) => {
       action: "update_superadmin",
       module: "superadmin_management",
       targetId: superAdmin._id,
-      targetType: "User",
+      targetType: "SuperAdmin",
       ipAddress: req.ip,
     });
 
@@ -126,7 +125,7 @@ const deleteSuperAdmin = async (req, res, next) => {
       throw new Error("You cannot delete your own account");
     }
 
-    const superAdmin = await User.findOne({ _id: req.params.id, role: "superadmin", isDeleted: false });
+    const superAdmin = await SuperAdmin.findOne({ _id: req.params.id, isDeleted: false });
 
     if (!superAdmin) {
       res.status(404);
@@ -145,7 +144,7 @@ const deleteSuperAdmin = async (req, res, next) => {
       action: "soft_delete_superadmin",
       module: "superadmin_management",
       targetId: superAdmin._id,
-      targetType: "User",
+      targetType: "SuperAdmin",
       ipAddress: req.ip,
     });
 

@@ -47,7 +47,7 @@ const DriverStudentsPage = () => {
             <div key={allocation._id} className="rounded-[1.75rem] bg-white p-6 shadow-card">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-xl font-semibold text-ink">{allocation.student?.userId?.name || "Student"}</h3>
+                  <h3 className="text-xl font-semibold text-ink">{allocation.student?.name || "Student"}</h3>
                   <p className="mt-2 text-sm text-slate-600">{route.routeName} • Stop {allocation.stopName}</p>
                 </div>
                 <StatusBadge value={allocation.status} />

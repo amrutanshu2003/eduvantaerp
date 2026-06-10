@@ -90,7 +90,7 @@ const HostelComplaintDetailsPage = ({ eyebrow, roleMode }) => {
               <div>
                 <p className="text-sm text-slate-500">{complaint.complaintType}</p>
                 <h2 className="mt-2 text-2xl font-semibold text-ink">
-                  {complaint.student?.userId?.name || "Student Complaint"}
+                  {complaint.student?.name || "Student Complaint"}
                 </h2>
               </div>
               <StatusBadge value={complaint.status} />

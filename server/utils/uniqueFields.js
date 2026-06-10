@@ -1,5 +1,9 @@
 import Student from "../models/Student.js";
-import User from "../models/User.js";
+import Teacher from "../models/Teacher.js";
+import Parent from "../models/Parent.js";
+import StaffMember from "../models/StaffMember.js";
+import Admin from "../models/Admin.js";
+import SuperAdmin from "../models/SuperAdmin.js";
 
 const normalizeString = (value, { lowercase = false } = {}) => {
   const normalized = String(value || "").trim();
@@ -13,26 +17,30 @@ const ensureUniqueUserFields = async ({
   staffId,
   excludeUserId = null,
 }) => {
+  const models = [Student, Teacher, Parent, StaffMember, Admin, SuperAdmin];
+
   const checks = [
     {
       value: normalizeString(email, { lowercase: true }),
-      query: (value) => ({ email: value, isDeleted: false }),
+      field: "email",
       message: "User with this email already exists",
     },
     {
       value: normalizeString(phone),
-      query: (value) => ({ phone: value, isDeleted: false }),
+      field: "phone",
       message: "User with this phone number already exists",
     },
     {
       value: normalizeString(employeeId),
-      query: (value) => ({ employeeId: value, isDeleted: false }),
+      field: "employeeId",
       message: "User with this employee ID already exists",
+      onlyModels: [Teacher],
     },
     {
       value: normalizeString(staffId),
-      query: (value) => ({ staffId: value, isDeleted: false }),
+      field: "staffId",
       message: "User with this staff ID already exists",
+      onlyModels: [StaffMember],
     },
   ];
 
@@ -41,13 +49,17 @@ const ensureUniqueUserFields = async ({
       continue;
     }
 
-    const query = check.query(check.value);
+    const targetModels = check.onlyModels || models;
+    const query = { [check.field]: check.value, isDeleted: false };
     if (excludeUserId) {
       query._id = { $ne: excludeUserId };
     }
 
-    const existingUser = await User.findOne(query).select("_id");
-    if (existingUser) {
+    const results = await Promise.all(
+      targetModels.map((M) => M.findOne(query).select("_id"))
+    );
+
+    if (results.some((r) => r)) {
       throw new Error(check.message);
     }
   }

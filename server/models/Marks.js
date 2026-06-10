@@ -50,8 +50,13 @@ const marksSchema = new mongoose.Schema(
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "uploadedByModel",
       required: true,
+    },
+    uploadedByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember"],
+      default: "Teacher",
     },
     status: {
       type: String,

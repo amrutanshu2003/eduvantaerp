@@ -21,7 +21,7 @@ const ensureTeacherSubjectAccess = (req, subject) => {
 };
 
 const getStudentProfileForUser = async (userId) => {
-  return Student.findOne({ userId, isDeleted: false });
+  return Student.findOne({ _id: userId, isDeleted: false });
 };
 
 const ensureParentStudentAccess = async (req, studentId) => {

@@ -35,7 +35,7 @@ const hostelSchema = new mongoose.Schema(
     },
     wardenId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "StaffMember",
       default: null,
     },
     contactNumber: {
@@ -50,13 +50,23 @@ const hostelSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "createdByModel",
       default: null,
+    },
+    createdByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember"],
+      default: "Admin",
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "updatedByModel",
       default: null,
+    },
+    updatedByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember"],
+      default: "Admin",
     },
     isDeleted: {
       type: Boolean,

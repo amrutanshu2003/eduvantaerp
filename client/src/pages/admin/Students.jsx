@@ -94,7 +94,7 @@ const Students = () => {
               <tbody>
                 {students.map((student) => (
                   <tr key={student._id} className="border-t border-slate-100">
-                    <td className="px-6 py-4"><p className="font-medium text-ink">{student.user?.name}</p><p className="text-xs text-slate-500">{student.user?.email}</p></td>
+                    <td className="px-6 py-4"><p className="font-medium text-ink">{student.name}</p><p className="text-xs text-slate-500">{student.email}</p></td>
                     <td className="px-6 py-4 text-slate-600">{student.rollNumber}</td>
                     <td className="px-6 py-4 text-slate-600">{student.academicGroupId?.className || student.academicGroupId?.department || "-"}</td>
                     <td className="px-6 py-4"><StatusBadge value={student.status} /></td>

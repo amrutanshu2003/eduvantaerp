@@ -1,6 +1,5 @@
 import AcademicGroup from "../models/AcademicGroup.js";
 import Student from "../models/Student.js";
-import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
 import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
@@ -9,7 +8,10 @@ import { ensureUniqueStudentFields, ensureUniqueUserFields } from "../utils/uniq
 
 const sanitizeStudent = (student) => ({
   _id: student._id,
-  userId: student.userId,
+  name: student.name,
+  email: student.email,
+  phone: student.phone,
+  role: student.role,
   instituteId: student.instituteId,
   academicGroupId: student.academicGroupId,
   rollNumber: student.rollNumber,
@@ -22,6 +24,10 @@ const sanitizeStudent = (student) => ({
   admissionDate: student.admissionDate,
   parentIds: student.parentIds,
   status: student.status,
+  profilePhoto: student.profilePhoto,
+  isDeleted: student.isDeleted,
+  deletedAt: student.deletedAt,
+  recycleBinExpiresAt: student.recycleBinExpiresAt,
   createdBy: student.createdBy,
   createdAt: student.createdAt,
   updatedAt: student.updatedAt,
@@ -85,19 +91,12 @@ const createStudent = async (req, res, next) => {
       }
     }
 
-    const studentUser = await User.create({
+    const student = await Student.create({
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: phone?.trim() || "",
       password: password.trim(),
       role: "student",
-      instituteId,
-      status,
-      createdBy: req.user._id,
-    });
-
-    const student = await Student.create({
-      userId: studentUser._id,
       instituteId,
       academicGroupId: academicGroupId || null,
       rollNumber: rollNumber.trim(),
@@ -110,6 +109,7 @@ const createStudent = async (req, res, next) => {
       admissionDate: admissionDate || null,
       status,
       createdBy: req.user._id,
+      createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
     });
 
     await createAuditLog({
@@ -124,7 +124,7 @@ const createStudent = async (req, res, next) => {
     res.status(201).json({
       message: "Student created successfully",
       student: sanitizeStudent(student),
-      user: serializeUser(studentUser),
+      user: serializeUser(student),
     });
   } catch (error) {
     next(error);
@@ -134,7 +134,6 @@ const createStudent = async (req, res, next) => {
 const getStudents = async (req, res, next) => {
   try {
     const students = await Student.find(buildStudentQuery(req))
-      .populate("userId", "-password")
       .populate("academicGroupId", "className section department course semester year batch")
       .sort({ createdAt: -1 });
 
@@ -145,7 +144,8 @@ const getStudents = async (req, res, next) => {
       }
 
       return (
-        student.userId?.name?.toLowerCase().includes(search) ||
+        student.name?.toLowerCase().includes(search) ||
+        student.email?.toLowerCase().includes(search) ||
         student.rollNumber?.toLowerCase().includes(search) ||
         student.admissionNumber?.toLowerCase().includes(search)
       );
@@ -154,7 +154,7 @@ const getStudents = async (req, res, next) => {
     res.json({
       students: filteredStudents.map((student) => ({
         ...sanitizeStudent(student),
-        user: student.userId ? serializeUser(student.userId) : null,
+        user: serializeUser(student),
       })),
     });
   } catch (error) {
@@ -165,7 +165,6 @@ const getStudents = async (req, res, next) => {
 const getStudentById = async (req, res, next) => {
   try {
     const student = await Student.findOne({ _id: req.params.id, isDeleted: false })
-      .populate("userId", "-password")
       .populate("academicGroupId", "className section department course semester year batch")
       .populate("parentIds", "name email phone relation");
 
@@ -182,7 +181,7 @@ const getStudentById = async (req, res, next) => {
     res.json({
       student: {
         ...sanitizeStudent(student),
-        user: student.userId ? serializeUser(student.userId) : null,
+        user: serializeUser(student),
       },
     });
   } catch (error) {
@@ -203,16 +202,10 @@ const updateStudent = async (req, res, next) => {
       throw new Error("Access denied for this student");
     }
 
-    const user = await User.findById(student.userId).select("+password");
-    if (!user || user.isDeleted) {
-      res.status(404);
-      throw new Error("Student user not found");
-    }
-
     await ensureUniqueUserFields({
-      email: req.body.email ?? user.email,
-      phone: req.body.phone ?? user.phone,
-      excludeUserId: user._id,
+      email: req.body.email ?? student.email,
+      phone: req.body.phone ?? student.phone,
+      excludeUserId: student._id,
     });
     await ensureUniqueStudentFields({
       rollNumber: req.body.rollNumber ?? student.rollNumber,
@@ -233,20 +226,10 @@ const updateStudent = async (req, res, next) => {
       }
     }
 
-    Object.assign(user, {
-      name: req.body.name?.trim() ?? user.name,
-      email: req.body.email?.trim().toLowerCase() ?? user.email,
-      phone: req.body.phone?.trim() ?? user.phone,
-      status: req.body.status ?? user.status,
-    });
-
-    if (req.body.password?.trim()) {
-      user.password = req.body.password.trim();
-    }
-
-    await user.save();
-
     Object.assign(student, {
+      name: req.body.name?.trim() ?? student.name,
+      email: req.body.email?.trim().toLowerCase() ?? student.email,
+      phone: req.body.phone?.trim() ?? student.phone,
       academicGroupId: req.body.academicGroupId ?? student.academicGroupId,
       rollNumber: req.body.rollNumber?.trim() ?? student.rollNumber,
       admissionNumber: req.body.admissionNumber?.trim() ?? student.admissionNumber,
@@ -258,6 +241,10 @@ const updateStudent = async (req, res, next) => {
       admissionDate: req.body.admissionDate ?? student.admissionDate,
       status: req.body.status ?? student.status,
     });
+
+    if (req.body.password?.trim()) {
+      student.password = req.body.password.trim();
+    }
 
     await student.save();
 
@@ -273,7 +260,7 @@ const updateStudent = async (req, res, next) => {
     res.json({
       message: "Student updated successfully",
       student: sanitizeStudent(student),
-      user: serializeUser(user),
+      user: serializeUser(student),
     });
   } catch (error) {
     next(error);
@@ -301,8 +288,6 @@ const updateStudentStatus = async (req, res, next) => {
 
     student.status = status;
     await student.save();
-
-    await User.findByIdAndUpdate(student.userId, { status });
 
     await createAuditLog({
       req,
@@ -332,19 +317,11 @@ const deleteStudent = async (req, res, next) => {
       throw new Error("Access denied for this student");
     }
 
-      student.isDeleted = true;
-      student.deletedAt = new Date();
-      student.recycleBinExpiresAt = getRecycleBinExpiryDate(student.deletedAt);
-      student.status = "inactive";
-      await student.save();
-
-      const deletedAt = new Date();
-      await User.findByIdAndUpdate(student.userId, {
-        isDeleted: true,
-        deletedAt,
-        recycleBinExpiresAt: getRecycleBinExpiryDate(deletedAt),
-        status: "inactive",
-      });
+    student.isDeleted = true;
+    student.deletedAt = new Date();
+    student.recycleBinExpiresAt = getRecycleBinExpiryDate(student.deletedAt);
+    student.status = "inactive";
+    await student.save();
 
     await createAuditLog({
       req,
@@ -405,8 +382,7 @@ const assignAcademicGroupToStudent = async (req, res, next) => {
 
 const getStudentProfile = async (req, res, next) => {
   try {
-    const student = await Student.findOne({ userId: req.user._id, isDeleted: false })
-      .populate("userId", "-password")
+    const student = await Student.findOne({ _id: req.user._id, isDeleted: false })
       .populate("academicGroupId", "className section department course semester year batch")
       .populate("parentIds", "name email phone relation")
       .populate("instituteId", "name instituteCode instituteType status logo banner");
@@ -419,7 +395,7 @@ const getStudentProfile = async (req, res, next) => {
     res.json({
       student: {
         ...sanitizeStudent(student),
-        user: student.userId ? serializeUser(student.userId) : null,
+        user: serializeUser(student),
         academicGroup: student.academicGroupId,
         parents: student.parentIds,
         institute: student.instituteId,

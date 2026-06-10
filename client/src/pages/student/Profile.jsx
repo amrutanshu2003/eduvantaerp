@@ -155,8 +155,8 @@ const Profile = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold text-ink">{student.user?.name}</h2>
-              <p className="text-sm font-medium text-slate-500 mt-1">{student.user?.email}</p>
+              <h2 className="text-2xl font-bold text-ink">{student.name}</h2>
+              <p className="text-sm font-medium text-slate-500 mt-1">{student.email}</p>
               <span className="inline-block rounded-full bg-indigo-50 px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-indigo-600 mt-3 border border-indigo-100">
                 Roll No: {student.rollNumber}
               </span>
@@ -279,7 +279,7 @@ const Profile = () => {
                   <FiPhone className="text-slate-400 text-lg shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Phone Number</p>
-                    <p className="mt-1 font-semibold text-ink">{student.user?.phone || "N/A"}</p>
+                    <p className="mt-1 font-semibold text-ink">{student.phone || "N/A"}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 sm:col-span-2">

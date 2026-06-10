@@ -2,7 +2,7 @@ import Student from "../models/Student.js";
 import TransportAllocation from "../models/TransportAllocation.js";
 import TransportRoute from "../models/TransportRoute.js";
 import TransportVehicle from "../models/TransportVehicle.js";
-import User from "../models/User.js";
+import StaffMember from "../models/StaffMember.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureParentStudentAccess, getStudentProfileForUser } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
@@ -31,7 +31,6 @@ const allocationPopulate = [
   {
     path: "studentId",
     populate: [
-      { path: "userId", select: "name email phone status" },
       { path: "academicGroupId", select: "className section department course semester year batch" },
     ],
   },
@@ -87,9 +86,8 @@ const getStaffUserById = async (staffId, instituteId, label) => {
     return null;
   }
 
-  const staff = await User.findOne({
+  const staff = await StaffMember.findOne({
     _id: staffId,
-    role: "staff",
     instituteId,
     isDeleted: false,
   }).select("-password");
@@ -242,12 +240,10 @@ const getSupportData = async (req, res, next) => {
     const instituteId = getScopedInstituteId(req, true);
     const [students, staff] = await Promise.all([
       Student.find({ instituteId, isDeleted: false, status: "active" })
-        .populate("userId", "name email phone status")
         .populate("academicGroupId", "className section department course semester year batch")
         .sort({ createdAt: -1 }),
-      User.find({
+      StaffMember.find({
         instituteId,
-        role: "staff",
         isDeleted: false,
         status: "active",
         designation: { $in: ["driver", "transport_staff"] },

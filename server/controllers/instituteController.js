@@ -1,6 +1,6 @@
 import AuditLog from "../models/AuditLog.js";
 import Institute from "../models/Institute.js";
-import User from "../models/User.js";
+import Admin from "../models/Admin.js";
 import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const instituteSelectFields =
@@ -94,10 +94,12 @@ const createInstitute = async (req, res, next) => {
       instituteCode: normalizedCode,
       email: normalizedEmail,
       createdBy: req.user._id,
+      createdByModel: req.user.role === "superadmin" ? "SuperAdmin" : "Admin",
     });
 
     await AuditLog.create({
       userId: req.user._id,
+      userModel: req.user.role === "superadmin" ? "SuperAdmin" : "Admin",
       action: "create",
       module: "institute",
       targetId: institute._id,
@@ -153,7 +155,7 @@ const getInstitutes = async (req, res, next) => {
         Institute.countDocuments({ isDeleted: false, instituteType: "school" }),
         Institute.countDocuments({ isDeleted: false, instituteType: "college" }),
         Institute.countDocuments({ isDeleted: false, instituteType: "university" }),
-        User.countDocuments({ role: "admin", status: "active" }),
+        Admin.countDocuments({ status: "active" }),
         Institute.countDocuments({ isDeleted: false, paymentStatus: { $in: ["trial", "expired"] } }),
       ]);
 
@@ -183,9 +185,8 @@ const getInstituteById = async (req, res, next) => {
       throw new Error("Institute not found");
     }
 
-    const admins = await User.find({
+    const admins = await Admin.find({
       instituteId: institute._id,
-      role: "admin",
     })
       .select("-password")
       .sort({ createdAt: -1 });
@@ -250,6 +251,7 @@ const updateInstitute = async (req, res, next) => {
 
     await AuditLog.create({
       userId: req.user._id,
+      userModel: req.user.role === "superadmin" ? "SuperAdmin" : "Admin",
       action: "update",
       module: "institute",
       targetId: institute._id,
@@ -288,6 +290,7 @@ const updateInstituteStatus = async (req, res, next) => {
 
     await AuditLog.create({
       userId: req.user._id,
+      userModel: req.user.role === "superadmin" ? "SuperAdmin" : "Admin",
       action: "status_update",
       module: "institute",
       targetId: institute._id,
@@ -321,6 +324,7 @@ const deleteInstitute = async (req, res, next) => {
 
     await AuditLog.create({
       userId: req.user._id,
+      userModel: req.user.role === "superadmin" ? "SuperAdmin" : "Admin",
       action: "soft_delete",
       module: "institute",
       targetId: institute._id,
@@ -359,7 +363,7 @@ const createInstituteAdmin = async (req, res, next) => {
       phone,
     });
 
-    const adminUser = await User.create({
+    const adminUser = await Admin.create({
       name: name.trim(),
       email: normalizedEmail,
       phone: phone?.trim() || "",
@@ -370,15 +374,17 @@ const createInstituteAdmin = async (req, res, next) => {
       status,
       profilePhoto: profilePhoto.trim(),
       createdBy: req.user._id,
+      createdByModel: req.user.role === "superadmin" ? "SuperAdmin" : "Admin",
     });
 
     await AuditLog.create({
       instituteId: institute._id,
       userId: req.user._id,
+      userModel: req.user.role === "superadmin" ? "SuperAdmin" : "Admin",
       action: "create_admin",
       module: "institute",
       targetId: adminUser._id,
-      targetType: "User",
+      targetType: "Admin",
       metadata: { instituteCode: institute.instituteCode, role: "admin" },
       ipAddress: req.ip,
     });

@@ -20,7 +20,7 @@ const TeacherForm = ({ formData, onChange, onSubmit, submitting, errorMessage, t
         <div className="grid gap-5 md:grid-cols-2">
           <div><label className="mb-2 block text-sm font-medium text-slate-700">Name</label><input name="name" value={formData.name} onChange={onChange} className={inputClass} required /></div>
           <div><label className="mb-2 block text-sm font-medium text-slate-700">Email</label><input name="email" type="email" value={formData.email} onChange={onChange} className={inputClass} required /></div>
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Phone</label><input name="phone" value={formData.phone} onChange={onChange} className={inputClass} /></div>
+          <div><label className="mb-2 block text-sm font-medium text-slate-700">Phone</label><input name="phone" maxLength={10} pattern="[0-9]{10}" title="Phone number must be exactly 10 digits" value={formData.phone} onChange={onChange} className={inputClass} /></div>
           <div><label className="mb-2 block text-sm font-medium text-slate-700">Password</label><input name="password" type="password" value={formData.password} onChange={onChange} className={inputClass} /></div>
           <div><label className="mb-2 block text-sm font-medium text-slate-700">Employee ID</label><input name="employeeId" value={formData.employeeId} onChange={onChange} className={inputClass} /></div>
           <div><label className="mb-2 block text-sm font-medium text-slate-700">Qualification</label><input name="qualification" value={formData.qualification} onChange={onChange} className={inputClass} /></div>

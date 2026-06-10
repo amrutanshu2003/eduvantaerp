@@ -14,7 +14,7 @@ const periodSchema = new mongoose.Schema(
     },
     teacherId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Teacher",
       default: null,
     },
     startTime: {
@@ -69,13 +69,23 @@ const timetableSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "createdByModel",
       default: null,
+    },
+    createdByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember"],
+      default: "Admin",
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "updatedByModel",
       default: null,
+    },
+    updatedByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember"],
+      default: "Admin",
     },
     isDeleted: {
       type: Boolean,

@@ -2,7 +2,7 @@ import Hostel from "../models/Hostel.js";
 import HostelBed from "../models/HostelBed.js";
 import HostelRoom from "../models/HostelRoom.js";
 import Student from "../models/Student.js";
-import User from "../models/User.js";
+import StaffMember from "../models/StaffMember.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { sanitizeHostel, sanitizeHostelBed, sanitizeHostelRoom } from "../utils/hostelUtils.js";
@@ -46,9 +46,8 @@ const getWardenById = async (wardenId, instituteId) => {
     return null;
   }
 
-  const warden = await User.findOne({
+  const warden = await StaffMember.findOne({
     _id: wardenId,
-    role: "staff",
     instituteId,
     isDeleted: false,
   }).select("-password");
@@ -159,12 +158,10 @@ const getSupportData = async (req, res, next) => {
       HostelRoom.find({ instituteId, isDeleted: false }).sort({ createdAt: -1 }),
       HostelBed.find({ instituteId, isDeleted: false }).sort({ createdAt: -1 }),
       Student.find({ instituteId, isDeleted: false, status: "active" })
-        .populate("userId", "name email phone status")
         .populate("academicGroupId", "className section department course semester year batch")
         .sort({ createdAt: -1 }),
-      User.find({
+      StaffMember.find({
         instituteId,
-        role: "staff",
         isDeleted: false,
         status: "active",
         designation: { $in: ["hostel_warden", "hostel_security"] },

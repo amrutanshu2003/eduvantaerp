@@ -30,7 +30,7 @@ const subjectSchema = new mongoose.Schema(
     },
     teacherId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Teacher",
       default: null,
     },
     totalMarks: {
@@ -56,8 +56,13 @@ const subjectSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      refPath: "createdByModel",
       default: null,
+    },
+    createdByModel: {
+      type: String,
+      enum: ["SuperAdmin", "Admin", "Teacher", "StaffMember"],
+      default: "Admin",
     },
   },
   {

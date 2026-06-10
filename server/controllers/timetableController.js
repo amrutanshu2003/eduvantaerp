@@ -2,7 +2,7 @@ import AcademicGroup from "../models/AcademicGroup.js";
 import Student from "../models/Student.js";
 import Subject from "../models/Subject.js";
 import Timetable from "../models/Timetable.js";
-import User from "../models/User.js";
+import Teacher from "../models/Teacher.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureParentStudentAccess, ensureTeacherAcademicGroupAccess, getStudentProfileForUser } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
@@ -63,10 +63,9 @@ const validatePeriods = async (req, academicGroupId, dayOfWeek, periods, timetab
     }
 
     if (period.teacherId) {
-      const teacher = await User.findOne({
+      const teacher = await Teacher.findOne({
         _id: period.teacherId,
         instituteId,
-        role: "teacher",
         isDeleted: false,
       });
       if (!teacher) {

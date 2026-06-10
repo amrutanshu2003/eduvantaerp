@@ -19,7 +19,7 @@ import Timetable from "../models/Timetable.js";
 import TransportAllocation from "../models/TransportAllocation.js";
 import TransportRoute from "../models/TransportRoute.js";
 import TransportVehicle from "../models/TransportVehicle.js";
-import User from "../models/User.js";
+import StaffMember from "../models/StaffMember.js";
 import { canManageHostel, isHostelSecurityUser } from "../utils/hostelAccess.js";
 import { canManageLibrary } from "../utils/libraryAccess.js";
 import { getFeeStatus } from "../utils/feeUtils.js";
@@ -418,7 +418,7 @@ const getStaffPhase4Stats = async (req, res, next) => {
       : Promise.resolve([]);
     const [driverRouteIds, totalStaff, latestNotices, totalBooks, issuedBooks, overdueBooks, totalVehicles, activeRoutes, transportStudents, vehiclesInMaintenance, assignedDriverRoute, totalHostels, activeHostels, availableBeds, bedsInMaintenance, totalRooms, hostelStudents, pendingHostelOutpasses, openHostelComplaints] = await Promise.all([
       driverRouteIdsPromise,
-      User.countDocuments({ instituteId, role: "staff", isDeleted: false }),
+      StaffMember.countDocuments({ instituteId, isDeleted: false }),
       getLatestNotices({ instituteId, role: "staff" }),
       canManageLibrary(req.user) ? LibraryBook.countDocuments({ instituteId, isDeleted: false }) : 0,
       canManageLibrary(req.user) ? BookIssue.countDocuments({ instituteId, isDeleted: false, status: { $in: ["issued", "overdue", "lost"] }, returnDate: null }) : 0,

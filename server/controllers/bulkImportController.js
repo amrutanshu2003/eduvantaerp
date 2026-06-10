@@ -1,8 +1,11 @@
 import AcademicGroup from "../models/AcademicGroup.js";
 import Institute from "../models/Institute.js";
 import Student from "../models/Student.js";
+import Teacher from "../models/Teacher.js";
+import Parent from "../models/Parent.js";
+import StaffMember from "../models/StaffMember.js";
+import Admin from "../models/Admin.js";
 import Subject from "../models/Subject.js";
-import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
 import {
   buildAcademicGroupLookupKey,
@@ -43,14 +46,19 @@ const createContext = async (req) => {
   const institute = await getInstituteForRequest(req);
   const instituteId = institute._id;
 
-  const [users, groups, students, subjects] = await Promise.all([
-    User.find({ instituteId, isDeleted: false }).select("name email phone role employeeId staffId"),
+  const [teachers, parents, staff, admins, groups, students, subjects] = await Promise.all([
+    Teacher.find({ instituteId, isDeleted: false }).select("name email phone role employeeId"),
+    Parent.find({ instituteId, isDeleted: false }).select("name email phone role"),
+    StaffMember.find({ instituteId, isDeleted: false }).select("name email phone role staffId"),
+    Admin.find({ instituteId, isDeleted: false }).select("name email phone role"),
     AcademicGroup.find({ instituteId, isDeleted: false }).select(
       "instituteType schoolLevel className programLevel department course semester year batch section"
     ),
-    Student.find({ instituteId, isDeleted: false }).select("admissionNumber rollNumber registrationNumber academicGroupId userId"),
+    Student.find({ instituteId, isDeleted: false }).select("admissionNumber rollNumber registrationNumber academicGroupId name email phone"),
     Subject.find({ instituteId, isDeleted: false }).select("subjectCode"),
   ]);
+
+  const users = [...teachers, ...parents, ...staff, ...admins, ...students];
 
   const usersByEmail = new Map();
   const usersByPhone = new Map();
@@ -221,7 +229,7 @@ const importTeacherRow = async (row, context, req) => {
   }
   await ensureUniqueUserFields({ email, phone, employeeId });
 
-  const teacher = await User.create({
+  const teacher = await Teacher.create({
     name,
     email,
     password,
@@ -235,6 +243,7 @@ const importTeacherRow = async (row, context, req) => {
     profilePhoto: getTrimmedValue(row, "profile_photo"),
     status: coerceStatus(row.status),
     createdBy: req.user._id,
+    createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
   });
 
   context.usersByEmail.set(email, teacher);
@@ -297,19 +306,12 @@ const importStudentRow = async (row, context, req) => {
       ? resolveAcademicGroup(row, context)
       : null;
 
-  const user = await User.create({
+  const student = await Student.create({
     name,
     email,
     phone,
     password,
     role: "student",
-    instituteId: context.instituteId,
-    status: coerceStatus(row.status),
-    createdBy: req.user._id,
-  });
-
-  const student = await Student.create({
-    userId: user._id,
     instituteId: context.instituteId,
     academicGroupId,
     rollNumber,
@@ -322,11 +324,12 @@ const importStudentRow = async (row, context, req) => {
     admissionDate: coerceDate(row.admission_date),
     status: coerceStatus(row.status),
     createdBy: req.user._id,
+    createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
   });
 
-  context.usersByEmail.set(email, user);
+  context.usersByEmail.set(email, student);
   if (phone) {
-    context.usersByPhone.set(phone, user);
+    context.usersByPhone.set(phone, student);
   }
   context.studentsByAdmissionNumber.set(admissionNumber.toLowerCase(), student);
   context.studentsByRollNumber.set(rollNumber.toLowerCase(), student);
@@ -391,7 +394,7 @@ const importParentRow = async (row, context, req) => {
 
   const uniqueLinkedStudentIds = [...new Set(linkedStudentIds.map((value) => String(value)))];
 
-  const parent = await User.create({
+  const parent = await Parent.create({
     name,
     email,
     phone,
@@ -403,6 +406,7 @@ const importParentRow = async (row, context, req) => {
     address: getTrimmedValue(row, "address"),
     status: coerceStatus(row.status),
     createdBy: req.user._id,
+    createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
   });
 
   context.usersByEmail.set(email, parent);
@@ -445,7 +449,7 @@ const importStaffRow = async (row, context, req) => {
   }
   await ensureUniqueUserFields({ email, phone, staffId });
 
-  const staff = await User.create({
+  const staff = await StaffMember.create({
     name,
     email,
     phone,
@@ -461,6 +465,7 @@ const importStaffRow = async (row, context, req) => {
     permissions: splitPipeValues(row.permissions),
     status: coerceStatus(row.status),
     createdBy: req.user._id,
+    createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
   });
 
   context.usersByEmail.set(email, staff);
@@ -507,6 +512,7 @@ const importSubjectRow = async (row, context, req) => {
     passingMarks: coerceNumber(row.passing_marks, "passing_marks") ?? 33,
     status: coerceStatus(row.status),
     createdBy: req.user._id,
+    createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
   });
 
   context.subjectCodes.add(subjectCode);
