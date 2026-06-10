@@ -66,13 +66,18 @@ const Teachers = () => {
         title={pluralLabel}
         description={`Manage ${pluralLabel.toLowerCase()} within your institute.`}
         actions={
-          <Link
-            to="/admin/teachers/create"
-            style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-            className="px-5 py-3 text-sm font-semibold text-white"
-          >
-            Create {singularLabel}
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
+              Bulk Import
+            </Link>
+            <Link
+              to="/admin/teachers/create"
+              style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
+              className="px-5 py-3 text-sm font-semibold text-white"
+            >
+              Create {singularLabel}
+            </Link>
+          </div>
         }
       />
 

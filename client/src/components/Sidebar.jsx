@@ -22,6 +22,7 @@ const roleLabels = {
 
 const adminMenuItems = [
   { label: "Dashboard", icon: FiHome, path: "/admin/dashboard" },
+  { label: "Bulk Import", icon: FiPlusSquare, path: "/admin/bulk-import" },
   { label: "Academic Groups", icon: FiBookOpen, path: "/admin/academic-groups" },
   { label: "Teachers", icon: FiUser, path: "/admin/teachers" },
   { label: "Students", icon: FiUsers, path: "/admin/students" },
@@ -84,6 +85,9 @@ const Sidebar = () => {
 
   const adminItemsForSuper = [];
   adminMenuItems.forEach((item) => {
+    if (item.label === "Bulk Import") {
+      return;
+    }
     if (item.label === "Teachers") {
       adminItemsForSuper.push({ label: "Admins", icon: FiShield, path: "/super-admin/admins" });
     }

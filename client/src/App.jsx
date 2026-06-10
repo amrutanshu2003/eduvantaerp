@@ -14,6 +14,7 @@ import Assignments from "./pages/admin/Assignments";
 import AssignTeacherAcademicGroups from "./pages/admin/AssignTeacherAcademicGroups";
 import CreateAssignment from "./pages/teacher/CreateAssignment";
 import CreateAcademicGroup from "./pages/admin/CreateAcademicGroup";
+import BulkImport from "./pages/admin/BulkImport";
 import CreateExam from "./pages/admin/CreateExam";
 import CreateFee from "./pages/admin/CreateFee";
 import CreateNotice from "./pages/admin/CreateNotice";
@@ -175,6 +176,7 @@ const App = () => {
 
           <Route element={<RoleRoute allowedRoles={["admin"]} />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/bulk-import" element={<BulkImport />} />
             <Route path="/admin/academic-groups" element={<AcademicGroups />} />
             <Route path="/admin/academic-groups/create" element={<CreateAcademicGroup />} />
             <Route path="/admin/academic-groups/:id" element={<AcademicGroupDetails />} />

@@ -8,6 +8,7 @@ import academicGroupRoutes from "./routes/academicGroupRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
+import bulkImportRoutes from "./routes/bulkImportRoutes.js";
 import examRoutes from "./routes/examRoutes.js";
 import feeRoutes from "./routes/feeRoutes.js";
 import hostelAllocationRoutes from "./routes/hostelAllocationRoutes.js";
@@ -100,6 +101,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/academic-groups", academicGroupRoutes);
+app.use("/api/bulk-import", bulkImportRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/assignments", assignmentRoutes);

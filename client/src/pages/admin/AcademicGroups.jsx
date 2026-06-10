@@ -76,13 +76,18 @@ const AcademicGroups = () => {
         title={getAcademicGroupLabel(user)}
         description="Manage institute-specific academic structures with full data isolation."
         actions={
-          <Link
-            to="/admin/academic-groups/create"
-            style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-            className="px-5 py-3 text-sm font-semibold text-white"
-          >
-            Create {instituteType === "college" ? "Academic Group" : "Class"}
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
+              Bulk Import
+            </Link>
+            <Link
+              to="/admin/academic-groups/create"
+              style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
+              className="px-5 py-3 text-sm font-semibold text-white"
+            >
+              Create {instituteType === "college" ? "Academic Group" : "Class"}
+            </Link>
+          </div>
         }
       />
 

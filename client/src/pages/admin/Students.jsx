@@ -68,7 +68,14 @@ const Students = () => {
         eyebrow="Admin"
         title="Students"
         description="Manage student accounts, profiles and academic group assignments."
-        actions={<Link to="/admin/students/create" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Create Student</Link>}
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
+              Bulk Import
+            </Link>
+            <Link to="/admin/students/create" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Create Student</Link>
+          </div>
+        }
       />
       <AlertMessage tone={messageTone} message={message} />
       <form onSubmit={handleSearch} className="grid gap-4 rounded-[1.75rem] bg-white p-6 shadow-card md:grid-cols-4">
