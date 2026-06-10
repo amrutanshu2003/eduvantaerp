@@ -31,7 +31,7 @@ const BookDetailsPage = ({ basePath, eyebrow }) => {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this book?")) return;
+    if (!(await window.confirm("Delete this book?"))) return;
     try {
       await api.delete(`/library/books/${id}`);
       window.alert("Book deleted successfully");

@@ -42,7 +42,7 @@ const NoticeDetails = () => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this notice?")) return;
+    if (!(await window.confirm("Delete this notice?"))) return;
 
     try {
       await api.delete(`/notices/${id}`);

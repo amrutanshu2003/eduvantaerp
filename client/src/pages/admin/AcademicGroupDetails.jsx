@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import LoadingBlock from "../../components/LoadingBlock";
@@ -12,6 +12,7 @@ import { getInstituteType } from "../../utils/instituteLabels";
 const AcademicGroupDetails = () => {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { settings, getButtonRadius } = useUISettings();
   const instituteType = getInstituteType(user);
   const [group, setGroup] = useState(null);
@@ -33,6 +34,18 @@ const AcademicGroupDetails = () => {
     fetchGroup();
   }, [id]);
 
+  const handleDelete = async () => {
+    if (!(await window.confirm("Are you sure you want to delete this academic group?"))) {
+      return;
+    }
+    try {
+      await api.delete(`/academic-groups/${id}`);
+      navigate("/admin/academic-groups");
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || "Unable to delete academic group");
+    }
+  };
+
   if (loading) {
     return <LoadingBlock message="Loading academic group details..." />;
   }
@@ -45,16 +58,25 @@ const AcademicGroupDetails = () => {
     <section className="space-y-6">
       <PageHeader
         eyebrow="Academic Group"
-        title={group.instituteType === "college" ? `${group.department} - ${group.course}` : group.className}
+        title={["college", "university"].includes(group.instituteType) ? `${group.department} - ${group.course}` : group.className}
         description="Review the academic group configuration assigned to this institute."
         actions={
-          <Link
-            to={`/admin/academic-groups/${id}/edit`}
-            style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-            className="px-5 py-3 text-sm font-semibold text-white"
-          >
-            Edit
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to={`/admin/academic-groups/${id}/edit`}
+              style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
+              className="px-5 py-3 text-sm font-semibold text-white"
+            >
+              Edit
+            </Link>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="rounded-full border border-rose-200 px-5 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+            >
+              Delete
+            </button>
+          </div>
         }
       />
 
@@ -65,7 +87,7 @@ const AcademicGroupDetails = () => {
       </div>
 
       <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        {group.instituteType === "college" ? (
+        {["college", "university"].includes(group.instituteType) ? (
           <div className="grid gap-4 md:grid-cols-2">
             <p><span className="font-semibold text-ink">Program Level:</span> {group.programLevel || "-"}</p>
             <p><span className="font-semibold text-ink">Department:</span> {group.department || "-"}</p>

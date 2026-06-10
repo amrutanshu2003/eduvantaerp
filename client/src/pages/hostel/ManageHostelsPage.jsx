@@ -49,7 +49,7 @@ const ManageHostelsPage = ({ basePath, eyebrow, title, description }) => {
   };
 
   const handleDelete = async (hostelId) => {
-    if (!window.confirm("Delete this hostel?")) {
+    if (!(await window.confirm("Delete this hostel?"))) {
       return;
     }
 

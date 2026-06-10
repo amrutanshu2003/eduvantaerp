@@ -50,7 +50,7 @@ const AcademicGroups = () => {
   };
 
   const handleDelete = async (group) => {
-    if (!window.confirm("Delete this academic group?")) {
+    if (!(await window.confirm("Delete this academic group?"))) {
       return;
     }
 
@@ -85,7 +85,7 @@ const AcademicGroups = () => {
               style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
               className="px-5 py-3 text-sm font-semibold text-white"
             >
-              Create {instituteType === "college" ? "Academic Group" : "Class"}
+              Create {["college", "university"].includes(instituteType) ? "Academic Group" : "Class"}
             </Link>
           </div>
         }
@@ -114,7 +114,7 @@ const AcademicGroups = () => {
                 {groups.map((group) => (
                   <tr key={group._id} className="border-t border-slate-100">
                     <td className="px-6 py-4 font-medium text-ink">
-                      {group.instituteType === "college"
+                      {["college", "university"].includes(group.instituteType)
                         ? `${group.department} - ${group.course}`
                         : `${group.className} (${group.schoolLevel || "N/A"})`}
                     </td>

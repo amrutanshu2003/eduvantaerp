@@ -80,7 +80,7 @@ const Admins = () => {
   };
 
   const handleDelete = async (admin) => {
-    if (!window.confirm(`Delete admin user ${admin.name}?`)) {
+    if (!(await window.confirm(`Delete admin user ${admin.name}?`))) {
       return;
     }
 

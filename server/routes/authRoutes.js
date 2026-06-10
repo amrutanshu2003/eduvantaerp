@@ -1,5 +1,13 @@
 import express from "express";
-import { getProfile, loginUser, forgotPassword, changePassword, resetManagedUserPassword, recoverPrivilegedAccountPassword } from "../controllers/authController.js";
+import {
+  getProfile,
+  loginUser,
+  forgotPassword,
+  changePassword,
+  resetManagedUserPassword,
+  recoverPrivilegedAccountPassword,
+  updateProfile,
+} from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import allowRoles from "../middleware/roleMiddleware.js";
 
@@ -10,6 +18,7 @@ router.post("/forgot-password", forgotPassword);
 router.post("/secure-recovery", recoverPrivilegedAccountPassword);
 router.get("/me", protect, getProfile);
 router.put("/change-password", protect, changePassword);
+router.put("/update-profile", protect, updateProfile);
 router.put("/reset-managed-password", protect, allowRoles("admin", "superadmin"), resetManagedUserPassword);
 
 export default router;

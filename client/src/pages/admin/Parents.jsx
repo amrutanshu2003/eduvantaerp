@@ -46,7 +46,7 @@ const Parents = () => {
   };
 
   const handleDelete = async (parent) => {
-    if (!window.confirm(`Delete this ${singularLabel.toLowerCase()}?`)) return;
+    if (!(await window.confirm(`Delete this ${singularLabel.toLowerCase()}?`))) return;
     await api.delete(`/parents/${parent._id}`);
     setMessageTone("success");
     setMessage(`${singularLabel} deleted successfully`);

@@ -7,21 +7,39 @@ import PageHeader from "../components/PageHeader";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
 
+const genericFilterOptions = [
+  { value: "subject", label: "Subjects" },
+  { value: "attendance", label: "Attendance" },
+  { value: "fee", label: "Fees" },
+  { value: "notice", label: "Notices" },
+  { value: "academicGroup", label: "Academic Groups" },
+  { value: "exam", label: "Exams" },
+  { value: "timetable", label: "Timetables" },
+  { value: "libraryBook", label: "Library Books" },
+  { value: "transportVehicle", label: "Transport Vehicles" },
+  { value: "transportRoute", label: "Transport Routes" },
+  { value: "hostel", label: "Hostels" },
+  { value: "hostelRoom", label: "Hostel Rooms" },
+  { value: "hostelBed", label: "Hostel Beds" },
+];
+
 const filterOptionsByRole = {
   admin: [
-    { value: "all", label: "All Roles" },
+    { value: "all", label: "All Items" },
     { value: "teacher", label: "Teachers" },
     { value: "student", label: "Students" },
     { value: "parent", label: "Parents" },
     { value: "staff", label: "Staff" },
+    ...genericFilterOptions,
   ],
   superadmin: [
-    { value: "all", label: "All Roles" },
+    { value: "all", label: "All Items" },
     { value: "admin", label: "Admins" },
     { value: "teacher", label: "Teachers" },
     { value: "student", label: "Students" },
     { value: "parent", label: "Parents" },
     { value: "staff", label: "Staff" },
+    ...genericFilterOptions,
   ],
 };
 
@@ -46,6 +64,19 @@ const formatRoleLabel = (role) => {
     student: "Student",
     parent: "Parent",
     staff: "Staff",
+    subject: "Subject",
+    attendance: "Attendance",
+    fee: "Fee",
+    notice: "Notice",
+    academicGroup: "Academic Group",
+    exam: "Exam",
+    timetable: "Timetable",
+    libraryBook: "Library Book",
+    transportVehicle: "Transport Vehicle",
+    transportRoute: "Transport Route",
+    hostel: "Hostel",
+    hostelRoom: "Hostel Room",
+    hostelBed: "Hostel Bed",
   };
 
   return labels[role] || role;
@@ -113,7 +144,7 @@ const RecycleBin = () => {
   };
 
   const handlePermanentDelete = async (item) => {
-    if (!window.confirm(`Permanently delete ${item.name}? This cannot be undone.`)) {
+    if (!(await window.confirm(`Permanently delete ${item.name}? This cannot be undone.`))) {
       return;
     }
 
@@ -140,7 +171,7 @@ const RecycleBin = () => {
       <PageHeader
         eyebrow={user?.role === "superadmin" ? "Super Admin" : "Admin"}
         title="Recycle Bin"
-        description={`Deleted user records stay here for ${retentionDays} days before permanent database removal.`}
+        description={`Deleted records stay here for ${retentionDays} days before permanent database removal.`}
       />
 
       <AlertMessage tone={messageTone} message={message} />
@@ -177,7 +208,7 @@ const RecycleBin = () => {
       {items.length === 0 ? (
         <EmptyState
           title="Recycle bin is empty"
-          description="Deleted teacher, student, parent, staff, and admin records will appear here before permanent cleanup."
+          description="Deleted records (teachers, students, subjects, attendance sheets, etc.) will appear here before permanent cleanup."
         />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
@@ -185,7 +216,7 @@ const RecycleBin = () => {
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-500">
                 <tr>
-                  <th className="px-6 py-4 font-medium">User</th>
+                  <th className="px-6 py-4 font-medium">Item</th>
                   <th className="px-6 py-4 font-medium">Role</th>
                   <th className="px-6 py-4 font-medium">Deleted On</th>
                   <th className="px-6 py-4 font-medium">Auto Delete</th>

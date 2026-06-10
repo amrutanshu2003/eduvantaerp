@@ -55,6 +55,18 @@ const Timetables = () => {
     }
   };
 
+  const handleDelete = async (timetableId) => {
+    if (!(await window.confirm("Are you sure you want to delete this timetable?"))) {
+      return;
+    }
+    try {
+      await api.delete(`/timetables/${timetableId}`);
+      setTimetables((current) => current.filter((item) => item._id !== timetableId));
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || "Unable to delete timetable");
+    }
+  };
+
   if (loading) return <LoadingBlock message="Loading timetables..." />;
 
   return (
@@ -102,6 +114,9 @@ const Timetables = () => {
                 <Link to={`/admin/timetables/${timetable._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Edit</Link>
                 <button type="button" onClick={() => handleStatusUpdate(timetable._id, timetable.status === "active" ? "inactive" : "active")} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
                   {timetable.status === "active" ? "Deactivate" : "Activate"}
+                </button>
+                <button type="button" onClick={() => handleDelete(timetable._id)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50">
+                  Delete
                 </button>
               </div>
             </div>

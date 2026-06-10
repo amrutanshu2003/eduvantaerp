@@ -32,7 +32,7 @@ const FeeDetails = () => {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this fee?")) return;
+    if (!(await window.confirm("Delete this fee?"))) return;
 
     try {
       await api.delete(`/fees/${id}`);

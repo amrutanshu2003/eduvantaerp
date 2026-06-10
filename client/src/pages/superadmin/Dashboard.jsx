@@ -20,6 +20,7 @@ const Dashboard = () => {
           { label: "Active Institutes", value: data.stats.activeInstitutes, detail: "Institutes currently active" },
           { label: "School Count", value: data.stats.schoolCount, detail: "School-type institutes" },
           { label: "College Count", value: data.stats.collegeCount, detail: "College-type institutes" },
+          { label: "University Count", value: data.stats.universityCount, detail: "University-type institutes" },
           { label: "Total Admins", value: data.stats.totalAdmins, detail: "Institute admin accounts created" },
           { label: "Trial / Expired", value: data.stats.trialExpiredInstitutes, detail: "Institutes needing subscription follow-up" },
         ]);

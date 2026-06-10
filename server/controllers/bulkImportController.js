@@ -171,7 +171,7 @@ const importAcademicGroupRow = async (row, context, req) => {
       throw new Error("school_level, class_name, and section are required for school institute");
     }
   } else if (!payload.programLevel || !payload.department || !payload.course || !payload.section) {
-    throw new Error("program_level, department, course, and section are required for college institute");
+    throw new Error(`program_level, department, course, and section are required for ${context.institute.instituteType} institute`);
   }
 
   const mentorEmail = getTrimmedValue(row, "mentor_teacher_email");

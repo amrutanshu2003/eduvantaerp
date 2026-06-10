@@ -41,7 +41,7 @@ const Staff = () => {
   };
 
   const handleDelete = async (member) => {
-    if (!window.confirm("Delete this staff member?")) return;
+    if (!(await window.confirm("Delete this staff member?"))) return;
     await api.delete(`/staff/${member._id}`);
     setMessageTone("success");
     setMessage("Staff deleted successfully");

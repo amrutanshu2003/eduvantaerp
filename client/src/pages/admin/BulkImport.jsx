@@ -8,7 +8,7 @@ const templates = {
   academic_groups: {
     label: "Academic Groups",
     description:
-      "For schools, fill `school_level,class_name,section`. For colleges, fill `program_level,department,course,section`.",
+      "For schools, fill `school_level,class_name,section`. For colleges or universities, fill `program_level,department,course,section`.",
     csv: `school_level,class_name,section,mentor_teacher_email,status
 Secondary,10,A,teacher1@school.com,active`,
   },
@@ -21,7 +21,7 @@ Sara Khan,sara.khan@school.com,Teacher@123,9876543210,TCH-001,MSc Physics,5 year
   students: {
     label: "Students",
     description:
-      "To link a student to an academic group, include that group's columns in the same row, such as `school_level,class_name,section` for schools.",
+      "To link a student to an academic group, include that group's columns in the same row, such as `school_level,class_name,section` for schools or `program_level,department,course,section` for colleges/universities.",
     csv: `name,email,password,phone,roll_number,admission_number,registration_number,dob,gender,blood_group,address,admission_date,school_level,class_name,section,status
 Ali Raza,ali.raza@student.com,Student@123,9876543201,12,ADM-1001,REG-501,2010-04-12,male,B+,Lahore,2026-04-01,Secondary,10,A,active`,
   },

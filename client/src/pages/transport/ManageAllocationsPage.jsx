@@ -55,7 +55,7 @@ const ManageAllocationsPage = ({ basePath, eyebrow, title, description }) => {
   };
 
   const handleDelete = async (allocationId) => {
-    if (!window.confirm("Delete this transport allocation?")) {
+    if (!(await window.confirm("Delete this transport allocation?"))) {
       return;
     }
 

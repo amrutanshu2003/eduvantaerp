@@ -1,13 +1,13 @@
 const getInstituteType = (user) => user?.institute?.instituteType || "school";
 
-const getTeacherLabel = (user) => (getInstituteType(user) === "college" ? "Faculty" : "Teacher");
-const getTeacherLabelPlural = (user) => (getInstituteType(user) === "college" ? "Faculty" : "Teachers");
-const getParentLabel = (user) => (getInstituteType(user) === "college" ? "Guardian" : "Parent");
-const getParentLabelPlural = (user) => (getInstituteType(user) === "college" ? "Guardians" : "Parents");
+const getTeacherLabel = (user) => (["college", "university"].includes(getInstituteType(user)) ? "Faculty" : "Teacher");
+const getTeacherLabelPlural = (user) => (["college", "university"].includes(getInstituteType(user)) ? "Faculty" : "Teachers");
+const getParentLabel = (user) => (["college", "university"].includes(getInstituteType(user)) ? "Guardian" : "Parent");
+const getParentLabelPlural = (user) => (["college", "university"].includes(getInstituteType(user)) ? "Guardians" : "Parents");
 const getAcademicGroupLabel = (user) =>
-  getInstituteType(user) === "college" ? "Academic Groups" : "Classes";
-const getSubjectLabel = (user) => (getInstituteType(user) === "college" ? "Subject / Paper" : "Subject");
-const getSubjectLabelPlural = (user) => (getInstituteType(user) === "college" ? "Subjects / Papers" : "Subjects");
+  ["college", "university"].includes(getInstituteType(user)) ? "Academic Groups" : "Classes";
+const getSubjectLabel = (user) => (["college", "university"].includes(getInstituteType(user)) ? "Subject / Paper" : "Subject");
+const getSubjectLabelPlural = (user) => (["college", "university"].includes(getInstituteType(user)) ? "Subjects / Papers" : "Subjects");
 
 export {
   getInstituteType,

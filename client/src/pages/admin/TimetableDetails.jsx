@@ -31,7 +31,7 @@ const TimetableDetails = () => {
   }, [id]);
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this timetable?")) return;
+    if (!(await window.confirm("Delete this timetable?"))) return;
     try {
       await api.delete(`/timetables/${id}`);
       window.alert("Timetable deleted successfully");

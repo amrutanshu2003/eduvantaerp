@@ -413,4 +413,71 @@ const recoverPrivilegedAccountPassword = async (req, res, next) => {
   }
 };
 
-export { loginUser, getProfile, forgotPassword, changePassword, resetManagedUserPassword, recoverPrivilegedAccountPassword };
+const updateProfile = async (req, res, next) => {
+  try {
+    const { name, email, phone } = req.body;
+    if (!name || !email) {
+      res.status(400);
+      throw new Error("Name and email are required");
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    // Check for email uniqueness if changed
+    if (email.toLowerCase().trim() !== user.email.toLowerCase().trim()) {
+      const duplicate = await User.findOne({
+        email: email.toLowerCase().trim(),
+        ...notDeletedFilter,
+      });
+      if (duplicate) {
+        res.status(400);
+        throw new Error("Email is already taken by another account");
+      }
+    }
+
+    // Check for phone uniqueness if changed
+    if (phone && phone.trim() !== user.phone) {
+      const duplicate = await User.findOne({
+        phone: phone.trim(),
+        ...notDeletedFilter,
+      });
+      if (duplicate) {
+        res.status(400);
+        throw new Error("Phone number is already taken by another account");
+      }
+    }
+
+    user.name = name.trim();
+    user.email = email.toLowerCase().trim();
+    if (phone !== undefined) {
+      user.phone = phone.trim();
+    }
+
+    await user.save();
+
+    await AuditLog.create({
+      instituteId: user.instituteId || null,
+      userId: user._id,
+      action: "update_profile",
+      module: "auth",
+      targetId: user._id,
+      targetType: "User",
+      metadata: { role: user.role },
+      ipAddress: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      user: serializeUser(user),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { loginUser, getProfile, forgotPassword, changePassword, resetManagedUserPassword, recoverPrivilegedAccountPassword, updateProfile };

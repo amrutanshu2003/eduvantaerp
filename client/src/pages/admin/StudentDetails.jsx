@@ -44,7 +44,7 @@ const StudentDetails = () => {
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Roll Number</p><p className="mt-3 font-semibold text-ink">{student.rollNumber}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Admission Number</p><p className="mt-3 font-semibold text-ink">{student.admissionNumber}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Status</p><div className="mt-3"><StatusBadge value={student.status} /></div></div>
-        <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Academic Group</p><p className="mt-3 font-semibold text-ink">{instituteType === "college" ? student.academicGroupId?.department || "-" : `${student.academicGroupId?.className || "-"} ${student.academicGroupId?.section ? `(${student.academicGroupId.section})` : ""}`}</p></div>
+        <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Academic Group</p><p className="mt-3 font-semibold text-ink">{["college", "university"].includes(instituteType) ? student.academicGroupId?.department || "-" : `${student.academicGroupId?.className || "-"} ${student.academicGroupId?.section ? `(${student.academicGroupId.section})` : ""}`}</p></div>
       </div>
       <UserPasswordResetModal
         open={showResetModal}

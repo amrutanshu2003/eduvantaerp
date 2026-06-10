@@ -9,6 +9,12 @@ import {
   deleteAdmin,
 } from "../controllers/adminUserController.js";
 import {
+  getSuperAdmins,
+  createSuperAdmin,
+  updateSuperAdmin,
+  deleteSuperAdmin,
+} from "../controllers/superAdminUserController.js";
+import {
   listRecycleBinItems,
   restoreRecycleBinItem,
   permanentlyDeleteRecycleBinItem,
@@ -33,6 +39,16 @@ router.route("/admins/:id")
   .delete(allowRoles("superadmin"), deleteAdmin);
 
 router.patch("/admins/:id/status", allowRoles("superadmin"), updateAdminStatus);
+
+// Superadmin superadmin management routes
+router.route("/superadmins")
+  .get(allowRoles("superadmin"), getSuperAdmins)
+  .post(allowRoles("superadmin"), createSuperAdmin);
+
+router.route("/superadmins/:id")
+  .put(allowRoles("superadmin"), updateSuperAdmin)
+  .delete(allowRoles("superadmin"), deleteSuperAdmin);
+
 router.get("/recycle-bin", listRecycleBinItems);
 router.patch("/recycle-bin/:entityType/:id/restore", restoreRecycleBinItem);
 router.delete("/recycle-bin/:entityType/:id/permanent", permanentlyDeleteRecycleBinItem);

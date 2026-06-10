@@ -53,7 +53,7 @@ const Students = () => {
   };
 
   const handleDelete = async (student) => {
-    if (!window.confirm("Delete this student?")) return;
+    if (!(await window.confirm("Delete this student?"))) return;
     await api.delete(`/students/${student._id}`);
     setMessageTone("success");
     setMessage("Student deleted successfully");

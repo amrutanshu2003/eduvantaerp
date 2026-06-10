@@ -55,7 +55,7 @@ const ManageRoomsPage = ({ basePath, eyebrow, title, description, nested = false
   };
 
   const handleDelete = async (roomId) => {
-    if (!window.confirm("Delete this room?")) {
+    if (!(await window.confirm("Delete this room?"))) {
       return;
     }
     try {

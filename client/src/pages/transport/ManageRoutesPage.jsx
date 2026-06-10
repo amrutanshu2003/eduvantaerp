@@ -52,7 +52,7 @@ const ManageRoutesPage = ({ basePath, eyebrow, title, description }) => {
   };
 
   const handleDelete = async (routeId) => {
-    if (!window.confirm("Delete this route?")) {
+    if (!(await window.confirm("Delete this route?"))) {
       return;
     }
 

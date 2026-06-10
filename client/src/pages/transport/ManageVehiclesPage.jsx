@@ -48,7 +48,7 @@ const ManageVehiclesPage = ({ basePath, eyebrow, title, description }) => {
   };
 
   const handleDelete = async (vehicleId) => {
-    if (!window.confirm("Delete this vehicle?")) {
+    if (!(await window.confirm("Delete this vehicle?"))) {
       return;
     }
 

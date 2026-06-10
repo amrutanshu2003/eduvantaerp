@@ -37,9 +37,9 @@ const validateAcademicGroup = (payload, instituteType) => {
     }
   }
 
-  if (instituteType === "college") {
+  if (instituteType === "college" || instituteType === "university") {
     if (!payload.programLevel || !payload.department || !payload.course || !payload.section) {
-      return "College academic group requires program level, department, course, and section";
+      return `${instituteType === "college" ? "College" : "University"} academic group requires program level, department, course, and section`;
     }
   }
 

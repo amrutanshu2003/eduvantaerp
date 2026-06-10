@@ -46,7 +46,7 @@ const Teachers = () => {
   };
 
   const handleDelete = async (teacher) => {
-    if (!window.confirm(`Delete this ${singularLabel.toLowerCase()}?`)) {
+    if (!(await window.confirm(`Delete this ${singularLabel.toLowerCase()}?`))) {
       return;
     }
     await api.delete(`/teachers/${teacher._id}`);

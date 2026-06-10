@@ -83,6 +83,7 @@ const Sidebar = () => {
     { label: "Create Institute", icon: FiPlusSquare, path: "/super-admin/institutes/create" },
     { label: "Global UI Settings", icon: FiSettings, path: "/super-admin/ui-settings" },
     { label: "Recycle Bin", icon: FiPackage, path: "/super-admin/recycle-bin" },
+    { label: "Settings / Profile", icon: FiSettings, path: "/super-admin/settings" },
   ];
 
   const adminItemsForSuper = [];
@@ -90,10 +91,18 @@ const Sidebar = () => {
     if (item.label === "Recycle Bin") {
       return;
     }
-    if (item.label === "Teachers") {
+    let newItem = { ...item };
+    if (newItem.label === "Academic Groups") {
+      newItem.label = getAcademicGroupLabel(user);
+    } else if (newItem.label === "Teachers") {
+      newItem.label = getTeacherLabelPlural(user);
       adminItemsForSuper.push({ label: "Admins", icon: FiShield, path: "/super-admin/admins" });
+    } else if (newItem.label === "Parents") {
+      newItem.label = getParentLabelPlural(user);
+    } else if (newItem.label === "Subjects") {
+      newItem.label = getSubjectLabelPlural(user);
     }
-    adminItemsForSuper.push(item);
+    adminItemsForSuper.push(newItem);
   });
 
   const menuItems =

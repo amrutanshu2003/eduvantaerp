@@ -99,6 +99,7 @@ import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 import Admins from "./pages/superadmin/Admins";
 import CreateAdmin from "./pages/superadmin/CreateAdmin";
 import EditAdmin from "./pages/superadmin/EditAdmin";
+import Settings from "./pages/superadmin/Settings";
 import TeacherAttendance from "./pages/teacher/Attendance";
 import TeacherAssignmentDetails from "./pages/teacher/AssignmentDetails";
 import TeacherAssignments from "./pages/teacher/Assignments";
@@ -177,6 +178,7 @@ const App = () => {
             <Route path="/super-admin/admins" element={<Admins />} />
             <Route path="/super-admin/admins/create" element={<CreateAdmin />} />
             <Route path="/super-admin/admins/:id/edit" element={<EditAdmin />} />
+            <Route path="/super-admin/settings" element={<Settings />} />
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["admin"]} />}>

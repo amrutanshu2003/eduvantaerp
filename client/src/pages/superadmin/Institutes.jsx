@@ -73,7 +73,7 @@ const Institutes = () => {
   };
 
   const handleDelete = async (institute) => {
-    if (!window.confirm(`Delete ${institute.name}? This will soft delete the institute.`)) {
+    if (!(await window.confirm(`Delete ${institute.name}? This will soft delete the institute.`))) {
       return;
     }
 
@@ -96,6 +96,7 @@ const Institutes = () => {
             { label: "Active Institutes", value: stats.activeInstitutes, detail: "Institutes currently enabled" },
             { label: "Schools", value: stats.schoolCount, detail: "School-type institutes" },
             { label: "Colleges", value: stats.collegeCount, detail: "College-type institutes" },
+            { label: "Universities", value: stats.universityCount, detail: "University-type institutes" },
             { label: "Total Admins", value: stats.totalAdmins, detail: "Institute admin accounts" },
             { label: "Trial / Expired", value: stats.trialExpiredInstitutes, detail: "Follow-up subscription targets" },
           ]

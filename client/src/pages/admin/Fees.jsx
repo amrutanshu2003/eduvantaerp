@@ -61,7 +61,7 @@ const Fees = () => {
   }, [fees, filters.search]);
 
   const handleDelete = async (feeId) => {
-    if (!window.confirm("Delete this fee?")) return;
+    if (!(await window.confirm("Delete this fee?"))) return;
 
     try {
       await api.delete(`/fees/${feeId}`);

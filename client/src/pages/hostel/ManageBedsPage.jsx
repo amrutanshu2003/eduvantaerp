@@ -56,7 +56,7 @@ const ManageBedsPage = ({ basePath, eyebrow, title, description, nested = false 
   };
 
   const handleDelete = async (bedId) => {
-    if (!window.confirm("Delete this bed?")) {
+    if (!(await window.confirm("Delete this bed?"))) {
       return;
     }
     try {

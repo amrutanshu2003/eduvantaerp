@@ -8,7 +8,7 @@ import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
-import { getSubjectLabelPlural } from "../../utils/instituteLabels";
+import { getSubjectLabelPlural, getInstituteType } from "../../utils/instituteLabels";
 
 const Subjects = () => {
   const { user } = useAuth();
@@ -31,14 +31,28 @@ const Subjects = () => {
     loadSubjects();
   }, []);
 
+  const handleDelete = async (subjectId) => {
+    if (!(await window.confirm("Are you sure you want to delete this subject?"))) {
+      return;
+    }
+    try {
+      await api.delete(`/subjects/${subjectId}`);
+      setSubjects((current) => current.filter((s) => s._id !== subjectId));
+    } catch (error) {
+      setErrorMessage(error.response?.data?.message || "Unable to delete subject");
+    }
+  };
+
   if (loading) return <LoadingBlock message="Loading subjects..." />;
+
+  const instituteType = getInstituteType(user);
 
   return (
     <section className="space-y-6">
       <PageHeader
         eyebrow="Admin"
         title={getSubjectLabelPlural(user)}
-        description="Manage subjects, academic group mapping and faculty assignment."
+        description={`Manage subjects, ${["college", "university"].includes(instituteType) ? "academic group" : "class"} mapping and faculty assignment.`}
         actions={
           <div className="flex flex-wrap gap-3">
             <Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
@@ -64,7 +78,9 @@ const Subjects = () => {
               <thead className="bg-slate-50 text-slate-500">
                 <tr>
                   <th className="px-6 py-4 font-medium">Subject</th>
-                  <th className="px-6 py-4 font-medium">Academic Group</th>
+                  <th className="px-6 py-4 font-medium">
+                    {["college", "university"].includes(instituteType) ? "Academic Group" : "Class"}
+                  </th>
                   <th className="px-6 py-4 font-medium">Teacher</th>
                   <th className="px-6 py-4 font-medium">Status</th>
                   <th className="px-6 py-4 font-medium">Actions</th>
@@ -95,6 +111,13 @@ const Subjects = () => {
                         <Link to={`/admin/subjects/${subject._id}/assign-teacher`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
                           Assign
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(subject._id)}
+                          className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>

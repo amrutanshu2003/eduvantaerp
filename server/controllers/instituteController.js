@@ -145,13 +145,14 @@ const getInstitutes = async (req, res, next) => {
       ];
     }
 
-    const [institutes, totalInstitutes, activeInstitutes, schoolCount, collegeCount, totalAdmins, trialExpiredInstitutes] =
+    const [institutes, totalInstitutes, activeInstitutes, schoolCount, collegeCount, universityCount, totalAdmins, trialExpiredInstitutes] =
       await Promise.all([
         Institute.find(query).select(instituteSelectFields).sort({ createdAt: -1 }),
         Institute.countDocuments({ isDeleted: false }),
         Institute.countDocuments({ isDeleted: false, status: "active" }),
         Institute.countDocuments({ isDeleted: false, instituteType: "school" }),
         Institute.countDocuments({ isDeleted: false, instituteType: "college" }),
+        Institute.countDocuments({ isDeleted: false, instituteType: "university" }),
         User.countDocuments({ role: "admin", status: "active" }),
         Institute.countDocuments({ isDeleted: false, paymentStatus: { $in: ["trial", "expired"] } }),
       ]);
@@ -163,6 +164,7 @@ const getInstitutes = async (req, res, next) => {
         activeInstitutes,
         schoolCount,
         collegeCount,
+        universityCount,
         totalAdmins,
         trialExpiredInstitutes,
       },

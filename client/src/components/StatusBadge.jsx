@@ -27,6 +27,7 @@ const badgeMap = {
   overdue: "bg-rose-100 text-rose-700",
   school: "bg-cyan-100 text-cyan-700",
   college: "bg-indigo-100 text-indigo-700",
+  university: "bg-violet-100 text-violet-700",
   boys: "bg-sky-100 text-sky-700",
   girls: "bg-rose-100 text-rose-700",
   "co ed": "bg-violet-100 text-violet-700",
