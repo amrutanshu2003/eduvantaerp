@@ -8,6 +8,17 @@ const notDeletedFilter = {
   $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
 };
 
+const findMatchingUserByPassword = async (users, password) => {
+  for (const candidate of users) {
+    const isMatched = await candidate.matchPassword(password);
+    if (isMatched) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
+
 const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -15,64 +26,72 @@ const loginUser = async (req, res, next) => {
 
     if (!normalizedIdentifier || !password) {
       res.status(400);
-      throw new Error("Username/Email or Roll number and password are required");
+      throw new Error("Username and password are required");
     }
 
-    let user = null;
-    let identifierExists = false;
-
-    // 1. Search by email first
-    const emailUser = await User.findOne({
-      email: normalizedIdentifier.toLowerCase(),
-      ...notDeletedFilter,
-    })
-      .select("+password")
-      .populate("instituteId", "name instituteCode instituteType status");
-
-    if (emailUser) {
-      identifierExists = true;
-      const isMatched = await emailUser.matchPassword(password);
-      if (isMatched) {
-        user = emailUser;
-      }
-    } else {
-      // 2. Search by roll number
-      const studentProfiles = await Student.find({
+    const normalizedEmail = normalizedIdentifier.toLowerCase();
+    const [emailUsers, phoneUsers, employeeIdUsers, staffIdUsers, studentProfiles] = await Promise.all([
+      User.find({
+        email: normalizedEmail,
+        ...notDeletedFilter,
+      })
+        .select("+password")
+        .populate("instituteId", "name instituteCode instituteType status"),
+      User.find({
+        phone: normalizedIdentifier,
+        ...notDeletedFilter,
+      })
+        .select("+password")
+        .populate("instituteId", "name instituteCode instituteType status"),
+      User.find({
+        employeeId: normalizedIdentifier,
+        ...notDeletedFilter,
+      })
+        .select("+password")
+        .populate("instituteId", "name instituteCode instituteType status"),
+      User.find({
+        staffId: normalizedIdentifier,
+        ...notDeletedFilter,
+      })
+        .select("+password")
+        .populate("instituteId", "name instituteCode instituteType status"),
+      Student.find({
         rollNumber: normalizedIdentifier,
         ...notDeletedFilter,
-      });
-      if (studentProfiles.length > 0) {
-        identifierExists = true;
-        // Search if any associated user matches password
-        for (const profile of studentProfiles) {
-          const potentialUser = await User.findOne({
-            _id: profile.userId,
-            ...notDeletedFilter,
-          })
-            .select("+password")
-            .populate("instituteId", "name instituteCode instituteType status");
-          
-          if (potentialUser) {
-            const isMatched = await potentialUser.matchPassword(password);
-            if (isMatched) {
-              user = potentialUser;
-              break;
-            }
-          }
-        }
+      }),
+    ]);
+
+    const studentUsers = studentProfiles.length
+      ? await User.find({
+          _id: { $in: studentProfiles.map((profile) => profile.userId) },
+          ...notDeletedFilter,
+        })
+          .select("+password")
+          .populate("instituteId", "name instituteCode instituteType status")
+      : [];
+
+    const allCandidates = [...emailUsers, ...phoneUsers, ...employeeIdUsers, ...staffIdUsers, ...studentUsers];
+    const uniqueCandidates = [];
+    const seenIds = new Set();
+
+    allCandidates.forEach((candidate) => {
+      const candidateId = String(candidate._id);
+      if (!seenIds.has(candidateId)) {
+        seenIds.add(candidateId);
+        uniqueCandidates.push(candidate);
       }
-    }
+    });
 
-    // If neither email nor roll number exists
-    if (!identifierExists) {
+    if (uniqueCandidates.length === 0) {
       res.status(401);
-      throw new Error("Invalid username or roll number");
+      throw new Error("Invalid username or password");
     }
 
-    // If identifier exists, but password didn't match for any profile
+    const user = await findMatchingUserByPassword(uniqueCandidates, password);
+
     if (!user) {
       res.status(401);
-      throw new Error("Invalid password");
+      throw new Error("Invalid username or password");
     }
 
     if (user.status !== "active") {
