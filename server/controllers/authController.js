@@ -1,8 +1,10 @@
 import AuditLog from "../models/AuditLog.js";
 import User from "../models/User.js";
 import Student from "../models/Student.js";
+import UISettings from "../models/UISettings.js";
 import generateToken from "../utils/generateToken.js";
 import { serializeUser } from "../utils/serializers.js";
+import bcrypt from "bcryptjs";
 
 const notDeletedFilter = {
   $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
@@ -342,4 +344,73 @@ const resetManagedUserPassword = async (req, res, next) => {
   }
 };
 
-export { loginUser, getProfile, forgotPassword, changePassword, resetManagedUserPassword };
+const recoverPrivilegedAccountPassword = async (req, res, next) => {
+  try {
+    const { role, email, phone, recoveryKey, newPassword } = req.body;
+
+    if (!["admin", "superadmin"].includes(role)) {
+      res.status(400);
+      throw new Error("Recovery is only available for admin and super admin accounts");
+    }
+
+    if (!email?.trim() || !phone?.trim() || !recoveryKey?.trim() || !newPassword?.trim()) {
+      res.status(400);
+      throw new Error("Role, email, mobile number, recovery key, and new password are required");
+    }
+
+    if (newPassword.trim().length < 6) {
+      res.status(400);
+      throw new Error("New password must be at least 6 characters");
+    }
+
+    const settings = await UISettings.findOne({ instituteId: null }).select("+privilegedRecoveryKeyHash");
+    if (!settings?.privilegedRecoveryEnabled || !settings?.privilegedRecoveryKeyHash) {
+      res.status(403);
+      throw new Error("Secure recovery is currently disabled");
+    }
+
+    const isRecoveryKeyValid = await bcrypt.compare(recoveryKey.trim(), settings.privilegedRecoveryKeyHash);
+    if (!isRecoveryKeyValid) {
+      res.status(403);
+      throw new Error("Recovery verification failed");
+    }
+
+    const user = await User.findOne({
+      role,
+      email: email.trim().toLowerCase(),
+      phone: phone.trim(),
+      ...notDeletedFilter,
+    }).select("+password");
+
+    if (!user) {
+      res.status(400);
+      throw new Error("Recovery verification failed");
+    }
+
+    user.password = newPassword.trim();
+    await user.save();
+
+    await AuditLog.create({
+      instituteId: user.instituteId || null,
+      userId: user._id,
+      action: "privileged_recovery_reset",
+      module: "auth",
+      targetId: user._id,
+      targetType: "User",
+      metadata: {
+        role,
+        recoveredFromPublicFlow: true,
+      },
+      ipAddress: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `${role === "superadmin" ? "Super Admin" : "Admin"} password reset successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { loginUser, getProfile, forgotPassword, changePassword, resetManagedUserPassword, recoverPrivilegedAccountPassword };

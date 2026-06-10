@@ -15,6 +15,8 @@ const defaultSettings = {
   themeMode: "system",
   footerText: "Smart ERP for Schools, Colleges & Universities",
   captchaEnabled: true,
+  privilegedRecoveryEnabled: false,
+  privilegedRecoveryHint: "",
 };
 
 const getBootstrappedThemeMode = () => {

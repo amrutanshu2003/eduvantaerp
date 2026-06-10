@@ -9,9 +9,13 @@ const GlobalUISettings = () => {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
+  const [recoveryKey, setRecoveryKey] = useState("");
+  const [clearRecoveryKey, setClearRecoveryKey] = useState(false);
 
   useEffect(() => {
     setFormData(settings);
+    setRecoveryKey("");
+    setClearRecoveryKey(false);
   }, [settings]);
 
   const handleChange = (event) => {
@@ -28,10 +32,16 @@ const GlobalUISettings = () => {
     setMessage("");
 
     try {
-      await updateGlobalSettings(formData);
+      await updateGlobalSettings({
+        ...formData,
+        privilegedRecoveryKey: recoveryKey,
+        clearPrivilegedRecoveryKey: clearRecoveryKey,
+      });
       setMessageTone("success");
       setMessage("Global UI settings updated successfully");
       await refreshSettings();
+      setRecoveryKey("");
+      setClearRecoveryKey(false);
     } catch (error) {
       setMessageTone("error");
       setMessage(error.response?.data?.message || "Unable to update UI settings");
@@ -120,6 +130,64 @@ const GlobalUISettings = () => {
                 </label>
               </div>
             </div>
+            <div className="rounded-[1.5rem] border border-slate-200 p-4 md:col-span-2">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Enable Secure Admin Recovery URL</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Let Admin and Super Admin recover their own password from a hidden URL using email, mobile number, and a separate recovery key.
+                  </p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    name="privilegedRecoveryEnabled"
+                    checked={Boolean(formData.privilegedRecoveryEnabled)}
+                    onChange={handleToggleChange}
+                    className="peer sr-only"
+                  />
+                  <span
+                    className="h-7 w-14 rounded-full transition-colors duration-200"
+                    style={{ backgroundColor: formData.privilegedRecoveryEnabled ? formData.primaryColor : "#cbd5e1" }}
+                  />
+                  <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${formData.privilegedRecoveryEnabled ? "translate-x-7" : "translate-x-0"}`} />
+                </label>
+              </div>
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Recovery Key Hint</label>
+                  <input
+                    name="privilegedRecoveryHint"
+                    value={formData.privilegedRecoveryHint || ""}
+                    onChange={handleChange}
+                    className={inputClassName}
+                    placeholder="Example: Owner recovery phrase"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">Set New Recovery Key</label>
+                  <input
+                    type="password"
+                    value={recoveryKey}
+                    onChange={(event) => setRecoveryKey(event.target.value)}
+                    className={inputClassName}
+                    placeholder="Enter a separate secret recovery key"
+                  />
+                </div>
+              </div>
+              <label className="mt-4 flex items-center gap-3 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={clearRecoveryKey}
+                  onChange={(event) => setClearRecoveryKey(event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                />
+                Clear existing recovery key and disable secure recovery
+              </label>
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                Hidden recovery URLs: <span className="font-semibold text-slate-700">/secure/super-admin/recovery</span> and <span className="font-semibold text-slate-700">/secure/account-recovery</span>
+              </p>
+            </div>
             <div className="md:col-span-2">
               <label className="mb-2 block text-sm font-medium text-slate-700">Footer Text</label>
               <textarea
@@ -162,6 +230,12 @@ const GlobalUISettings = () => {
                 <span>Captcha on login</span>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.captchaEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
                   {formData.captchaEnabled ? "Enabled" : "Disabled"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                <span>Secure admin recovery</span>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.privilegedRecoveryEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                  {formData.privilegedRecoveryEnabled ? "Enabled" : "Disabled"}
                 </span>
               </div>
               <button

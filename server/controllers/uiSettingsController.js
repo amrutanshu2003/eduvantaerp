@@ -1,5 +1,6 @@
 import AuditLog from "../models/AuditLog.js";
 import UISettings from "../models/UISettings.js";
+import bcrypt from "bcryptjs";
 
 const defaultGlobalSettings = {
   instituteId: null,
@@ -13,6 +14,18 @@ const defaultGlobalSettings = {
   themeMode: "system",
   footerText: "Smart ERP for Schools, Colleges & Universities",
   captchaEnabled: true,
+  privilegedRecoveryEnabled: false,
+  privilegedRecoveryHint: "",
+};
+
+const sanitizeSettings = (settings) => {
+  if (!settings) {
+    return defaultGlobalSettings;
+  }
+
+  const plainSettings = settings.toObject ? settings.toObject() : settings;
+  const { privilegedRecoveryKeyHash, ...safeSettings } = plainSettings;
+  return safeSettings;
 };
 
 const getGlobalUISettings = async (req, res, next) => {
@@ -20,7 +33,7 @@ const getGlobalUISettings = async (req, res, next) => {
     const settings = await UISettings.findOne({ instituteId: null });
 
     res.json({
-      settings: settings || defaultGlobalSettings,
+      settings: sanitizeSettings(settings),
     });
   } catch (error) {
     next(error);
@@ -40,6 +53,11 @@ const updateGlobalUISettings = async (req, res, next) => {
       themeMode: req.body.themeMode || defaultGlobalSettings.themeMode,
       footerText: req.body.footerText?.trim() || defaultGlobalSettings.footerText,
       captchaEnabled: typeof req.body.captchaEnabled === "boolean" ? req.body.captchaEnabled : defaultGlobalSettings.captchaEnabled,
+      privilegedRecoveryEnabled:
+        typeof req.body.privilegedRecoveryEnabled === "boolean"
+          ? req.body.privilegedRecoveryEnabled
+          : defaultGlobalSettings.privilegedRecoveryEnabled,
+      privilegedRecoveryHint: req.body.privilegedRecoveryHint?.trim() || "",
       instituteId: null,
     };
 
@@ -53,10 +71,18 @@ const updateGlobalUISettings = async (req, res, next) => {
       throw new Error("Theme mode must be light, dark, or system");
     }
 
+    if (req.body.clearPrivilegedRecoveryKey === true) {
+      payload.privilegedRecoveryKeyHash = "";
+      payload.privilegedRecoveryEnabled = false;
+    } else if (req.body.privilegedRecoveryKey?.trim()) {
+      payload.privilegedRecoveryKeyHash = await bcrypt.hash(req.body.privilegedRecoveryKey.trim(), 10);
+    }
+
     const settings = await UISettings.findOneAndUpdate({ instituteId: null }, payload, {
       new: true,
       upsert: true,
       setDefaultsOnInsert: true,
+      runValidators: true,
     });
 
     await AuditLog.create({
@@ -71,7 +97,7 @@ const updateGlobalUISettings = async (req, res, next) => {
 
     res.json({
       message: "Global UI settings updated successfully",
-      settings,
+      settings: sanitizeSettings(settings),
     });
   } catch (error) {
     next(error);

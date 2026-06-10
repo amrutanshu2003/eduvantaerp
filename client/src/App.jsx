@@ -3,6 +3,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Login from "./pages/Login";
+import SecureAccountRecovery from "./pages/SecureAccountRecovery";
 import Unauthorized from "./pages/Unauthorized";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AcademicGroupDetails from "./pages/admin/AcademicGroupDetails";
@@ -157,6 +158,8 @@ const App = () => {
       <CustomAlert />
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/secure/super-admin/recovery" element={<SecureAccountRecovery />} />
+        <Route path="/secure/account-recovery" element={<SecureAccountRecovery />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route element={<ProtectedRoute />}>

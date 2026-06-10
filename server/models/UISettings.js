@@ -50,6 +50,20 @@ const uiSettingsSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    privilegedRecoveryEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    privilegedRecoveryHint: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    privilegedRecoveryKeyHash: {
+      type: String,
+      default: "",
+      select: false,
+    },
   },
   {
     timestamps: true,
