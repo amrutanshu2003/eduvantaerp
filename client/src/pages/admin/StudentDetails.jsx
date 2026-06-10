@@ -5,6 +5,7 @@ import AlertMessage from "../../components/AlertMessage";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import UserPasswordResetModal from "../../components/UserPasswordResetModal";
 import { useAuth } from "../../context/AuthContext";
 import { getInstituteType } from "../../utils/instituteLabels";
 
@@ -15,6 +16,8 @@ const StudentDetails = () => {
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [message, setMessage] = useState("");
+  const [showResetModal, setShowResetModal] = useState(false);
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -35,13 +38,22 @@ const StudentDetails = () => {
 
   return (
     <section className="space-y-6">
-      <PageHeader eyebrow="Student" title={student.user?.name} description="Review student login and academic details." actions={<Link to={`/admin/students/${id}/edit`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Edit Student</Link>} />
+      <PageHeader eyebrow="Student" title={student.user?.name} description="Review student login and academic details." actions={<div className="flex flex-wrap gap-3"><button type="button" onClick={() => setShowResetModal(true)} className="rounded-full border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-700">Reset Password</button><Link to={`/admin/students/${id}/edit`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Edit Student</Link></div>} />
+      {message ? <AlertMessage tone="success" message={message} /> : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Roll Number</p><p className="mt-3 font-semibold text-ink">{student.rollNumber}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Admission Number</p><p className="mt-3 font-semibold text-ink">{student.admissionNumber}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Status</p><div className="mt-3"><StatusBadge value={student.status} /></div></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Academic Group</p><p className="mt-3 font-semibold text-ink">{instituteType === "college" ? student.academicGroupId?.department || "-" : `${student.academicGroupId?.className || "-"} ${student.academicGroupId?.section ? `(${student.academicGroupId.section})` : ""}`}</p></div>
       </div>
+      <UserPasswordResetModal
+        open={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        targetId={student._id}
+        targetRole="student"
+        targetLabel={student.user?.name || "Student"}
+        onSuccess={setMessage}
+      />
     </section>
   );
 };

@@ -560,12 +560,6 @@ const Login = () => {
             <p className="reveal-soft reveal-delay-2 mt-3 text-sm leading-6 text-slate-500">
               Sign in to continue to {settings.appName} and manage your institute workflows securely.
             </p>
-            <p className="reveal-soft reveal-delay-3 mt-2 text-sm leading-6 text-slate-500">
-              Use email, teacher ID, employee ID, mobile number, or roll number as your username.
-            </p>
-            <p className="reveal-soft reveal-delay-4 mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-              If you forgot your password, contact your Admin or Super Admin for a new password.
-            </p>
 
             <form className="reveal-stagger mt-8 space-y-5" onSubmit={handleSubmit} autoComplete="on" method="post">
               <div

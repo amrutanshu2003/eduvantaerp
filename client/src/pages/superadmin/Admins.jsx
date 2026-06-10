@@ -6,6 +6,7 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import UserPasswordResetModal from "../../components/UserPasswordResetModal";
 import { useUISettings } from "../../context/UISettingsContext";
 
 const filterDefaults = {
@@ -22,6 +23,7 @@ const Admins = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
+  const [selectedAdmin, setSelectedAdmin] = useState(null);
 
   const fetchAdminsAndInstitutes = async () => {
     try {
@@ -191,6 +193,13 @@ const Admins = () => {
                         </Link>
                         <button
                           type="button"
+                          onClick={() => setSelectedAdmin(admin)}
+                          className="rounded-full border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700"
+                        >
+                          Reset Password
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleStatusToggle(admin)}
                           className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
                         >
@@ -212,6 +221,17 @@ const Admins = () => {
           </div>
         </div>
       )}
+      <UserPasswordResetModal
+        open={Boolean(selectedAdmin)}
+        onClose={() => setSelectedAdmin(null)}
+        targetId={selectedAdmin?._id}
+        targetRole="admin"
+        targetLabel={selectedAdmin?.name || "Admin"}
+        onSuccess={(nextMessage) => {
+          setMessageTone("success");
+          setMessage(nextMessage);
+        }}
+      />
     </section>
   );
 };

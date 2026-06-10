@@ -5,6 +5,7 @@ import AlertMessage from "../../components/AlertMessage";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import UserPasswordResetModal from "../../components/UserPasswordResetModal";
 import { useAuth } from "../../context/AuthContext";
 import { getTeacherLabel } from "../../utils/instituteLabels";
 
@@ -15,6 +16,8 @@ const TeacherDetails = () => {
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [message, setMessage] = useState("");
+  const [showResetModal, setShowResetModal] = useState(false);
 
   useEffect(() => {
     const fetchTeacher = async () => {
@@ -35,13 +38,22 @@ const TeacherDetails = () => {
 
   return (
     <section className="space-y-6">
-      <PageHeader eyebrow={label} title={teacher.name} description={`Review ${label.toLowerCase()} profile, department and status.`} actions={<div className="flex gap-3"><Link to={`/admin/teachers/${id}/edit`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Edit</Link><Link to={`/admin/teachers/${id}/assign`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Assign Academic Groups</Link></div>} />
+      <PageHeader eyebrow={label} title={teacher.name} description={`Review ${label.toLowerCase()} profile, department and status.`} actions={<div className="flex flex-wrap gap-3"><button type="button" onClick={() => setShowResetModal(true)} className="rounded-full border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-700">Reset Password</button><Link to={`/admin/teachers/${id}/edit`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Edit</Link><Link to={`/admin/teachers/${id}/assign`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Assign Academic Groups</Link></div>} />
+      {message ? <AlertMessage tone="success" message={message} /> : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Email</p><p className="mt-3 font-semibold text-ink">{teacher.email}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Employee ID</p><p className="mt-3 font-semibold text-ink">{teacher.employeeId || "-"}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Department</p><p className="mt-3 font-semibold text-ink">{teacher.department || "-"}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Status</p><div className="mt-3"><StatusBadge value={teacher.status} /></div></div>
       </div>
+      <UserPasswordResetModal
+        open={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        targetId={teacher._id}
+        targetRole="teacher"
+        targetLabel={teacher.name}
+        onSuccess={setMessage}
+      />
     </section>
   );
 };

@@ -239,4 +239,107 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-export { loginUser, getProfile, forgotPassword, changePassword };
+const resetManagedUserPassword = async (req, res, next) => {
+  try {
+    const { targetRole, targetId, newPassword } = req.body;
+
+    if (!["admin", "superadmin"].includes(req.user.role)) {
+      res.status(403);
+      throw new Error("Only admin or super admin can reset user passwords");
+    }
+
+    if (!targetRole || !targetId || !newPassword) {
+      res.status(400);
+      throw new Error("Target role, target ID, and new password are required");
+    }
+
+    if (newPassword.trim().length < 6) {
+      res.status(400);
+      throw new Error("New password must be at least 6 characters");
+    }
+
+    const allowedRoleMap = {
+      admin: ["teacher", "student", "parent", "staff"],
+      superadmin: ["teacher", "student", "parent", "staff", "admin"],
+    };
+
+    if (!allowedRoleMap[req.user.role]?.includes(targetRole)) {
+      res.status(403);
+      throw new Error("You are not allowed to reset the password for this role");
+    }
+
+    let targetUser = null;
+    let instituteId = null;
+    let auditTargetId = targetId;
+    let auditTargetType = "User";
+
+    if (targetRole === "student") {
+      const student = await Student.findOne({
+        _id: targetId,
+        ...notDeletedFilter,
+      });
+
+      if (!student) {
+        res.status(404);
+        throw new Error("Student not found");
+      }
+
+      targetUser = await User.findById(student.userId).select("+password");
+      if (!targetUser || targetUser.isDeleted) {
+        res.status(404);
+        throw new Error("Student login account not found");
+      }
+
+      instituteId = student.instituteId;
+      auditTargetType = "Student";
+    } else {
+      targetUser = await User.findOne({
+        _id: targetId,
+        role: targetRole,
+        ...notDeletedFilter,
+      }).select("+password");
+
+      if (!targetUser) {
+        res.status(404);
+        throw new Error("Target user not found");
+      }
+
+      instituteId = targetUser.instituteId || null;
+    }
+
+    if (
+      req.user.role === "admin" &&
+      String(instituteId || "") !== String(req.user.instituteId?._id || req.user.instituteId || "")
+    ) {
+      res.status(403);
+      throw new Error("You can only reset passwords inside your own institute");
+    }
+
+    targetUser.password = newPassword.trim();
+    await targetUser.save();
+
+    await AuditLog.create({
+      instituteId,
+      userId: req.user._id,
+      action: "managed_password_reset",
+      module: "auth",
+      targetId: auditTargetId,
+      targetType: auditTargetType,
+      metadata: {
+        targetRole,
+        resetByRole: req.user.role,
+        targetUserId: targetUser._id,
+      },
+      ipAddress: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: `${targetRole.charAt(0).toUpperCase() + targetRole.slice(1)} password updated successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { loginUser, getProfile, forgotPassword, changePassword, resetManagedUserPassword };

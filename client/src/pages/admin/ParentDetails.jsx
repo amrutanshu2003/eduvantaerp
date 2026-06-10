@@ -5,6 +5,7 @@ import AlertMessage from "../../components/AlertMessage";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import UserPasswordResetModal from "../../components/UserPasswordResetModal";
 import { useAuth } from "../../context/AuthContext";
 import { getParentLabel } from "../../utils/instituteLabels";
 
@@ -15,6 +16,8 @@ const ParentDetails = () => {
   const [parent, setParent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [message, setMessage] = useState("");
+  const [showResetModal, setShowResetModal] = useState(false);
 
   useEffect(() => {
     const fetchParent = async () => {
@@ -35,13 +38,22 @@ const ParentDetails = () => {
 
   return (
     <section className="space-y-6">
-      <PageHeader eyebrow={label} title={parent.name} description={`Review ${label.toLowerCase()} profile and linked students.`} actions={<div className="flex gap-3"><Link to={`/admin/parents/${id}/edit`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Edit</Link><Link to={`/admin/parents/${id}/link-students`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Link Students</Link></div>} />
+      <PageHeader eyebrow={label} title={parent.name} description={`Review ${label.toLowerCase()} profile and linked students.`} actions={<div className="flex flex-wrap gap-3"><button type="button" onClick={() => setShowResetModal(true)} className="rounded-full border border-amber-200 px-4 py-3 text-sm font-semibold text-amber-700">Reset Password</button><Link to={`/admin/parents/${id}/edit`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Edit</Link><Link to={`/admin/parents/${id}/link-students`} className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700">Link Students</Link></div>} />
+      {message ? <AlertMessage tone="success" message={message} /> : null}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Email</p><p className="mt-3 font-semibold text-ink">{parent.email}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Relation</p><p className="mt-3 font-semibold text-ink capitalize">{parent.relation || "-"}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Linked Students</p><p className="mt-3 font-semibold text-ink">{parent.linkedStudentIds?.length || 0}</p></div>
         <div className="rounded-[1.5rem] bg-white p-5 shadow-card"><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Status</p><div className="mt-3"><StatusBadge value={parent.status} /></div></div>
       </div>
+      <UserPasswordResetModal
+        open={showResetModal}
+        onClose={() => setShowResetModal(false)}
+        targetId={parent._id}
+        targetRole="parent"
+        targetLabel={parent.name}
+        onSuccess={setMessage}
+      />
     </section>
   );
 };
