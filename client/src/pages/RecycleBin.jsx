@@ -21,6 +21,7 @@ const genericFilterOptions = [
   { value: "hostel", label: "Hostels" },
   { value: "hostelRoom", label: "Hostel Rooms" },
   { value: "hostelBed", label: "Hostel Beds" },
+  { value: "institute", label: "Institutes" },
 ];
 
 const filterOptionsByRole = {
@@ -77,6 +78,7 @@ const formatRoleLabel = (role) => {
     hostel: "Hostel",
     hostelRoom: "Hostel Room",
     hostelBed: "Hostel Bed",
+    institute: "Institute",
   };
 
   return labels[role] || role;

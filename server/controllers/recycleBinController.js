@@ -225,6 +225,18 @@ const ENTITY_CONFIG = {
       status: item.isOccupied ? "Occupied" : "Available",
     }),
   },
+  institute: {
+    model: Institute,
+    searchFields: ["name", "instituteCode", "email"],
+    populate: [],
+    getName: (item) => item.name,
+    getEmail: (item) => `Code: ${item.instituteCode} | Email: ${item.email}`,
+    getPhone: (item) => `Type: ${item.instituteType} | Phone: ${item.phone || "-"}`,
+    getMeta: (item) => ({
+      plan: item.plan,
+      paymentStatus: item.paymentStatus,
+    }),
+  },
 };
 
 const listRecycleBinItems = async (req, res, next) => {
