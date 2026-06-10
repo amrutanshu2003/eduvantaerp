@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import LatestNoticesPanel from "../../components/LatestNoticesPanel";
-import LoadingBlock from "../../components/LoadingBlock";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import {
@@ -11,6 +10,14 @@ import {
   getParentLabelPlural,
   getTeacherLabelPlural,
 } from "../../utils/instituteLabels";
+
+// Shimmer skeleton for a stat card
+const StatCardSkeleton = () => (
+  <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card">
+    <div className="skeleton-block h-3 w-24 rounded-full" />
+    <div className="skeleton-block mt-5 h-9 w-16 rounded-xl" />
+  </div>
+);
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -39,8 +46,6 @@ const Dashboard = () => {
     };
     fetchStats();
   }, []);
-
-  if (loading) return <LoadingBlock message="Loading admin dashboard..." />;
 
   const cardColors = [
     "bg-blue-500",
@@ -115,55 +120,59 @@ const Dashboard = () => {
   ];
 
   const cards = [
-    { label: "Total Students", value: stats?.totalStudents || 0 },
-    { label: `Total ${getTeacherLabelPlural(user)}`, value: stats?.totalTeachers || 0 },
-    { label: `Total ${getParentLabelPlural(user)}`, value: stats?.totalParents || 0 },
-    { label: "Total Staff", value: stats?.totalStaff || 0 },
-    { label: `Total ${getAcademicGroupLabel(user)}`, value: stats?.totalAcademicGroups || 0 },
-    { label: "Active Students", value: stats?.activeStudents || 0 },
-    { label: "Active Staff", value: stats?.activeStaff || 0 },
-    { label: "Total Subjects", value: phase4Stats?.totalSubjects || 0 },
-    { label: "Total Exams", value: phase4Stats?.totalExams || 0 },
-    { label: "Today Attendance", value: phase4Stats?.todayAttendanceCount || 0 },
-    { label: "Pending Marks", value: phase4Stats?.pendingMarks || 0 },
-    { label: "Published Results", value: phase4Stats?.publishedResults || 0 },
-    { label: "Published Notices", value: phase4Stats?.publishedNotices || 0 },
-    { label: "Draft Notices", value: phase4Stats?.draftNotices || 0 },
-    { label: "Pending Fees", value: phase4Stats?.pendingFees || 0 },
-    { label: "Paid Fees", value: phase4Stats?.paidFees || 0 },
-    { label: "Active Timetables", value: phase4Stats?.activeTimetables || 0 },
-    { label: "Active Assignments", value: phase4Stats?.activeAssignments || 0 },
-    { label: "Total Books", value: phase4Stats?.totalBooks || 0 },
-    { label: "Available Books", value: phase4Stats?.availableBooks || 0 },
-    { label: "Issued Books", value: phase4Stats?.issuedBooks || 0 },
-    { label: "Overdue Books", value: phase4Stats?.overdueBooks || 0 },
-    { label: "Total Vehicles", value: phase4Stats?.totalVehicles || 0 },
-    { label: "Active Routes", value: phase4Stats?.activeRoutes || 0 },
-    { label: "Transport Students", value: phase4Stats?.transportStudents || 0 },
-    { label: "Vehicles In Maintenance", value: phase4Stats?.vehiclesInMaintenance || 0 },
-    { label: "Total Hostels", value: phase4Stats?.totalHostels || 0 },
-    { label: "Active Hostels", value: phase4Stats?.activeHostels || 0 },
-    { label: "Available Beds", value: phase4Stats?.availableBeds || 0 },
-    { label: "Beds In Maintenance", value: phase4Stats?.bedsInMaintenance || 0 },
-    { label: "Hostel Students", value: phase4Stats?.hostelStudents || 0 },
-    { label: "Pending Outpasses", value: phase4Stats?.pendingHostelOutpasses || 0 },
-    { label: "Open Hostel Complaints", value: phase4Stats?.openHostelComplaints || 0 },
+    { label: "Total Students", value: stats?.totalStudents ?? null },
+    { label: `Total ${getTeacherLabelPlural(user)}`, value: stats?.totalTeachers ?? null },
+    { label: `Total ${getParentLabelPlural(user)}`, value: stats?.totalParents ?? null },
+    { label: "Total Staff", value: stats?.totalStaff ?? null },
+    { label: `Total ${getAcademicGroupLabel(user)}`, value: stats?.totalAcademicGroups ?? null },
+    { label: "Active Students", value: stats?.activeStudents ?? null },
+    { label: "Active Staff", value: stats?.activeStaff ?? null },
+    { label: "Total Subjects", value: phase4Stats?.totalSubjects ?? null },
+    { label: "Total Exams", value: phase4Stats?.totalExams ?? null },
+    { label: "Today Attendance", value: phase4Stats?.todayAttendanceCount ?? null },
+    { label: "Pending Marks", value: phase4Stats?.pendingMarks ?? null },
+    { label: "Published Results", value: phase4Stats?.publishedResults ?? null },
+    { label: "Published Notices", value: phase4Stats?.publishedNotices ?? null },
+    { label: "Draft Notices", value: phase4Stats?.draftNotices ?? null },
+    { label: "Pending Fees", value: phase4Stats?.pendingFees ?? null },
+    { label: "Paid Fees", value: phase4Stats?.paidFees ?? null },
+    { label: "Active Timetables", value: phase4Stats?.activeTimetables ?? null },
+    { label: "Active Assignments", value: phase4Stats?.activeAssignments ?? null },
+    { label: "Total Books", value: phase4Stats?.totalBooks ?? null },
+    { label: "Available Books", value: phase4Stats?.availableBooks ?? null },
+    { label: "Issued Books", value: phase4Stats?.issuedBooks ?? null },
+    { label: "Overdue Books", value: phase4Stats?.overdueBooks ?? null },
+    { label: "Total Vehicles", value: phase4Stats?.totalVehicles ?? null },
+    { label: "Active Routes", value: phase4Stats?.activeRoutes ?? null },
+    { label: "Transport Students", value: phase4Stats?.transportStudents ?? null },
+    { label: "Vehicles In Maintenance", value: phase4Stats?.vehiclesInMaintenance ?? null },
+    { label: "Total Hostels", value: phase4Stats?.totalHostels ?? null },
+    { label: "Active Hostels", value: phase4Stats?.activeHostels ?? null },
+    { label: "Available Beds", value: phase4Stats?.availableBeds ?? null },
+    { label: "Beds In Maintenance", value: phase4Stats?.bedsInMaintenance ?? null },
+    { label: "Hostel Students", value: phase4Stats?.hostelStudents ?? null },
+    { label: "Pending Outpasses", value: phase4Stats?.pendingHostelOutpasses ?? null },
+    { label: "Open Hostel Complaints", value: phase4Stats?.openHostelComplaints ?? null },
   ];
 
   return (
     <section className="space-y-6">
       <AlertMessage tone="error" message={errorMessage} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card, index) => (
-          <Link
-            key={card.label}
-            to={cardRoutes[index]}
-            className={`${cardColors[index]} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
-          >
-            <p className="text-sm uppercase tracking-[0.2em] text-white/80">{card.label}</p>
-            <h3 className="mt-4 text-4xl font-semibold text-white">{card.value}</h3>
-          </Link>
-        ))}
+        {cards.map((card, index) =>
+          loading || card.value === null ? (
+            <StatCardSkeleton key={card.label} />
+          ) : (
+            <Link
+              key={card.label}
+              to={cardRoutes[index]}
+              className={`${cardColors[index]} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
+            >
+              <p className="text-sm uppercase tracking-[0.2em] text-white/80">{card.label}</p>
+              <h3 className="mt-4 text-4xl font-semibold text-white">{card.value}</h3>
+            </Link>
+          )
+        )}
       </div>
 
       <div className="rounded-[1.75rem] bg-white p-6 shadow-card">

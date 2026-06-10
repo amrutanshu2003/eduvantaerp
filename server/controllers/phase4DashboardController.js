@@ -22,7 +22,6 @@ import TransportVehicle from "../models/TransportVehicle.js";
 import StaffMember from "../models/StaffMember.js";
 import { canManageHostel, isHostelSecurityUser } from "../utils/hostelAccess.js";
 import { canManageLibrary } from "../utils/libraryAccess.js";
-import { getFeeStatus } from "../utils/feeUtils.js";
 import { getIssueStatus } from "../utils/libraryUtils.js";
 import { buildPublishedNoticeQuery } from "../utils/noticeUtils.js";
 import { getScopedInstituteId } from "../utils/scope.js";
@@ -47,19 +46,42 @@ const getLatestNotices = async ({ instituteId, role, academicGroupIds = [] }) =>
 };
 
 const countFeesByStatus = async (query) => {
-  const fees = await Fee.find(query).select("amount discount fine paidAmount dueDate status").lean();
-
-  return fees.reduce(
-    (summary, fee) => {
-      const status = getFeeStatus(fee);
-
-      if (status === "paid") summary.paid += 1;
-      if (status === "overdue" || status === "unpaid" || status === "partial") summary.pending += 1;
-
-      return summary;
+  // Use aggregation to compute fee status entirely in MongoDB — avoids
+  // fetching all fee documents into Node.js memory
+  const now = new Date();
+  const results = await Fee.aggregate([
+    { $match: { ...query, ...(query.instituteId ? { instituteId: query.instituteId } : {}) } },
+    {
+      $addFields: {
+        payable: { $max: [0, { $add: [{ $subtract: ["$amount", { $ifNull: ["$discount", 0] }] }, { $ifNull: ["$fine", 0] }] }] },
+        paid: { $ifNull: ["$paidAmount", 0] },
+      },
     },
-    { paid: 0, pending: 0 }
-  );
+    {
+      $addFields: {
+        computedStatus: {
+          $cond: [
+            { $gte: ["$paid", "$payable"] },
+            "paid",
+            "pending",
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$computedStatus",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const summary = { paid: 0, pending: 0 };
+  for (const row of results) {
+    if (row._id === "paid") summary.paid = row.count;
+    if (row._id === "pending") summary.pending = row.count;
+  }
+  return summary;
 };
 
 const getCurrentDayKey = () =>

@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import EmptyState from "../../components/EmptyState";
-import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import { useUISettings } from "../../context/UISettingsContext";
@@ -15,13 +14,41 @@ const filterDefaults = {
   plan: "all",
 };
 
-const StatCard = ({ label, value, detail }) => (
-  <div className="rounded-[1.5rem] bg-white p-5 shadow-card">
-    <p className="text-xs uppercase tracking-[0.25em] text-slate-400">{label}</p>
-    <h3 className="mt-3 text-3xl font-semibold text-ink">{value}</h3>
-    <p className="mt-2 text-sm text-slate-500">{detail}</p>
+// Colorful stat card (matches dashboard style)
+const StatCard = ({ label, value, detail, color, to }) => (
+  <Link
+    to={to}
+    className={`${color} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
+  >
+    <p className="text-sm uppercase tracking-[0.25em] text-white/80">{label}</p>
+    <h3 className="mt-4 text-4xl font-semibold text-white">{value}</h3>
+    <p className="mt-3 text-sm text-white/70">{detail}</p>
+  </Link>
+);
+
+const StatCardSkeleton = () => (
+  <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card">
+    <div className="skeleton-block h-3 w-24 rounded-full" />
+    <div className="skeleton-block mt-5 h-9 w-16 rounded-xl" />
+    <div className="skeleton-block mt-3 h-3 w-40 rounded-full" />
   </div>
 );
+
+const CARD_COLORS = [
+  "bg-blue-500", "bg-emerald-500", "bg-purple-500",
+  "bg-orange-500", "bg-pink-500", "bg-cyan-500", "bg-rose-500",
+];
+
+const CARD_ROUTES = [
+  "/super-admin/institutes", "/super-admin/institutes", "/super-admin/institutes",
+  "/super-admin/institutes", "/super-admin/institutes", "/super-admin/admins",
+  "/super-admin/institutes",
+];
+
+const SKELETON_LABELS = [
+  "Total Institutes", "Active Institutes", "Schools",
+  "Colleges", "Universities", "Total Admins", "Trial / Expired",
+];
 
 const Institutes = () => {
   const { settings, getButtonRadius } = useUISettings();
@@ -104,10 +131,6 @@ const Institutes = () => {
     [stats]
   );
 
-  if (loading) {
-    return <LoadingBlock message="Loading institute management..." />;
-  }
-
   return (
     <section className="space-y-6">
       <PageHeader
@@ -127,10 +150,20 @@ const Institutes = () => {
 
       <AlertMessage tone={messageTone} message={message} />
 
+      {/* Colorful stat cards — show skeleton while loading */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {statCards.map((item) => (
-          <StatCard key={item.label} {...item} />
-        ))}
+        {loading
+          ? SKELETON_LABELS.map((label, i) => (
+              <StatCardSkeleton key={label} />
+            ))
+          : statCards.map((item, i) => (
+              <StatCard
+                key={item.label}
+                color={CARD_COLORS[i % CARD_COLORS.length]}
+                to={CARD_ROUTES[i]}
+                {...item}
+              />
+            ))}
       </div>
 
       <form onSubmit={handleSearch} className="grid gap-4 rounded-[1.75rem] bg-white p-6 shadow-card md:grid-cols-4">
@@ -174,7 +207,7 @@ const Institutes = () => {
         </div>
       </form>
 
-      {institutes.length === 0 ? (
+      {!loading && institutes.length === 0 ? (
         <EmptyState title="No institutes found" description="Create your first institute or adjust the filters." />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
@@ -191,44 +224,54 @@ const Institutes = () => {
                 </tr>
               </thead>
               <tbody>
-                {institutes.map((institute) => (
-                  <tr key={institute._id} className="border-t border-slate-100">
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-semibold text-ink">{institute.name}</p>
-                        <p className="text-xs text-slate-500">{institute.instituteCode} • {institute.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4"><StatusBadge value={institute.instituteType} /></td>
-                    <td className="px-6 py-4"><StatusBadge value={institute.status} /></td>
-                    <td className="px-6 py-4"><StatusBadge value={institute.plan} /></td>
-                    <td className="px-6 py-4"><StatusBadge value={institute.paymentStatus} /></td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Link to={`/super-admin/institutes/${institute._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                          View
-                        </Link>
-                        <Link to={`/super-admin/institutes/${institute._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                          Edit
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleStatusToggle(institute)}
-                          className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-                        >
-                          {institute.status === "active" ? "Deactivate" : "Activate"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(institute)}
-                          className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {loading
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <tr key={i} className="border-t border-slate-100">
+                        {Array.from({ length: 6 }).map((__, j) => (
+                          <td key={j} className="px-6 py-4">
+                            <div className="h-4 rounded-full bg-slate-100 animate-pulse" style={{ width: j === 0 ? "8rem" : "4rem" }} />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  : institutes.map((institute) => (
+                      <tr key={institute._id} className="border-t border-slate-100">
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="font-semibold text-ink">{institute.name}</p>
+                            <p className="text-xs text-slate-500">{institute.instituteCode} • {institute.email}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4"><StatusBadge value={institute.instituteType} /></td>
+                        <td className="px-6 py-4"><StatusBadge value={institute.status} /></td>
+                        <td className="px-6 py-4"><StatusBadge value={institute.plan} /></td>
+                        <td className="px-6 py-4"><StatusBadge value={institute.paymentStatus} /></td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-2">
+                            <Link to={`/super-admin/institutes/${institute._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
+                              View
+                            </Link>
+                            <Link to={`/super-admin/institutes/${institute._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
+                              Edit
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleStatusToggle(institute)}
+                              className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+                            >
+                              {institute.status === "active" ? "Deactivate" : "Activate"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(institute)}
+                              className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
               </tbody>
             </table>
           </div>

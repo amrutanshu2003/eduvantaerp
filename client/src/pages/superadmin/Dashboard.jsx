@@ -2,8 +2,31 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
-import LoadingBlock from "../../components/LoadingBlock";
 import { useUISettings } from "../../context/UISettingsContext";
+
+const StatCardSkeleton = () => (
+  <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card">
+    <div className="skeleton-block h-3 w-24 rounded-full" />
+    <div className="skeleton-block mt-5 h-9 w-16 rounded-xl" />
+    <div className="skeleton-block mt-3 h-3 w-40 rounded-full" />
+  </div>
+);
+
+const CARD_COLORS = [
+  "bg-blue-500", "bg-emerald-500", "bg-purple-500", "bg-orange-500",
+  "bg-pink-500", "bg-cyan-500", "bg-indigo-500",
+];
+
+const CARD_ROUTES = [
+  "/super-admin/institutes", "/super-admin/institutes", "/super-admin/institutes",
+  "/super-admin/institutes", "/super-admin/institutes", "/super-admin/admins",
+  "/super-admin/institutes",
+];
+
+const STATIC_LABELS = [
+  "Total Institutes", "Active Institutes", "School Count",
+  "College Count", "University Count", "Total Admins", "Trial / Expired",
+];
 
 const Dashboard = () => {
   const { settings, getButtonRadius } = useUISettings();
@@ -30,50 +53,29 @@ const Dashboard = () => {
         setLoading(false);
       }
     };
-
     fetchStats();
   }, []);
-
-  const cardColors = [
-    "bg-blue-500",
-    "bg-emerald-500",
-    "bg-purple-500",
-    "bg-orange-500",
-    "bg-pink-500",
-    "bg-cyan-500",
-    "bg-indigo-500",
-  ];
-
-  const cardRoutes = [
-    "/super-admin/institutes",
-    "/super-admin/institutes",
-    "/super-admin/institutes",
-    "/super-admin/institutes",
-    "/super-admin/institutes",
-    "/super-admin/admins",
-    "/super-admin/institutes",
-  ];
-
-  if (loading) {
-    return <LoadingBlock message="Loading super admin analytics..." />;
-  }
 
   return (
     <section className="space-y-6">
       <AlertMessage tone="error" message={errorMessage} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {stats.map((item, index) => (
-          <Link
-            key={item.label}
-            to={cardRoutes[index]}
-            className={`${cardColors[index]} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
-          >
-            <p className="text-sm uppercase tracking-[0.25em] text-white/80">{item.label}</p>
-            <h3 className="mt-4 text-4xl font-semibold text-white">{item.value}</h3>
-            <p className="mt-3 text-sm text-white/70">{item.detail}</p>
-          </Link>
-        ))}
+        {loading
+          ? STATIC_LABELS.map((label, i) => (
+              <StatCardSkeleton key={label} />
+            ))
+          : stats.map((item, index) => (
+              <Link
+                key={item.label}
+                to={CARD_ROUTES[index]}
+                className={`${CARD_COLORS[index % CARD_COLORS.length]} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
+              >
+                <p className="text-sm uppercase tracking-[0.25em] text-white/80">{item.label}</p>
+                <h3 className="mt-4 text-4xl font-semibold text-white">{item.value}</h3>
+                <p className="mt-3 text-sm text-white/70">{item.detail}</p>
+              </Link>
+            ))}
       </div>
 
       <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
@@ -86,8 +88,17 @@ const Dashboard = () => {
           >
             Manage Institutes
           </Link>
+          <Link to="/super-admin/admins" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
+            Manage Admins
+          </Link>
           <Link to="/super-admin/ui-settings" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
             Update Global UI
+          </Link>
+          <Link to="/super-admin/audit-log-settings" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
+            Audit Logs
+          </Link>
+          <Link to="/super-admin/recycle-bin" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
+            Recycle Bin
           </Link>
         </div>
       </div>
