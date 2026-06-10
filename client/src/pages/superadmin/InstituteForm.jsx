@@ -31,6 +31,7 @@ const InstituteForm = ({ title, description, formData, onChange, onSubmit, submi
             <select name="instituteType" value={formData.instituteType} onChange={onChange} className={inputClassName}>
               <option value="school">School</option>
               <option value="college">College</option>
+              <option value="university">University</option>
             </select>
           </div>
 

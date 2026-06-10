@@ -8,6 +8,11 @@ import {
   updateAdminStatus,
   deleteAdmin,
 } from "../controllers/adminUserController.js";
+import {
+  listRecycleBinItems,
+  restoreRecycleBinItem,
+  permanentlyDeleteRecycleBinItem,
+} from "../controllers/recycleBinController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import allowRoles from "../middleware/roleMiddleware.js";
 
@@ -28,5 +33,8 @@ router.route("/admins/:id")
   .delete(allowRoles("superadmin"), deleteAdmin);
 
 router.patch("/admins/:id/status", allowRoles("superadmin"), updateAdminStatus);
+router.get("/recycle-bin", listRecycleBinItems);
+router.patch("/recycle-bin/:entityType/:id/restore", restoreRecycleBinItem);
+router.delete("/recycle-bin/:entityType/:id/permanent", permanentlyDeleteRecycleBinItem);
 
 export default router;

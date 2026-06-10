@@ -25,6 +25,6 @@ router.get("/:id", getHostelOutpassById);
 router.patch("/:id/parent-approval", allowRoles("parent"), updateParentApproval);
 router.patch("/:id/warden-approval", requireHostelManager, updateWardenApproval);
 router.patch("/:id/cancel", allowRoles("student"), cancelHostelOutpass);
-router.delete("/:id", requireHostelManager, deleteHostelOutpass);
+router.delete("/:id", allowRoles("admin", "superadmin"), deleteHostelOutpass);
 
 export default router;

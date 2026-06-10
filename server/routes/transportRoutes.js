@@ -50,7 +50,7 @@ router
   .route("/vehicles/:id")
   .get(requireTransportManager, getVehicleById)
   .put(requireTransportManager, updateVehicle)
-  .delete(requireTransportManager, deleteVehicle);
+  .delete(allowRoles("admin", "superadmin"), deleteVehicle);
 
 router
   .route("/routes")
@@ -61,7 +61,7 @@ router
   .route("/routes/:id")
   .get(requireTransportManager, getRouteById)
   .put(requireTransportManager, updateRoute)
-  .delete(requireTransportManager, deleteRoute);
+  .delete(allowRoles("admin", "superadmin"), deleteRoute);
 
 router
   .route("/allocations")
@@ -73,6 +73,6 @@ router
   .route("/allocations/:id")
   .get(requireTransportManager, getAllocationById)
   .put(requireTransportManager, updateAllocation)
-  .delete(requireTransportManager, deleteAllocation);
+  .delete(allowRoles("admin", "superadmin"), deleteAllocation);
 
 export default router;

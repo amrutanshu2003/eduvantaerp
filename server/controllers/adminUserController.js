@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Institute from "../models/Institute.js";
 import AuditLog from "../models/AuditLog.js";
+import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
@@ -210,6 +211,7 @@ const deleteAdmin = async (req, res, next) => {
 
     admin.isDeleted = true;
     admin.deletedAt = new Date();
+    admin.recycleBinExpiresAt = getRecycleBinExpiryDate(admin.deletedAt);
     admin.status = "inactive";
     await admin.save();
 

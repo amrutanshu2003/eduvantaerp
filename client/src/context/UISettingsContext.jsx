@@ -108,6 +108,21 @@ export const UISettingsProvider = ({ children }) => {
   }, [settings, localThemeMode]);
 
   useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const nextAppName = settings.appName?.trim() || defaultSettings.appName;
+    document.title = nextAppName;
+
+    try {
+      localStorage.setItem("appNameCache", nextAppName);
+    } catch (error) {
+      // Ignore storage write failures; the in-memory title still updates.
+    }
+  }, [settings.appName]);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleThemeChange = () => {
       if ((localThemeMode || settings.themeMode || "system") === "system") {

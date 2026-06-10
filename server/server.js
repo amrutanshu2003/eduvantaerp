@@ -31,10 +31,14 @@ import timetableRoutes from "./routes/timetableRoutes.js";
 import transportRoutes from "./routes/transportRoutes.js";
 import uiSettingsRoutes from "./routes/uiSettingsRoutes.js";
 import marksRoutes from "./routes/marksRoutes.js";
+import { purgeExpiredRecycleBinData } from "./utils/recycleBin.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 dotenv.config();
 connectDB();
+purgeExpiredRecycleBinData().catch((error) => {
+  console.error("Recycle bin startup cleanup failed", error);
+});
 
 const app = express();
 const defaultAllowedOrigins = [
@@ -131,6 +135,12 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
+setInterval(() => {
+  purgeExpiredRecycleBinData().catch((error) => {
+    console.error("Recycle bin scheduled cleanup failed", error);
+  });
+}, 60 * 60 * 1000);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

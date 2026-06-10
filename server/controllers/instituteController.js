@@ -50,8 +50,8 @@ const validateInstitutePayload = (payload) => {
     return `Missing required fields: ${missingFields.join(", ")}`;
   }
 
-  if (!["school", "college"].includes(payload.instituteType)) {
-    return "Institute type must be either school or college";
+  if (!["school", "college", "university"].includes(payload.instituteType)) {
+    return "Institute type must be school, college, or university";
   }
 
   if (payload.status && !["active", "inactive"].includes(payload.status)) {

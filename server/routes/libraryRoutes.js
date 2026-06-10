@@ -34,13 +34,13 @@ router.get("/issues", requireLibraryManager, getIssues);
 router.post("/issues", requireLibraryManager, createIssue);
 router.patch("/issues/:id/return", requireLibraryManager, returnBook);
 router.patch("/issues/:id/fine", requireLibraryManager, updateIssueFine);
-router.delete("/issues/:id", requireLibraryManager, deleteIssue);
+router.delete("/issues/:id", allowRoles("admin", "superadmin"), deleteIssue);
 
 router.get("/books/:id", requireLibraryManager, getBookById);
 router.get("/books", requireLibraryManager, getBooks);
 router.post("/books", requireLibraryManager, createBook);
 router.put("/books/:id", requireLibraryManager, updateBook);
 router.patch("/books/:id/status", requireLibraryManager, updateBookStatus);
-router.delete("/books/:id", requireLibraryManager, deleteBook);
+router.delete("/books/:id", allowRoles("admin", "superadmin"), deleteBook);
 
 export default router;

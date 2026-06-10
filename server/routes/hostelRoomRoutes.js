@@ -9,6 +9,7 @@ import {
   updateHostelRoomStatus,
 } from "../controllers/hostelController.js";
 import { protect } from "../middleware/authMiddleware.js";
+import allowRoles from "../middleware/roleMiddleware.js";
 import { requireHostelManager, requireHostelViewer } from "../utils/hostelAccess.js";
 
 const router = express.Router();
@@ -16,7 +17,7 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/", requireHostelViewer, getHostelRooms);
-router.route("/:id").get(requireHostelViewer, getHostelRoomById).put(requireHostelManager, updateHostelRoom).delete(requireHostelManager, deleteHostelRoom);
+router.route("/:id").get(requireHostelViewer, getHostelRoomById).put(requireHostelManager, updateHostelRoom).delete(allowRoles("admin", "superadmin"), deleteHostelRoom);
 router.patch("/:id/status", requireHostelManager, updateHostelRoomStatus);
 router.route("/:roomId/beds").post(requireHostelManager, createBed).get(requireHostelViewer, getHostelBeds);
 

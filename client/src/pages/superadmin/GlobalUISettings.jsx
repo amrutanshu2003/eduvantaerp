@@ -58,7 +58,7 @@ const GlobalUISettings = () => {
       <PageHeader
         eyebrow="Super Admin"
         title="Global UI Settings"
-        description="Customize the shared application branding and theme values used by the login page and dashboard shell."
+        description="Customize the shared application branding and theme values used across the ERP. Updating the app name here will refresh the brand name anywhere it is connected."
       />
 
       <AlertMessage tone={messageTone} message={message} />
@@ -67,8 +67,17 @@ const GlobalUISettings = () => {
         <form onSubmit={handleSubmit} className="rounded-[1.75rem] bg-white p-6 shadow-card">
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">App Name</label>
-              <input name="appName" value={formData.appName || ""} onChange={handleChange} className={inputClassName} />
+              <label className="mb-2 block text-sm font-medium text-slate-700">Institute / App Name</label>
+              <input
+                name="appName"
+                value={formData.appName || ""}
+                onChange={handleChange}
+                className={inputClassName}
+                placeholder="Enter the ERP name to show across the app"
+              />
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Change this once and every connected branding area like the login page, sidebar, navbar, admin dashboard, and browser tab title will use the new name.
+              </p>
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Logo URL</label>

@@ -74,6 +74,10 @@ const studentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    recycleBinExpiresAt: {
+      type: Date,
+      default: null,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

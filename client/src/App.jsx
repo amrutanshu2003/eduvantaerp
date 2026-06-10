@@ -4,6 +4,7 @@ import RoleRoute from "./components/RoleRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 import Login from "./pages/Login";
 import SecureAccountRecovery from "./pages/SecureAccountRecovery";
+import RecycleBin from "./pages/RecycleBin";
 import Unauthorized from "./pages/Unauthorized";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AcademicGroupDetails from "./pages/admin/AcademicGroupDetails";
@@ -172,6 +173,7 @@ const App = () => {
             <Route path="/super-admin/institutes/:id/edit" element={<EditInstitute />} />
             <Route path="/super-admin/institutes/:id/create-admin" element={<CreateInstituteAdmin />} />
             <Route path="/super-admin/ui-settings" element={<GlobalUISettings />} />
+            <Route path="/super-admin/recycle-bin" element={<RecycleBin />} />
             <Route path="/super-admin/admins" element={<Admins />} />
             <Route path="/super-admin/admins/create" element={<CreateAdmin />} />
             <Route path="/super-admin/admins/:id/edit" element={<EditAdmin />} />
@@ -232,6 +234,7 @@ const App = () => {
             <Route path="/admin/timetables/:id" element={<TimetableDetails />} />
             <Route path="/admin/timetables/:id/edit" element={<EditTimetable />} />
             <Route path="/admin/assignments" element={<Assignments />} />
+            <Route path="/admin/recycle-bin" element={<RecycleBin />} />
             <Route path="/admin/library/books" element={<ManageBooksPage basePath="/admin/library" eyebrow="Admin" title="Library Books" description="Manage institute books, copies, categories, and shelf mapping." />} />
             <Route path="/admin/library/books/create" element={<BookFormPage basePath="/admin/library" eyebrow="Admin" />} />
             <Route path="/admin/library/books/:id" element={<BookDetailsPage basePath="/admin/library" eyebrow="Admin" />} />

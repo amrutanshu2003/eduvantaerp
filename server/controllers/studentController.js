@@ -2,6 +2,7 @@ import AcademicGroup from "../models/AcademicGroup.js";
 import Student from "../models/Student.js";
 import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
+import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { ensureUniqueStudentFields, ensureUniqueUserFields } from "../utils/uniqueFields.js";
@@ -331,16 +332,19 @@ const deleteStudent = async (req, res, next) => {
       throw new Error("Access denied for this student");
     }
 
-    student.isDeleted = true;
-    student.deletedAt = new Date();
-    student.status = "inactive";
-    await student.save();
+      student.isDeleted = true;
+      student.deletedAt = new Date();
+      student.recycleBinExpiresAt = getRecycleBinExpiryDate(student.deletedAt);
+      student.status = "inactive";
+      await student.save();
 
-    await User.findByIdAndUpdate(student.userId, {
-      isDeleted: true,
-      deletedAt: new Date(),
-      status: "inactive",
-    });
+      const deletedAt = new Date();
+      await User.findByIdAndUpdate(student.userId, {
+        isDeleted: true,
+        deletedAt,
+        recycleBinExpiresAt: getRecycleBinExpiryDate(deletedAt),
+        status: "inactive",
+      });
 
     await createAuditLog({
       req,

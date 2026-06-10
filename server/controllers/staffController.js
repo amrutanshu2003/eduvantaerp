@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
+import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
@@ -206,9 +207,10 @@ const deleteStaff = async (req, res, next) => {
       throw new Error("Access denied for this staff member");
     }
 
-    staff.isDeleted = true;
-    staff.deletedAt = new Date();
-    staff.status = "inactive";
+      staff.isDeleted = true;
+      staff.deletedAt = new Date();
+      staff.recycleBinExpiresAt = getRecycleBinExpiryDate(staff.deletedAt);
+      staff.status = "inactive";
     await staff.save();
 
     await createAuditLog({

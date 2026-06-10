@@ -38,6 +38,7 @@ const adminMenuItems = [
   { label: "Fees", icon: FiCreditCard, path: "/admin/fees" },
   { label: "Timetable", icon: FiClock, path: "/admin/timetables" },
   { label: "Assignments", icon: FiEdit, path: "/admin/assignments" },
+  { label: "Recycle Bin", icon: FiPackage, path: "/admin/recycle-bin" },
   { label: "Library Books", icon: FiBookOpen, path: "/admin/library/books" },
   { label: "Book Issues", icon: FiFileText, path: "/admin/library/issues" },
   { label: "Overdue Books", icon: FiCalendar, path: "/admin/library/issues/overdue" },
@@ -81,10 +82,14 @@ const Sidebar = () => {
     { label: "Institutes", icon: FiUsers, path: "/super-admin/institutes" },
     { label: "Create Institute", icon: FiPlusSquare, path: "/super-admin/institutes/create" },
     { label: "Global UI Settings", icon: FiSettings, path: "/super-admin/ui-settings" },
+    { label: "Recycle Bin", icon: FiPackage, path: "/super-admin/recycle-bin" },
   ];
 
   const adminItemsForSuper = [];
   adminMenuItems.forEach((item) => {
+    if (item.label === "Recycle Bin") {
+      return;
+    }
     if (item.label === "Teachers") {
       adminItemsForSuper.push({ label: "Admins", icon: FiShield, path: "/super-admin/admins" });
     }

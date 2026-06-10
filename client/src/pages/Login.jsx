@@ -789,7 +789,7 @@ const Login = () => {
                 }}
                 className="w-full overflow-hidden px-4 py-3 font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-80"
               >
-                {submitting ? "Logging in..." : "Login to Eduvanta"}
+                {submitting ? "Logging in..." : `Login to ${settings.appName}`}
               </button>
             </form>
           </div>

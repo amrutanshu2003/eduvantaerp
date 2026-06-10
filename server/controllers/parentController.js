@@ -1,6 +1,7 @@
 import Student from "../models/Student.js";
 import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
+import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
@@ -229,9 +230,10 @@ const deleteParent = async (req, res, next) => {
       throw new Error("Access denied for this parent");
     }
 
-    parent.isDeleted = true;
-    parent.deletedAt = new Date();
-    parent.status = "inactive";
+      parent.isDeleted = true;
+      parent.deletedAt = new Date();
+      parent.recycleBinExpiresAt = getRecycleBinExpiryDate(parent.deletedAt);
+      parent.status = "inactive";
     await parent.save();
 
     await createAuditLog({

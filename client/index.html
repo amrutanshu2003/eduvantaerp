@@ -372,6 +372,10 @@
         try {
           storedTheme = localStorage.getItem("themeMode");
           cachedResolvedTheme = localStorage.getItem("resolvedThemeCache");
+          var cachedAppName = localStorage.getItem("appNameCache");
+          if (cachedAppName && cachedAppName.trim()) {
+            document.title = cachedAppName.trim();
+          }
         } catch (error) {
           storedTheme = null;
           cachedResolvedTheme = null;

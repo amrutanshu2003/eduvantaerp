@@ -29,6 +29,6 @@ router.get("/:id", allowRoles("admin", "superadmin", "teacher", "student"), getA
 router.post("/", allowRoles("admin", "superadmin", "teacher"), createAssignment);
 router.put("/:id", allowRoles("admin", "superadmin", "teacher"), updateAssignment);
 router.patch("/:id/status", allowRoles("admin", "superadmin", "teacher"), updateAssignmentStatus);
-router.delete("/:id", allowRoles("admin", "superadmin", "teacher"), deleteAssignment);
+router.delete("/:id", allowRoles("admin", "superadmin"), deleteAssignment);
 
 export default router;

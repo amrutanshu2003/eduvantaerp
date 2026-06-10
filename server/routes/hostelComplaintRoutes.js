@@ -23,6 +23,6 @@ router.get("/child/:studentId", allowRoles("parent"), getChildHostelComplaints);
 router.get("/:id", getHostelComplaintById);
 router.patch("/:id/assign", requireHostelManager, assignHostelComplaint);
 router.patch("/:id/status", requireHostelManager, updateHostelComplaintStatus);
-router.delete("/:id", requireHostelManager, deleteHostelComplaint);
+router.delete("/:id", allowRoles("admin", "superadmin"), deleteHostelComplaint);
 
 export default router;

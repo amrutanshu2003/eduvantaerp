@@ -21,6 +21,6 @@ router.post("/", allowRoles("admin", "superadmin", "teacher"), createMarks);
 router.put("/:id", allowRoles("admin", "superadmin", "teacher"), updateMarks);
 router.patch("/:id/status", allowRoles("admin", "superadmin", "teacher"), updateMarksStatus);
 router.patch("/publish", allowRoles("admin", "superadmin"), publishMarks);
-router.delete("/:id", allowRoles("admin", "superadmin", "teacher"), deleteMarks);
+router.delete("/:id", allowRoles("admin", "superadmin"), deleteMarks);
 
 export default router;

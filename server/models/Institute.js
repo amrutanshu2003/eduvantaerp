@@ -16,7 +16,7 @@ const instituteSchema = new mongoose.Schema(
     },
     instituteType: {
       type: String,
-      enum: ["school", "college"],
+      enum: ["school", "college", "university"],
       required: true,
     },
     email: {

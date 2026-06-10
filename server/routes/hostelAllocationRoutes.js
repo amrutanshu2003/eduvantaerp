@@ -26,7 +26,7 @@ router.get("/support-data", requireHostelManager, getAllocationSupportData);
 
 router.route("/").post(requireHostelManager, createHostelAllocation).get(requireHostelManager, getHostelAllocations);
 router.get("/student/:studentId", requireHostelManager, getStudentHostelAllocations);
-router.route("/:id").get(requireHostelManager, getHostelAllocationById).put(requireHostelManager, updateHostelAllocation).delete(requireHostelManager, deleteHostelAllocation);
+router.route("/:id").get(requireHostelManager, getHostelAllocationById).put(requireHostelManager, updateHostelAllocation).delete(allowRoles("admin", "superadmin"), deleteHostelAllocation);
 router.patch("/:id/leave", requireHostelManager, leaveHostelAllocation);
 router.patch("/:id/cancel", requireHostelManager, cancelHostelAllocation);
 

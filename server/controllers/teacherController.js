@@ -1,6 +1,7 @@
 import AcademicGroup from "../models/AcademicGroup.js";
 import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
+import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
@@ -253,9 +254,10 @@ const deleteTeacher = async (req, res, next) => {
       throw new Error("Access denied for this teacher");
     }
 
-    teacher.isDeleted = true;
-    teacher.deletedAt = new Date();
-    teacher.status = "inactive";
+      teacher.isDeleted = true;
+      teacher.deletedAt = new Date();
+      teacher.recycleBinExpiresAt = getRecycleBinExpiryDate(teacher.deletedAt);
+      teacher.status = "inactive";
     await teacher.save();
 
     await createAuditLog({

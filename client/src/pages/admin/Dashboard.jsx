@@ -93,7 +93,7 @@ const Dashboard = () => {
       <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
         <h2 className="text-2xl font-semibold text-ink">Institute Admin Dashboard</h2>
         <p className="mt-3 max-w-3xl text-slate-600">
-          Manage your institute operations seamlessly with Eduvanta ERP. Access integrated modules for academics, student records, fees, timetables, assignments, library, transport, and hostel management.
+          Manage your institute operations seamlessly with {settings.appName}. Access integrated modules for academics, student records, fees, timetables, assignments, library, transport, and hostel management.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link to="/admin/students" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Manage Students</Link>

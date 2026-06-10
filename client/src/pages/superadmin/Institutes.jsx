@@ -154,6 +154,7 @@ const Institutes = () => {
           <option value="all">All Types</option>
           <option value="school">School</option>
           <option value="college">College</option>
+          <option value="university">University</option>
         </select>
         <div className="flex gap-3">
           <select name="plan" value={filters.plan} onChange={handleFilterChange} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none">
