@@ -74,6 +74,8 @@ const Dashboard = () => {
     "bg-violet-600",
     "bg-sky-600",
     "bg-fuchsia-600",
+    "bg-red-700",
+    "bg-green-700",
   ];
 
   const cardRoutes = [

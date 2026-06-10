@@ -34,6 +34,26 @@ const Dashboard = () => {
     fetchStats();
   }, []);
 
+  const cardColors = [
+    "bg-blue-500",
+    "bg-emerald-500",
+    "bg-purple-500",
+    "bg-orange-500",
+    "bg-pink-500",
+    "bg-cyan-500",
+    "bg-indigo-500",
+  ];
+
+  const cardRoutes = [
+    "/super-admin/institutes",
+    "/super-admin/institutes",
+    "/super-admin/institutes",
+    "/super-admin/institutes",
+    "/super-admin/institutes",
+    "/super-admin/admins",
+    "/super-admin/institutes",
+  ];
+
   if (loading) {
     return <LoadingBlock message="Loading super admin analytics..." />;
   }
@@ -43,12 +63,16 @@ const Dashboard = () => {
       <AlertMessage tone="error" message={errorMessage} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {stats.map((item) => (
-          <div key={item.label} className="rounded-[1.75rem] bg-white p-6 shadow-card">
-            <p className="text-sm uppercase tracking-[0.25em] text-slate-400">{item.label}</p>
-            <h3 className="mt-4 text-4xl font-semibold text-ink">{item.value}</h3>
-            <p className="mt-3 text-sm text-slate-500">{item.detail}</p>
-          </div>
+        {stats.map((item, index) => (
+          <Link
+            key={item.label}
+            to={cardRoutes[index]}
+            className={`${cardColors[index]} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
+          >
+            <p className="text-sm uppercase tracking-[0.25em] text-white/80">{item.label}</p>
+            <h3 className="mt-4 text-4xl font-semibold text-white">{item.value}</h3>
+            <p className="mt-3 text-sm text-white/70">{item.detail}</p>
+          </Link>
         ))}
       </div>
 
