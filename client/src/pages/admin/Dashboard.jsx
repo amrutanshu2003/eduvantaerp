@@ -42,6 +42,76 @@ const Dashboard = () => {
 
   if (loading) return <LoadingBlock message="Loading admin dashboard..." />;
 
+  const cardColors = [
+    "bg-blue-500",
+    "bg-emerald-500",
+    "bg-purple-500",
+    "bg-orange-500",
+    "bg-pink-500",
+    "bg-cyan-500",
+    "bg-indigo-500",
+    "bg-rose-500",
+    "bg-amber-500",
+    "bg-teal-500",
+    "bg-lime-500",
+    "bg-violet-500",
+    "bg-sky-500",
+    "bg-fuchsia-500",
+    "bg-red-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-blue-600",
+    "bg-emerald-600",
+    "bg-purple-600",
+    "bg-orange-600",
+    "bg-pink-600",
+    "bg-cyan-600",
+    "bg-indigo-600",
+    "bg-rose-600",
+    "bg-amber-600",
+    "bg-teal-600",
+    "bg-lime-600",
+    "bg-violet-600",
+    "bg-sky-600",
+    "bg-fuchsia-600",
+  ];
+
+  const cardRoutes = [
+    "/admin/students",
+    "/admin/teachers",
+    "/admin/parents",
+    "/admin/staff",
+    "/admin/academic-groups",
+    "/admin/students",
+    "/admin/staff",
+    "/admin/subjects",
+    "/admin/exams",
+    "/admin/attendance",
+    "/admin/marks",
+    "/admin/results",
+    "/admin/notices",
+    "/admin/notices",
+    "/admin/fees",
+    "/admin/fees",
+    "/admin/timetables",
+    "/admin/assignments",
+    "/admin/library/books",
+    "/admin/library/books",
+    "/admin/library/books",
+    "/admin/library/books",
+    "/admin/transport/vehicles",
+    "/admin/transport/routes",
+    "/admin/transport/allocations",
+    "/admin/transport/vehicles",
+    "/admin/hostels",
+    "/admin/hostels",
+    "/admin/hostel-beds",
+    "/admin/hostel-beds",
+    "/admin/hostel-allocations",
+    "/admin/hostel-outpasses",
+    "/admin/hostel-complaints",
+  ];
+
   const cards = [
     { label: "Total Students", value: stats?.totalStudents || 0 },
     { label: `Total ${getTeacherLabelPlural(user)}`, value: stats?.totalTeachers || 0 },
@@ -82,11 +152,15 @@ const Dashboard = () => {
     <section className="space-y-6">
       <AlertMessage tone="error" message={errorMessage} />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {cards.map((card) => (
-          <div key={card.label} className="rounded-[1.75rem] bg-white p-6 shadow-card">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-400">{card.label}</p>
-            <h3 className="mt-4 text-4xl font-semibold text-ink">{card.value}</h3>
-          </div>
+        {cards.map((card, index) => (
+          <Link
+            key={card.label}
+            to={cardRoutes[index]}
+            className={`${cardColors[index]} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
+          >
+            <p className="text-sm uppercase tracking-[0.2em] text-white/80">{card.label}</p>
+            <h3 className="mt-4 text-4xl font-semibold text-white">{card.value}</h3>
+          </Link>
         ))}
       </div>
 
