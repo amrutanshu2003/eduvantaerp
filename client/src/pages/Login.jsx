@@ -412,6 +412,10 @@ const Login = () => {
             box-shadow: 0 0 0 1000px var(--theme-input-bg) inset !important;
             -webkit-text-fill-color: var(--theme-input-text) !important;
           }
+          .login-password-input::-ms-reveal,
+          .login-password-input::-ms-clear {
+            display: none;
+          }
           @media (prefers-reduced-motion: reduce) {
             .login-theme-surface {
               transition: none !important;
@@ -632,7 +636,7 @@ const Login = () => {
                       onPointerDown={markLoginInteracted}
                       onFocus={markLoginInteracted}
                       onChange={handleChange}
-                      className={`peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 pr-14 text-base leading-6 outline-none transition ${
+                      className={`login-password-input peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 pr-14 text-base leading-6 outline-none transition ${
                         fieldErrors.password ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
                       }`}
                       placeholder=" "
