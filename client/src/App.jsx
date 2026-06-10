@@ -94,7 +94,6 @@ import GlobalUISettings from "./pages/superadmin/GlobalUISettings";
 import InstituteDetails from "./pages/superadmin/InstituteDetails";
 import Institutes from "./pages/superadmin/Institutes";
 import SuperAdminDashboard from "./pages/superadmin/Dashboard";
-import SuperAdminRecovery from "./pages/superadmin/SuperAdminRecovery";
 import Admins from "./pages/superadmin/Admins";
 import CreateAdmin from "./pages/superadmin/CreateAdmin";
 import EditAdmin from "./pages/superadmin/EditAdmin";
@@ -158,7 +157,6 @@ const App = () => {
       <CustomAlert />
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/secure/super-admin/recovery" element={<SuperAdminRecovery />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
       <Route element={<ProtectedRoute />}>

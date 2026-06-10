@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import LoginSkeleton from "../components/LoginSkeleton";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
-import api from "../api/axios";
 
 const createCaptchaText = () => {
   const characters = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -157,20 +156,6 @@ const Login = () => {
   const fieldErrors = getFieldErrors(error);
   const captchaError = getCaptchaError(error);
 
-  // Forgot password states
-  const [isForgotMode, setIsForgotMode] = useState(false);
-  const [forgotRole, setForgotRole] = useState("student");
-  const [forgotData, setForgotData] = useState({
-    rollNumber: "",
-    email: "",
-    dob: "",
-    phone: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [showForgotPasswords, setShowForgotPasswords] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
   const handleChange = (event) => {
     const fieldName = event.target.name === "username" ? "email" : event.target.name;
 
@@ -178,17 +163,6 @@ const Login = () => {
       ...current,
       [fieldName]: event.target.value,
     }));
-  };
-
-  const handleForgotChange = (event) => {
-    setForgotData((current) => ({
-      ...current,
-      [event.target.name]: event.target.value,
-    }));
-
-    if (error) {
-      setError("");
-    }
   };
 
   const refreshCaptcha = () => {
@@ -344,61 +318,6 @@ const Login = () => {
           "Unable to sign in."
       );
       refreshCaptcha();
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleForgotSubmit = async (event) => {
-    event.preventDefault();
-    setSubmitting(true);
-    setError("");
-    setSuccessMessage("");
-
-    if (forgotData.newPassword !== forgotData.confirmPassword) {
-      setError("Passwords do not match");
-      setSubmitting(false);
-      return;
-    }
-
-    try {
-      const payload = {
-        role: forgotRole,
-        newPassword: forgotData.newPassword,
-        ...(forgotRole === "student"
-          ? {
-              rollNumber: forgotData.rollNumber,
-              email: forgotData.email,
-              dob: forgotData.dob,
-            }
-          : {
-              email: forgotData.email,
-              phone: forgotData.phone,
-            }),
-      };
-
-      const { data } = await api.post("/auth/forgot-password", payload);
-      setSuccessMessage(data.message || "Password reset successfully!");
-      
-      // Auto-toggle back to login after 3 seconds
-      setTimeout(() => {
-        setIsForgotMode(false);
-        setSuccessMessage("");
-        setForgotData({
-          rollNumber: "",
-          email: "",
-          dob: "",
-          phone: "",
-          newPassword: "",
-          confirmPassword: "",
-        });
-      }, 3000);
-    } catch (requestError) {
-      setShakeKey((current) => current + 1);
-      setError(
-        requestError.response?.data?.message ||
-          "Verification failed. Please check details and try again."
-      );
     } finally {
       setSubmitting(false);
     }
@@ -592,636 +511,289 @@ const Login = () => {
           style={{ backgroundColor: loginPanelSurfaceColor }}
         >
           <div className="mx-auto w-full max-w-md">
-            {!isForgotMode ? (
-              <>
-                <div className="reveal-soft flex items-start justify-between gap-4">
-                  <p
-                    className="pt-1 text-sm uppercase tracking-[0.35em]"
-                    style={{ color: settings.primaryColor }}
-                  >
-                    Secure Sign In
-                  </p>
-                  <button
-                    ref={themeToggleRef}
-                    type="button"
-                    onClick={handleThemeToggle}
-                    className="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border transition-all duration-500 ease-in-out hover:scale-105 hover:rotate-6"
-                    style={{
-                      backgroundColor: isDark
-                        ? "color-mix(in srgb, var(--theme-surface-strong) 88%, transparent)"
-                        : "color-mix(in srgb, #ffffff 94%, #f8fafc 6%)",
-                      borderColor: isDark ? "var(--theme-border)" : "rgba(148, 163, 184, 0.4)",
-                      color: "var(--theme-text-soft)",
-                      boxShadow: isDark
-                        ? "0 10px 24px rgba(2, 6, 23, 0.22)"
-                        : "0 12px 28px rgba(148, 163, 184, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.82) inset",
-                    }}
-                    aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-                    title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-                  >
-                    <span
-                      className="flex items-center justify-center"
-                      style={
-                        themeReveal
-                          ? {
-                              animation: `${themeReveal.direction === "expand" ? "login-theme-icon-bloom" : "login-theme-icon-dock"} ${themeReveal.duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-                            }
-                          : undefined
-                      }
-                    >
-                      {isDark ? (
-                        <FiMoon className="h-5 w-5 text-slate-200" />
-                      ) : (
-                        <FiSun className="h-[1.35rem] w-[1.35rem] text-amber-500" />
-                      )}
-                    </span>
-                  </button>
-                </div>
-                <h2 className="reveal-soft reveal-delay-1 mt-4 text-[2.35rem] font-semibold leading-tight text-ink sm:text-[2.8rem]">
-                  Access your role dashboard
-                </h2>
-                <p className="reveal-soft reveal-delay-2 mt-3 text-sm leading-6 text-slate-500">
-                  Sign in to continue to {settings.appName} and manage your institute workflows securely.
-                </p>
-                <p className="reveal-soft reveal-delay-3 mt-2 text-sm leading-6 text-slate-500">
-                  Use email, teacher ID, employee ID, mobile number, or roll number as your username.
-                </p>
-
-                <form className="reveal-stagger mt-8 space-y-5" onSubmit={handleSubmit} autoComplete="on" method="post">
-                  <div
-                    key={shakeKey}
-                    className="space-y-5"
-                    style={error ? { animation: "login-shake 0.35s ease-in-out" } : undefined}
-                  >
-                  {error && !fieldErrors.email && !fieldErrors.password && !captchaError && (
-                    <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-800">
-                      {error}
-                    </div>
-                  )}
-                  <div>
-                    <div className="relative">
-                      <span className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center ${fieldErrors.email ? "text-red-400" : "text-slate-400"}`}>
-                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                          <path d="M20 21a8 8 0 10-16 0" strokeLinecap="round" strokeLinejoin="round" />
-                          <circle cx="12" cy="7" r="4" />
-                        </svg>
-                      </span>
-                      <input
-                        ref={usernameInputRef}
-                        id="username"
-                        name="username"
-                        type="text"
-                        defaultValue=""
-                        onPointerDown={markLoginInteracted}
-                        onFocus={markLoginInteracted}
-                        onChange={handleChange}
-                        className={`peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition ${
-                          fieldErrors.email ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
-                        }`}
-                        placeholder=" "
-                        autoComplete="username"
-                        autoCapitalize="none"
-                        spellCheck="false"
-                        required
-                      />
-                      <label
-                        htmlFor="username"
-                        className={`pointer-events-none absolute left-14 z-10 px-1 text-sm font-medium transition-all duration-200 -top-2.5 translate-y-0 ${
-                          fieldErrors.email 
-                            ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500" 
-                            : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
-                        } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-focus:-top-2.5 peer-focus:translate-y-0 peer-focus:text-sm`}
-                        style={{ backgroundColor: loginPanelSurfaceColor }}
-                      >
-                        {fieldErrors.email || "Username"}
-                      </label>
-                    </div>
-                    <p className="mt-2 px-1 text-xs text-slate-500">
-                      Accepted usernames: email, teacher ID, employee ID, mobile number, or roll number.
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 flex items-center justify-end gap-3">
-                      <a
-                        href="#"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          setIsForgotMode(true);
-                          setError("");
-                          setSuccessMessage("");
-                        }}
-                        className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
-                      >
-                        Forgot Password?
-                      </a>
-                    </div>
-
-                    <div className="relative">
-                      <span className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center ${fieldErrors.password ? "text-red-400" : "text-slate-400"}`}>
-                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                          <rect x="5" y="10" width="14" height="10" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M8 10V8a4 4 0 118 0v2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                      <input
-                        ref={passwordInputRef}
-                        id="password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        defaultValue=""
-                        onPointerDown={markLoginInteracted}
-                        onFocus={markLoginInteracted}
-                        onChange={handleChange}
-                        className={`peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 pr-14 text-base leading-6 outline-none transition ${
-                          fieldErrors.password ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
-                        }`}
-                        placeholder=" "
-                        autoComplete="current-password"
-                        required
-                      />
-                      <label
-                        htmlFor="password"
-                        className={`pointer-events-none absolute left-14 z-10 px-1 text-sm font-medium transition-all duration-200 -top-2.5 translate-y-0 ${
-                          fieldErrors.password 
-                            ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500" 
-                            : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
-                        } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-focus:-top-2.5 peer-focus:translate-y-0 peer-focus:text-sm`}
-                        style={{ backgroundColor: loginPanelSurfaceColor }}
-                      >
-                        {fieldErrors.password || "Enter your password"}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((current) => !current)}
-                        className={`absolute inset-y-0 right-0 flex h-14 w-14 items-center justify-center transition ${
-                          fieldErrors.password ? "text-red-400 hover:text-red-500" : "text-slate-500 hover:text-slate-700"
-                        }`}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        aria-pressed={showPassword}
-                      >
-                        {showPassword ? (
-                          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M3 3l18 18" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M9.9 4.24A11.7 11.7 0 0112 4c6.36 0 10 8 10 8a17.6 17.6 0 01-1.67 2.68" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M6.61 6.61A17.3 17.3 0 002 12s3.64 8 10 8c1.9 0 3.67-.54 5.2-1.48" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M2 12s3.64-7 10-7 10 7 10 7-3.64 7-10 7S2 12 2 12z" strokeLinecap="round" strokeLinejoin="round" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <label className="flex items-center gap-3 text-sm text-slate-600">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(event) => setRememberMe(event.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                      />
-                      Remember me
-                    </label>
-                    <p className="text-xs text-slate-400">
-                      {rememberMe ? "This device will stay signed in." : "Session will continue normally."}
-                    </p>
-                  </div>
-
-                  {settings.captchaEnabled ? (
-                    <div
-                      className="space-y-2"
-                      style={{
-                        animation: captchaError ? "login-shake 0.35s ease-in-out" : undefined,
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="flex h-11 min-w-[112px] select-none items-center justify-center rounded-xl border border-dashed px-3 text-center text-sm font-semibold tracking-[0.3em]"
-                          style={{
-                            backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 72%, transparent)",
-                            borderColor: "var(--theme-border-strong)",
-                            color: "var(--theme-text-soft)",
-                          }}
-                          aria-label={`Captcha code ${captchaText.split("").join(" ")}`}
-                        >
-                          {captchaText}
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={refreshCaptcha}
-                          className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border transition duration-200 hover:scale-[1.03]"
-                          style={{
-                            backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 78%, transparent)",
-                            borderColor: "var(--theme-border)",
-                            color: "var(--theme-text-muted)",
-                          }}
-                          aria-label="Refresh captcha"
-                          title="Refresh captcha"
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M20 11a8 8 0 00-14.9-3M4 13a8 8 0 0014.9 3" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M4 4v4h4M20 20v-4h-4" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </button>
-
-                        <div className="relative min-w-0 flex-1">
-                          <span className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex h-11 w-11 items-center justify-center ${captchaError ? "text-red-400" : "text-slate-400"}`}>
-                            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                              <path d="M4 12h16M4 7h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </span>
-                          <input
-                            id="captcha"
-                            name="captcha"
-                            type="text"
-                            value={captchaInput}
-                            onChange={(event) => {
-                              setCaptchaInput(event.target.value.toUpperCase());
-                              if (captchaError) {
-                                setError("");
-                              }
-                            }}
-                            className={`peer h-11 w-full rounded-xl border bg-transparent px-4 pb-2 pt-4 pl-11 text-sm uppercase tracking-[0.24em] outline-none transition ${
-                              captchaError ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
-                            }`}
-                            placeholder=" "
-                            autoComplete="off"
-                            spellCheck="false"
-                            maxLength={6}
-                            required
-                          />
-                          <label
-                            htmlFor="captcha"
-                            className={`pointer-events-none absolute left-10 z-10 px-1 text-xs font-medium transition-all duration-200 -top-2 translate-y-0 ${
-                              captchaError
-                                ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
-                                : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
-                            } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                            style={{ backgroundColor: loginPanelSurfaceColor }}
-                          >
-                            {captchaError || "Enter captcha"}
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    style={{
-                      background: submitting
-                        ? `linear-gradient(110deg, ${settings.primaryColor} 15%, ${settings.secondaryColor} 50%, ${settings.primaryColor} 85%)`
-                        : settings.primaryColor,
-                      backgroundSize: submitting ? "220% 100%" : undefined,
-                      animation: submitting ? "login-button-shimmer 1.4s linear infinite" : undefined,
-                      borderRadius: getButtonRadius(settings.buttonStyle),
-                    }}
-                    className="w-full overflow-hidden px-4 py-3 font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-80"
-                  >
-                    {submitting ? "Logging in..." : "Login to Eduvanta"}
-                  </button>
-                </form>
-              </>
-            ) : (
-              <>
-                <p
-                  className="reveal-soft text-sm uppercase tracking-[0.35em]"
-                  style={{ color: settings.primaryColor }}
+            <div className="reveal-soft flex items-start justify-between gap-4">
+              <p
+                className="pt-1 text-sm uppercase tracking-[0.35em]"
+                style={{ color: settings.primaryColor }}
+              >
+                Secure Sign In
+              </p>
+              <button
+                ref={themeToggleRef}
+                type="button"
+                onClick={handleThemeToggle}
+                className="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border transition-all duration-500 ease-in-out hover:scale-105 hover:rotate-6"
+                style={{
+                  backgroundColor: isDark
+                    ? "color-mix(in srgb, var(--theme-surface-strong) 88%, transparent)"
+                    : "color-mix(in srgb, #ffffff 94%, #f8fafc 6%)",
+                  borderColor: isDark ? "var(--theme-border)" : "rgba(148, 163, 184, 0.4)",
+                  color: "var(--theme-text-soft)",
+                  boxShadow: isDark
+                    ? "0 10px 24px rgba(2, 6, 23, 0.22)"
+                    : "0 12px 28px rgba(148, 163, 184, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.82) inset",
+                }}
+                aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                <span
+                  className="flex items-center justify-center"
+                  style={
+                    themeReveal
+                      ? {
+                          animation: `${themeReveal.direction === "expand" ? "login-theme-icon-bloom" : "login-theme-icon-dock"} ${themeReveal.duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+                        }
+                      : undefined
+                  }
                 >
-                  Reset Password
-                </p>
-                <h2 className="reveal-soft reveal-delay-1 mt-4 text-[2.35rem] font-semibold leading-tight text-ink sm:text-[2.8rem]">
-                  Recover your account
-                </h2>
-                <p className="reveal-soft reveal-delay-2 mt-3 text-sm leading-6 text-slate-500">
-                  Provide your pre-registered details to verify identity and set a new password.
-                </p>
+                  {isDark ? (
+                    <FiMoon className="h-5 w-5 text-slate-200" />
+                  ) : (
+                    <FiSun className="h-[1.35rem] w-[1.35rem] text-amber-500" />
+                  )}
+                </span>
+              </button>
+            </div>
+            <h2 className="reveal-soft reveal-delay-1 mt-4 text-[2.35rem] font-semibold leading-tight text-ink sm:text-[2.8rem]">
+              Access your role dashboard
+            </h2>
+            <p className="reveal-soft reveal-delay-2 mt-3 text-sm leading-6 text-slate-500">
+              Sign in to continue to {settings.appName} and manage your institute workflows securely.
+            </p>
+            <p className="reveal-soft reveal-delay-3 mt-2 text-sm leading-6 text-slate-500">
+              Use email, teacher ID, employee ID, mobile number, or roll number as your username.
+            </p>
+            <p className="reveal-soft reveal-delay-4 mt-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+              If you forgot your password, contact your Admin or Super Admin for a new password.
+            </p>
 
-                <div className="reveal-soft reveal-delay-3 mt-6 grid grid-cols-3 rounded-2xl bg-slate-100 p-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotRole("student");
-                      setError("");
-                      setSuccessMessage("");
-                    }}
-                    className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
-                      forgotRole === "student"
-                        ? "bg-white text-ink shadow-sm"
-                        : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    Student
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForgotRole("staff");
-                      setError("");
-                      setSuccessMessage("");
-                    }}
-                    className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
-                      forgotRole === "staff"
-                        ? "bg-white text-ink shadow-sm"
-                        : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    Staff
-                  </button>
-                </div>
-
-                {successMessage && (
-                  <div className="reveal-soft reveal-delay-4 mt-5 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
-                    {successMessage}
-                  </div>
-                )}
-
-                {error && !successMessage && (
-                  <div className="reveal-soft reveal-delay-4 mt-5 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-800">
+            <form className="reveal-stagger mt-8 space-y-5" onSubmit={handleSubmit} autoComplete="on" method="post">
+              <div
+                key={shakeKey}
+                className="space-y-5"
+                style={error ? { animation: "login-shake 0.35s ease-in-out" } : undefined}
+              >
+                {error && !fieldErrors.email && !fieldErrors.password && !captchaError && (
+                  <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm font-medium text-red-800">
                     {error}
                   </div>
                 )}
-
-                <form className="reveal-stagger mt-6 space-y-5" onSubmit={handleForgotSubmit} autoComplete="off">
-                  <div
-                    key={shakeKey}
-                    className="space-y-5"
-                    style={error ? { animation: "login-shake 0.35s ease-in-out" } : undefined}
-                  >
-                    {forgotRole === "student" ? (
-                      <>
-                        <div className="relative">
-                          <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center text-slate-400">
-                            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                              <path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 21" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </span>
-                          <input
-                            id="forgotRollNumber"
-                            name="rollNumber"
-                            type="text"
-                            value={forgotData.rollNumber}
-                            onChange={handleForgotChange}
-                            className="peer h-14 w-full rounded-2xl border border-slate-200 px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition focus:border-brand-600"
-                            placeholder=" "
-                            required
-                          />
-                          <label
-                            htmlFor="forgotRollNumber"
-                            className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
-                              forgotData.rollNumber
-                                ? "-top-2 translate-y-0 text-xs text-brand-700"
-                                : "top-1/2 -translate-y-1/2 text-slate-400"
-                            } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                          >
-                            Enter Roll Number
-                          </label>
-                        </div>
-
-                        <div className="relative">
-                          <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center text-slate-400">
-                            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" strokeLinecap="round" strokeLinejoin="round" />
-                              <path d="M22 6l-10 7L2 6" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </span>
-                          <input
-                            id="forgotEmail"
-                            name="email"
-                            type="email"
-                            value={forgotData.email}
-                            onChange={handleForgotChange}
-                            className="peer h-14 w-full rounded-2xl border border-slate-200 px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition focus:border-brand-600"
-                            placeholder=" "
-                            required
-                          />
-                          <label
-                            htmlFor="forgotEmail"
-                            className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
-                              forgotData.email
-                                ? "-top-2 translate-y-0 text-xs text-brand-700"
-                                : "top-1/2 -translate-y-1/2 text-slate-400"
-                            } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                          >
-                            Enter Registered Email
-                          </label>
-                        </div>
-
-                        <div className="relative">
-                          <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center text-slate-400">
-                            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                              <line x1="16" y1="2" x2="16" y2="6" />
-                              <line x1="8" y1="2" x2="8" y2="6" />
-                              <line x1="3" y1="10" x2="21" y2="10" />
-                            </svg>
-                          </span>
-                          <input
-                            id="forgotDob"
-                            name="dob"
-                            type="date"
-                            value={forgotData.dob}
-                            onChange={handleForgotChange}
-                            className="peer h-14 w-full rounded-2xl border border-slate-200 px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition focus:border-brand-600"
-                            required
-                          />
-                          <label
-                            htmlFor="forgotDob"
-                            className="floating-label pointer-events-none absolute left-10 z-20 px-2 text-xs -top-2 translate-y-0 text-brand-700"
-                          >
-                            Date of Birth
-                          </label>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="relative">
-                          <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center text-slate-400">
-                            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" strokeLinecap="round" strokeLinejoin="round" />
-                              <path d="M22 6l-10 7L2 6" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </span>
-                          <input
-                            id="forgotEmailStaff"
-                            name="email"
-                            type="email"
-                            value={forgotData.email}
-                            onChange={handleForgotChange}
-                            className="peer h-14 w-full rounded-2xl border border-slate-200 px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition focus:border-brand-600"
-                            placeholder=" "
-                            required
-                          />
-                        <label
-                          htmlFor="forgotEmailStaff"
-                          className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
-                              forgotData.email
-                                ? "-top-2 translate-y-0 text-xs text-brand-700"
-                                : "top-1/2 -translate-y-1/2 text-slate-400"
-                          } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                        >
-                            Enter Registered Email
-                          </label>
-                        </div>
-
-                        <div className="relative">
-                          <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center text-slate-400">
-                            <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                              <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 015.06 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L9.03 9.62a16.5 16.5 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </span>
-                          <input
-                            id="forgotPhone"
-                            name="phone"
-                            type="text"
-                            value={forgotData.phone}
-                            onChange={handleForgotChange}
-                            className="peer h-14 w-full rounded-2xl border border-slate-200 px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition focus:border-brand-600"
-                            placeholder=" "
-                            required
-                          />
-                        <label
-                          htmlFor="forgotPhone"
-                          className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
-                              forgotData.phone
-                                ? "-top-2 translate-y-0 text-xs text-brand-700"
-                                : "top-1/2 -translate-y-1/2 text-slate-400"
-                          } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                        >
-                            Enter Phone Number
-                          </label>
-                        </div>
-                      </>
-                    )}
-
-                    <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center text-slate-400">
-                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                          <rect x="5" y="10" width="14" height="10" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M8 10V8a4 4 0 118 0v2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                      <input
-                        id="forgotNewPassword"
-                        name="newPassword"
-                        type={showForgotPasswords ? "text" : "password"}
-                        value={forgotData.newPassword}
-                        onChange={handleForgotChange}
-                        className="peer h-14 w-full rounded-2xl border border-slate-200 px-4 pb-3 pt-5 pl-16 pr-14 text-base leading-6 outline-none transition focus:border-brand-600"
-                        placeholder=" "
-                        autoComplete="new-password"
-                        required
-                      />
-                      <label
-                        htmlFor="forgotNewPassword"
-                        className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
-                          forgotData.newPassword
-                            ? "-top-2 translate-y-0 text-xs text-brand-700"
-                            : "top-1/2 -translate-y-1/2 text-slate-400"
-                        } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                      >
-                        Enter New Password (min 6 chars)
-                      </label>
-                    </div>
-
-                    <div className="relative">
-                      <span className="pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center text-slate-400">
-                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                          <rect x="5" y="10" width="14" height="10" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-                          <path d="M8 10V8a4 4 0 118 0v2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </span>
-                      <input
-                        id="forgotConfirmPassword"
-                        name="confirmPassword"
-                        type={showForgotPasswords ? "text" : "password"}
-                        value={forgotData.confirmPassword}
-                        onChange={handleForgotChange}
-                        className="peer h-14 w-full rounded-2xl border border-slate-200 px-4 pb-3 pt-5 pl-16 pr-14 text-base leading-6 outline-none transition focus:border-brand-600"
-                        placeholder=" "
-                        autoComplete="new-password"
-                        required
-                      />
-                      <label
-                        htmlFor="forgotConfirmPassword"
-                        className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
-                          forgotData.confirmPassword
-                            ? "-top-2 translate-y-0 text-xs text-brand-700"
-                            : "top-1/2 -translate-y-1/2 text-slate-400"
-                        } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                      >
-                        Confirm New Password
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowForgotPasswords((current) => !current)}
-                        className="absolute inset-y-0 right-0 flex h-14 w-14 items-center justify-center text-slate-500 hover:text-slate-700"
-                      >
-                        {showForgotPasswords ? (
-                          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M3 3l18 18" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M9.9 4.24A11.7 11.7 0 0112 4c6.36 0 10 8 10 8a17.6 17.6 0 01-1.67 2.68" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M6.61 6.61A17.3 17.3 0 002 12s3.64 8 10 8c1.9 0 3.67-.54 5.2-1.48" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M2 12s3.64-7 10-7 10 7 10 7-3.64 7-10 7S2 12 2 12z" strokeLinecap="round" strokeLinejoin="round" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="mt-8 flex flex-col gap-3">
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      style={{
-                        background: submitting
-                          ? `linear-gradient(110deg, ${settings.primaryColor} 15%, ${settings.secondaryColor} 50%, ${settings.primaryColor} 85%)`
-                          : settings.primaryColor,
-                        backgroundSize: submitting ? "220% 100%" : undefined,
-                        animation: submitting ? "login-button-shimmer 1.4s linear infinite" : undefined,
-                        borderRadius: getButtonRadius(settings.buttonStyle),
-                      }}
-                      className="w-full overflow-hidden px-4 py-3 font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-80"
+                <div>
+                  <div className="relative">
+                    <span className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center ${fieldErrors.email ? "text-red-400" : "text-slate-400"}`}>
+                      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M20 21a8 8 0 10-16 0" strokeLinecap="round" strokeLinejoin="round" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </span>
+                    <input
+                      ref={usernameInputRef}
+                      id="username"
+                      name="username"
+                      type="text"
+                      defaultValue=""
+                      onPointerDown={markLoginInteracted}
+                      onFocus={markLoginInteracted}
+                      onChange={handleChange}
+                      className={`peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition ${
+                        fieldErrors.email ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
+                      }`}
+                      placeholder=" "
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck="false"
+                      required
+                    />
+                    <label
+                      htmlFor="username"
+                      className={`pointer-events-none absolute left-14 z-10 px-1 text-sm font-medium transition-all duration-200 -top-2.5 translate-y-0 ${
+                        fieldErrors.email
+                          ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
+                          : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
+                      } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-focus:-top-2.5 peer-focus:translate-y-0 peer-focus:text-sm`}
+                      style={{ backgroundColor: loginPanelSurfaceColor }}
                     >
-                      {submitting ? "Resetting Password..." : "Reset Password"}
-                    </button>
+                      {fieldErrors.email || "Username"}
+                    </label>
+                  </div>
+                  <p className="mt-2 px-1 text-xs text-slate-500">
+                    Accepted usernames: email, teacher ID, employee ID, mobile number, or roll number.
+                  </p>
+                </div>
+
+                <div>
+                  <div className="relative">
+                    <span className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex h-14 w-14 items-center justify-center ${fieldErrors.password ? "text-red-400" : "text-slate-400"}`}>
+                      <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+                        <rect x="5" y="10" width="14" height="10" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M8 10V8a4 4 0 118 0v2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <input
+                      ref={passwordInputRef}
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      defaultValue=""
+                      onPointerDown={markLoginInteracted}
+                      onFocus={markLoginInteracted}
+                      onChange={handleChange}
+                      className={`peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 pr-14 text-base leading-6 outline-none transition ${
+                        fieldErrors.password ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
+                      }`}
+                      placeholder=" "
+                      autoComplete="current-password"
+                      required
+                    />
+                    <label
+                      htmlFor="password"
+                      className={`pointer-events-none absolute left-14 z-10 px-1 text-sm font-medium transition-all duration-200 -top-2.5 translate-y-0 ${
+                        fieldErrors.password
+                          ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
+                          : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
+                      } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-focus:-top-2.5 peer-focus:translate-y-0 peer-focus:text-sm`}
+                      style={{ backgroundColor: loginPanelSurfaceColor }}
+                    >
+                      {fieldErrors.password || "Enter your password"}
+                    </label>
                     <button
                       type="button"
-                      onClick={() => {
-                        setIsForgotMode(false);
-                        setError("");
-                        setSuccessMessage("");
-                        setForgotData({
-                          rollNumber: "",
-                          email: "",
-                          dob: "",
-                          phone: "",
-                          newPassword: "",
-                          confirmPassword: "",
-                        });
-                      }}
-                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 font-medium text-slate-500 transition hover:bg-slate-50"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className={`absolute inset-y-0 right-0 flex h-14 w-14 items-center justify-center transition ${
+                        fieldErrors.password ? "text-red-400 hover:text-red-500" : "text-slate-500 hover:text-slate-700"
+                      }`}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-pressed={showPassword}
                     >
-                      Back to Login
+                      {showPassword ? (
+                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+                          <path d="M3 3l18 18" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M10.58 10.58A2 2 0 0012 14a2 2 0 001.42-.58" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M9.9 4.24A11.7 11.7 0 0112 4c6.36 0 10 8 10 8a17.6 17.6 0 01-1.67 2.68" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M6.61 6.61A17.3 17.3 0 002 12s3.64 8 10 8c1.9 0 3.67-.54 5.2-1.48" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+                          <path d="M2 12s3.64-7 10-7 10 7 10 7-3.64 7-10 7S2 12 2 12z" strokeLinecap="round" strokeLinejoin="round" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                      )}
                     </button>
                   </div>
-                </form>
-              </>
-            )}
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <label className="flex items-center gap-3 text-sm text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(event) => setRememberMe(event.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    Remember me
+                  </label>
+                  <p className="text-xs text-slate-400">
+                    {rememberMe ? "This device will stay signed in." : "Session will continue normally."}
+                  </p>
+                </div>
+
+                {settings.captchaEnabled ? (
+                  <div
+                    className="space-y-2"
+                    style={{
+                      animation: captchaError ? "login-shake 0.35s ease-in-out" : undefined,
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="flex h-11 min-w-[112px] select-none items-center justify-center rounded-xl border border-dashed px-3 text-center text-sm font-semibold tracking-[0.3em]"
+                        style={{
+                          backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 72%, transparent)",
+                          borderColor: "var(--theme-border-strong)",
+                          color: "var(--theme-text-soft)",
+                        }}
+                        aria-label={`Captcha code ${captchaText.split("").join(" ")}`}
+                      >
+                        {captchaText}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={refreshCaptcha}
+                        className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border transition duration-200 hover:scale-[1.03]"
+                        style={{
+                          backgroundColor: "color-mix(in srgb, var(--theme-surface-muted) 78%, transparent)",
+                          borderColor: "var(--theme-border)",
+                          color: "var(--theme-text-muted)",
+                        }}
+                        aria-label="Refresh captcha"
+                        title="Refresh captcha"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+                          <path d="M20 11a8 8 0 00-14.9-3M4 13a8 8 0 0014.9 3" strokeLinecap="round" strokeLinejoin="round" />
+                          <path d="M4 4v4h4M20 20v-4h-4" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+
+                      <div className="relative min-w-0 flex-1">
+                        <span className={`pointer-events-none absolute inset-y-0 left-0 z-10 flex h-11 w-11 items-center justify-center ${captchaError ? "text-red-400" : "text-slate-400"}`}>
+                          <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="1.8">
+                            <path d="M4 12h16M4 7h16M4 17h10" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                        <input
+                          id="captcha"
+                          name="captcha"
+                          type="text"
+                          value={captchaInput}
+                          onChange={(event) => {
+                            setCaptchaInput(event.target.value.toUpperCase());
+                            if (captchaError) {
+                              setError("");
+                            }
+                          }}
+                          className={`peer h-11 w-full rounded-xl border bg-transparent px-4 pb-2 pt-4 pl-11 text-sm uppercase tracking-[0.24em] outline-none transition ${
+                            captchaError ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
+                          }`}
+                          placeholder=" "
+                          autoComplete="off"
+                          spellCheck="false"
+                          maxLength={6}
+                          required
+                        />
+                        <label
+                          htmlFor="captcha"
+                          className={`pointer-events-none absolute left-10 z-10 px-1 text-xs font-medium transition-all duration-200 -top-2 translate-y-0 ${
+                            captchaError
+                              ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
+                              : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
+                          } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
+                          style={{ backgroundColor: loginPanelSurfaceColor }}
+                        >
+                          {captchaError || "Enter captcha"}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{
+                  background: submitting
+                    ? `linear-gradient(110deg, ${settings.primaryColor} 15%, ${settings.secondaryColor} 50%, ${settings.primaryColor} 85%)`
+                    : settings.primaryColor,
+                  backgroundSize: submitting ? "220% 100%" : undefined,
+                  animation: submitting ? "login-button-shimmer 1.4s linear infinite" : undefined,
+                  borderRadius: getButtonRadius(settings.buttonStyle),
+                }}
+                className="w-full overflow-hidden px-4 py-3 font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-80"
+              >
+                {submitting ? "Logging in..." : "Login to Eduvanta"}
+              </button>
+            </form>
           </div>
         </div>
       </div>
