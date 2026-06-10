@@ -151,6 +151,17 @@ staffMemberSchema.index(
   }
 );
 
+staffMemberSchema.pre("save", async function validateStaffIdPrefix(next) {
+  if (this.isModified("staffId") && this.staffId && this.staffId.trim()) {
+    const staffId = this.staffId.trim();
+    if (!staffId.startsWith("S")) {
+      const error = new Error("Staff ID must start with 'S' (e.g., S001)");
+      return next(error);
+    }
+  }
+  next();
+});
+
 staffMemberSchema.pre("save", async function hashPassword(next) {
   if (!this.isModified("password")) {
     return next();

@@ -135,6 +135,17 @@ teacherSchema.index(
   }
 );
 
+teacherSchema.pre("save", async function validateEmployeeIdPrefix(next) {
+  if (this.isModified("employeeId") && this.employeeId && this.employeeId.trim()) {
+    const employeeId = this.employeeId.trim();
+    if (!employeeId.startsWith("T")) {
+      const error = new Error("Employee ID must start with 'T' (e.g., T001)");
+      return next(error);
+    }
+  }
+  next();
+});
+
 teacherSchema.pre("save", async function hashPassword(next) {
   if (!this.isModified("password")) {
     return next();

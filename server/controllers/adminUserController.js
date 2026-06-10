@@ -84,26 +84,31 @@ const createAdmin = async (req, res, next) => {
       instituteId: institute._id,
       permissions,
       status,
-      createdBy: req.user._id,
-      createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
+      createdBy: req.user?._id || null,
+      createdByModel: req.user?.role === "superadmin" ? "SuperAdmin" : "Admin",
     });
 
-    await AuditLog.create({
-      instituteId: institute._id,
-      userId: req.user._id,
-      action: "create_admin",
-      module: "admin_management",
-      targetId: adminUser._id,
-      targetType: "Admin",
-      metadata: { instituteCode: institute.instituteCode, role: "admin" },
-      ipAddress: req.ip,
-    });
+    try {
+      await AuditLog.create({
+        instituteId: institute._id,
+        userId: req.user?._id || null,
+        action: "create_admin",
+        module: "admin_management",
+        targetId: adminUser._id,
+        targetType: "Admin",
+        metadata: { instituteCode: institute.instituteCode, role: "admin" },
+        ipAddress: req.ip || "",
+      });
+    } catch (auditError) {
+      console.error("AuditLog creation failed:", auditError.message);
+    }
 
     res.status(201).json({
       message: "Admin created successfully",
       admin: serializeUser(adminUser),
     });
   } catch (error) {
+    console.error("Admin creation error:", error.message);
     next(error);
   }
 };

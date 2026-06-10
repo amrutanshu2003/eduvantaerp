@@ -1,4 +1,4 @@
-import { FiBookOpen, FiCalendar, FiCheckSquare, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPlusSquare, FiSettings, FiShield, FiTruck, FiUser, FiUsers, FiPackage } from "react-icons/fi";
+import { FiBookOpen, FiCalendar, FiCheckSquare, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPlusSquare, FiSettings, FiShield, FiTrash2, FiTruck, FiUser, FiUsers, FiPackage } from "react-icons/fi";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
@@ -22,6 +22,7 @@ const roleLabels = {
 
 const adminMenuItems = [
   { label: "Dashboard", icon: FiHome, path: "/admin/dashboard" },
+  { label: "My Profile", icon: FiUser, path: "/admin/profile" },
   { label: "Bulk Import", icon: FiPlusSquare, path: "/admin/bulk-import" },
   { label: "Academic Groups", icon: FiBookOpen, path: "/admin/academic-groups" },
   { label: "Teachers", icon: FiUser, path: "/admin/teachers" },
@@ -62,7 +63,7 @@ const defaultMenuItems = [
 
 const Sidebar = () => {
   const { user } = useAuth();
-  const { settings, resolvedTheme } = useUISettings();
+  const { settings, resolvedTheme, getButtonRadius } = useUISettings();
   const isDark = resolvedTheme === "dark";
   const sidebarStyle = isDark
     ? { backgroundColor: settings.sidebarColor }
@@ -79,11 +80,12 @@ const Sidebar = () => {
   const basePath = user?.role === "superadmin" ? "/super-admin" : `/${user?.role}`;
   const superAdminItems = [
     { label: "Dashboard", icon: FiHome, path: "/super-admin/dashboard" },
+    { label: "My Profile", icon: FiUser, path: "/super-admin/settings" },
     { label: "Institutes", icon: FiUsers, path: "/super-admin/institutes" },
     { label: "Create Institute", icon: FiPlusSquare, path: "/super-admin/institutes/create" },
     { label: "Global UI Settings", icon: FiSettings, path: "/super-admin/ui-settings" },
+    { label: "Audit Log Settings", icon: FiTrash2, path: "/super-admin/audit-log-settings" },
     { label: "Recycle Bin", icon: FiPackage, path: "/super-admin/recycle-bin" },
-    { label: "Settings / Profile", icon: FiSettings, path: "/super-admin/settings" },
   ];
 
   const adminItemsForSuper = [];
@@ -130,6 +132,7 @@ const Sidebar = () => {
       : user?.role === "teacher"
         ? [
             { label: "Dashboard", icon: FiHome, path: "/teacher/dashboard" },
+            { label: "My Profile", icon: FiUser, path: "/teacher/profile" },
             { label: "My Subjects", icon: FiBookOpen, path: "/teacher/subjects" },
             { label: "Mark Attendance", icon: FiCheckSquare, path: "/teacher/attendance/mark" },
             { label: "Attendance History", icon: FiFileText, path: "/teacher/attendance/history" },
@@ -161,6 +164,7 @@ const Sidebar = () => {
       : user?.role === "parent"
         ? [
             { label: "Dashboard", icon: FiHome, path: "/parent/dashboard" },
+            { label: "My Profile", icon: FiUser, path: "/parent/profile" },
             { label: "Child Attendance", icon: FiCheckSquare, path: "/parent/attendance" },
             { label: "Child Exams", icon: FiCalendar, path: "/parent/exams" },
             { label: "Child Results", icon: FiFileText, path: "/parent/results" },
@@ -177,6 +181,7 @@ const Sidebar = () => {
       : user?.role === "staff"
         ? [
             { label: "Dashboard", icon: FiHome, path: "/staff/dashboard" },
+            { label: "My Profile", icon: FiUser, path: "/staff/profile" },
             { label: "Notices", icon: FiFileText, path: "/staff/notices" },
             ...(canManageLibrary
               ? [

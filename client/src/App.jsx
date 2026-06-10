@@ -89,6 +89,10 @@ import StudentSubmitAssignment from "./pages/student/SubmitAssignment";
 import StudentTimetable from "./pages/student/Timetable";
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentProfile from "./pages/student/Profile";
+import AdminProfile from "./pages/admin/Profile";
+import TeacherProfile from "./pages/teacher/Profile";
+import ParentProfile from "./pages/parent/Profile";
+import StaffProfile from "./pages/staff/Profile";
 import CreateInstitute from "./pages/superadmin/CreateInstitute";
 import CreateInstituteAdmin from "./pages/superadmin/CreateInstituteAdmin";
 import EditInstitute from "./pages/superadmin/EditInstitute";
@@ -100,6 +104,7 @@ import Admins from "./pages/superadmin/Admins";
 import CreateAdmin from "./pages/superadmin/CreateAdmin";
 import EditAdmin from "./pages/superadmin/EditAdmin";
 import Settings from "./pages/superadmin/Settings";
+import AuditLogSettings from "./pages/superadmin/AuditLogSettings";
 import TeacherAttendance from "./pages/teacher/Attendance";
 import TeacherAssignmentDetails from "./pages/teacher/AssignmentDetails";
 import TeacherAssignments from "./pages/teacher/Assignments";
@@ -179,9 +184,11 @@ const App = () => {
             <Route path="/super-admin/admins/create" element={<CreateAdmin />} />
             <Route path="/super-admin/admins/:id/edit" element={<EditAdmin />} />
             <Route path="/super-admin/settings" element={<Settings />} />
+            <Route path="/super-admin/audit-log-settings" element={<AuditLogSettings />} />
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["admin"]} />}>
+            <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/bulk-import" element={<BulkImport />} />
             <Route path="/admin/academic-groups" element={<AcademicGroups />} />
@@ -284,6 +291,7 @@ const App = () => {
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["teacher"]} />}>
+            <Route path="/teacher/profile" element={<TeacherProfile />} />
             <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
             <Route path="/teacher/subjects" element={<TeacherSubjects />} />
             <Route path="/teacher/subjects/:id" element={<TeacherSubjectDetails />} />
@@ -327,6 +335,7 @@ const App = () => {
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["parent"]} />}>
+            <Route path="/parent/profile" element={<ParentProfile />} />
             <Route path="/parent/dashboard" element={<ParentDashboard />} />
             <Route path="/parent/attendance" element={<ParentAttendance />} />
             <Route path="/parent/children/:studentId/attendance" element={<ChildAttendance />} />
@@ -355,6 +364,7 @@ const App = () => {
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["staff"]} />}>
+            <Route path="/staff/profile" element={<StaffProfile />} />
             <Route path="/staff/dashboard" element={<StaffDashboard />} />
             <Route path="/staff/notices" element={<StaffNotices />} />
             <Route path="/staff/library/books" element={<ManageBooksPage basePath="/staff/library" eyebrow="Staff" title="Library Books" description="Manage library books if you are the librarian or have library access." />} />

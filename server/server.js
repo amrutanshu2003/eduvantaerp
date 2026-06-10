@@ -31,13 +31,18 @@ import timetableRoutes from "./routes/timetableRoutes.js";
 import transportRoutes from "./routes/transportRoutes.js";
 import uiSettingsRoutes from "./routes/uiSettingsRoutes.js";
 import marksRoutes from "./routes/marksRoutes.js";
+import auditLogSettingsRoutes from "./routes/auditLogSettingsRoutes.js";
 import { purgeExpiredRecycleBinData } from "./utils/recycleBin.js";
+import { autoDeleteAuditLogs } from "./utils/auditLogCleanup.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
 
 dotenv.config();
 connectDB();
 purgeExpiredRecycleBinData().catch((error) => {
   console.error("Recycle bin startup cleanup failed", error);
+});
+autoDeleteAuditLogs().catch((error) => {
+  console.error("Audit log startup cleanup failed", error);
 });
 
 const app = express();
@@ -130,6 +135,7 @@ app.use("/api/staff", staffRoutes);
 app.use("/api/timetables", timetableRoutes);
 app.use("/api/transport", transportRoutes);
 app.use("/api/ui-settings", uiSettingsRoutes);
+app.use("/api/audit-logs", auditLogSettingsRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
@@ -139,6 +145,12 @@ const PORT = process.env.PORT || 5000;
 setInterval(() => {
   purgeExpiredRecycleBinData().catch((error) => {
     console.error("Recycle bin scheduled cleanup failed", error);
+  });
+}, 60 * 60 * 1000);
+
+setInterval(() => {
+  autoDeleteAuditLogs().catch((error) => {
+    console.error("Audit log scheduled cleanup failed", error);
   });
 }, 60 * 60 * 1000);
 

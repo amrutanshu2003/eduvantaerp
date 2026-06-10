@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
+import { SkeletonCard, SkeletonLines, SkeletonBlock, SkeletonButton } from "../../components/Skeleton";
 import PageHeader from "../../components/PageHeader";
 import { useUISettings } from "../../context/UISettingsContext";
 
@@ -56,6 +57,11 @@ const BulkImport = () => {
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("info");
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 500);
+  }, []);
 
   const activeTemplate = useMemo(() => templates[entityType], [entityType]);
 
@@ -107,6 +113,85 @@ const BulkImport = () => {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <section className="space-y-6">
+        <PageHeader
+          eyebrow="Admin"
+          title="Bulk Import"
+          description="Add records in bulk with CSV instead of entering everything one by one. Each row is validated, and failed rows show exact errors below."
+        />
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          {/* Left section - Form skeleton */}
+          <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card space-y-5">
+            {/* Form inputs grid */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <SkeletonBlock className="h-3.5 w-24 rounded-full" />
+                <SkeletonBlock className="h-12 w-full rounded-2xl" />
+              </div>
+              <div className="space-y-2">
+                <SkeletonBlock className="h-3.5 w-20 rounded-full" />
+                <SkeletonBlock className="h-12 w-full rounded-2xl" />
+              </div>
+            </div>
+            
+            {/* Template note box */}
+            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+              <SkeletonBlock className="h-4 w-48 rounded-full mb-2" />
+              <SkeletonLines lines={["w-full", "w-5/6", "w-4/5"]} />
+            </div>
+            
+            {/* Textarea */}
+            <div className="space-y-2">
+              <SkeletonBlock className="h-3.5 w-20 rounded-full" />
+              <SkeletonBlock className="h-48 w-full rounded-3xl" />
+            </div>
+            
+            {/* Buttons */}
+            <div className="flex flex-wrap gap-3">
+              <SkeletonButton className="w-32" />
+              <SkeletonButton className="w-40" />
+            </div>
+          </div>
+          
+          {/* Right section - Results skeleton */}
+          <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card space-y-5">
+            {/* Header */}
+            <div>
+              <SkeletonBlock className="h-3 w-32 rounded-full mb-2" />
+              <SkeletonBlock className="h-8 w-48 rounded-full" />
+            </div>
+            
+            {/* Instructions */}
+            <SkeletonLines lines={["w-full", "w-5/6", "w-4/5", "w-3/4"]} />
+            
+            {/* Stats cards */}
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-3xl bg-slate-50 p-4">
+                <SkeletonBlock className="h-3 w-12 rounded-full mb-2" />
+                <SkeletonBlock className="h-8 w-16 rounded-full" />
+              </div>
+              <div className="rounded-3xl bg-emerald-50 p-4">
+                <SkeletonBlock className="h-3 w-14 rounded-full mb-2" />
+                <SkeletonBlock className="h-8 w-16 rounded-full" />
+              </div>
+              <div className="rounded-3xl bg-rose-50 p-4">
+                <SkeletonBlock className="h-3 w-12 rounded-full mb-2" />
+                <SkeletonBlock className="h-8 w-16 rounded-full" />
+              </div>
+            </div>
+            
+            {/* Table placeholder */}
+            <div className="rounded-3xl border border-slate-200 p-4">
+              <SkeletonLines lines={["w-full", "w-5/6", "w-4/5", "w-full", "w-3/4"]} />
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-6">

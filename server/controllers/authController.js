@@ -36,38 +36,32 @@ const loginUser = async (req, res, next) => {
 
     const normalizedEmail = normalizedIdentifier.toLowerCase();
     const [
-      studentEmail, teacherEmail, parentEmail, staffEmail, adminEmail, superAdminEmail,
-      studentPhone, teacherPhone, parentPhone, staffPhone, adminPhone, superAdminPhone,
+      adminEmail, superAdminEmail,
+      adminPhone, superAdminPhone,
       studentRoll,
       teacherEmployee,
+      parentPhone,
       staffIdQuery
     ] = await Promise.all([
-      // Email queries
-      Student.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
-      Teacher.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
-      Parent.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
-      StaffMember.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      // Email queries (only admin and superadmin)
       Admin.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
       SuperAdmin.find({ email: normalizedEmail, ...notDeletedFilter }).select("+password"),
 
-      // Phone queries
-      Student.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
-      Teacher.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
-      Parent.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
-      StaffMember.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      // Phone queries (only admin and superadmin)
       Admin.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
       SuperAdmin.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password"),
 
       // Role-specific identifiers
       Student.find({ rollNumber: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
       Teacher.find({ employeeId: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
+      Parent.find({ phone: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
       StaffMember.find({ staffId: normalizedIdentifier, ...notDeletedFilter }).select("+password").populate("instituteId", "name instituteCode instituteType status"),
     ]);
 
     const allCandidates = [
-      ...studentEmail, ...teacherEmail, ...parentEmail, ...staffEmail, ...adminEmail, ...superAdminEmail,
-      ...studentPhone, ...teacherPhone, ...parentPhone, ...staffPhone, ...adminPhone, ...superAdminPhone,
-      ...studentRoll, ...teacherEmployee, ...staffIdQuery
+      ...adminEmail, ...superAdminEmail,
+      ...adminPhone, ...superAdminPhone,
+      ...studentRoll, ...teacherEmployee, ...parentPhone, ...staffIdQuery
     ];
 
     const uniqueCandidates = [];

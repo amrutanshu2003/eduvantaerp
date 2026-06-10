@@ -65,7 +65,7 @@ const createTeacher = async (req, res, next) => {
       role: "teacher",
       instituteId,
       createdBy: req.user._id,
-      createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
+      createdByModel: req.user?.role === "superadmin" ? "SuperAdmin" : "Admin",
     });
 
     await createAuditLog({

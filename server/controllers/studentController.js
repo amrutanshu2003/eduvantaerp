@@ -109,7 +109,7 @@ const createStudent = async (req, res, next) => {
       admissionDate: admissionDate || null,
       status,
       createdBy: req.user._id,
-      createdByModel: req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1),
+      createdByModel: req.user?.role === "superadmin" ? "SuperAdmin" : "Admin",
     });
 
     await createAuditLog({
