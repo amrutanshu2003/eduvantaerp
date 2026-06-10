@@ -60,7 +60,14 @@ const getFieldErrors = (message) => {
     };
   }
 
-  const hasUserTerm = normalizedMessage.includes("username") || normalizedMessage.includes("email") || normalizedMessage.includes("roll");
+  const hasUserTerm =
+    normalizedMessage.includes("username") ||
+    normalizedMessage.includes("email") ||
+    normalizedMessage.includes("roll") ||
+    normalizedMessage.includes("phone") ||
+    normalizedMessage.includes("employee") ||
+    normalizedMessage.includes("teacher id") ||
+    normalizedMessage.includes("staff id");
   const hasPasswordTerm = normalizedMessage.includes("password");
 
   // 4. Combined invalid error (both terms are present + invalid keyword)
@@ -279,17 +286,17 @@ const Login = () => {
     event.preventDefault();
     setError("");
 
-    const emailVal = (usernameInputRef.current?.value || formData.email || "").trim();
+    const usernameVal = (usernameInputRef.current?.value || formData.email || "").trim();
     const passwordVal = passwordInputRef.current?.value || formData.password || "";
     const captchaVal = captchaInput.trim().toUpperCase();
 
-    if (!emailVal && !passwordVal) {
+    if (!usernameVal && !passwordVal) {
       setShakeKey((current) => current + 1);
       setError("Username and password are required");
       return;
     }
 
-    if (!emailVal) {
+    if (!usernameVal) {
       setShakeKey((current) => current + 1);
       setError("Username is required");
       return;
@@ -315,7 +322,7 @@ const Login = () => {
 
     setSubmitting(true);
     try {
-      const user = await login(emailVal, passwordVal);
+      const user = await login(usernameVal, passwordVal);
       const fallbackPath = roleRedirectMap[user.role] || "/unauthorized";
       const requestedPath = location.state?.from?.pathname;
       const allowedBasePaths = roleBasePathMap[user.role] || [];
@@ -332,7 +339,7 @@ const Login = () => {
       setShakeKey((current) => current + 1);
       setError(
         requestError.response?.data?.message ||
-          "Unable to sign in. Please check your email and password."
+          "Unable to sign in. Please check your username and password."
       );
       refreshCaptcha();
     } finally {
@@ -625,6 +632,9 @@ const Login = () => {
                 <p className="reveal-soft reveal-delay-2 mt-3 text-sm leading-6 text-slate-500">
                   Sign in to continue to {settings.appName} and manage your institute workflows securely.
                 </p>
+                <p className="reveal-soft reveal-delay-3 mt-2 text-sm leading-6 text-slate-500">
+                  Use email, teacher ID, employee ID, mobile number, or roll number as your username.
+                </p>
 
                 <form className="reveal-stagger mt-8 space-y-5" onSubmit={handleSubmit} autoComplete="on" method="post">
                   <div
@@ -675,6 +685,9 @@ const Login = () => {
                         {fieldErrors.email || "Username"}
                       </label>
                     </div>
+                    <p className="mt-2 px-1 text-xs text-slate-500">
+                      Accepted usernames: email, teacher ID, employee ID, mobile number, or roll number.
+                    </p>
                   </div>
 
                   <div>
