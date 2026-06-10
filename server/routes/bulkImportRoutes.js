@@ -5,7 +5,7 @@ import allowRoles from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-router.use(protect, allowRoles("admin"));
+router.use(protect, allowRoles("admin", "superadmin"));
 
 router.post("/", bulkImport);
 

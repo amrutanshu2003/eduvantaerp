@@ -159,7 +159,7 @@ const Login = () => {
 
   // Forgot password states
   const [isForgotMode, setIsForgotMode] = useState(false);
-  const [forgotRole, setForgotRole] = useState("student"); // "student" or "staff"
+  const [forgotRole, setForgotRole] = useState("student");
   const [forgotData, setForgotData] = useState({
     rollNumber: "",
     email: "",
@@ -906,8 +906,7 @@ const Login = () => {
                   Provide your pre-registered details to verify identity and set a new password.
                 </p>
 
-                {/* Tabs to switch roles */}
-                <div className="reveal-soft reveal-delay-3 mt-6 flex rounded-2xl bg-slate-100 p-1">
+                <div className="reveal-soft reveal-delay-3 mt-6 grid grid-cols-3 rounded-2xl bg-slate-100 p-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -936,7 +935,22 @@ const Login = () => {
                         : "text-slate-500 hover:text-slate-800"
                     }`}
                   >
-                    Staff & Others
+                    Staff
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForgotRole("superadmin");
+                      setError("");
+                      setSuccessMessage("");
+                    }}
+                    className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
+                      forgotRole === "superadmin"
+                        ? "bg-white text-ink shadow-sm"
+                        : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    Super Admin
                   </button>
                 </div>
 
@@ -1062,15 +1076,15 @@ const Login = () => {
                             placeholder=" "
                             required
                           />
-                          <label
-                            htmlFor="forgotEmailStaff"
-                            className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
+                        <label
+                          htmlFor="forgotEmailStaff"
+                          className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
                               forgotData.email
                                 ? "-top-2 translate-y-0 text-xs text-brand-700"
                                 : "top-1/2 -translate-y-1/2 text-slate-400"
-                            } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                          >
-                            Enter Registered Email
+                          } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
+                        >
+                            {forgotRole === "superadmin" ? "Enter Super Admin Email" : "Enter Registered Email"}
                           </label>
                         </div>
 
@@ -1090,15 +1104,15 @@ const Login = () => {
                             placeholder=" "
                             required
                           />
-                          <label
-                            htmlFor="forgotPhone"
-                            className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
+                        <label
+                          htmlFor="forgotPhone"
+                          className={`floating-label pointer-events-none absolute left-10 z-20 px-2 text-sm transition-all duration-200 ${
                               forgotData.phone
                                 ? "-top-2 translate-y-0 text-xs text-brand-700"
                                 : "top-1/2 -translate-y-1/2 text-slate-400"
-                            } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
-                          >
-                            Enter Phone Number
+                          } peer-focus:text-brand-700 peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
+                        >
+                            {forgotRole === "superadmin" ? "Enter Super Admin Mobile Number" : "Enter Phone Number"}
                           </label>
                         </div>
                       </>

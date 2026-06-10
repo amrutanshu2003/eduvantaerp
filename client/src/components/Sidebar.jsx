@@ -85,9 +85,6 @@ const Sidebar = () => {
 
   const adminItemsForSuper = [];
   adminMenuItems.forEach((item) => {
-    if (item.label === "Bulk Import") {
-      return;
-    }
     if (item.label === "Teachers") {
       adminItemsForSuper.push({ label: "Admins", icon: FiShield, path: "/super-admin/admins" });
     }

@@ -18,13 +18,13 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/my-fees", allowRoles("student"), getMyFees);
-router.get("/student/:studentId", allowRoles("admin"), getFeesByStudentId);
+router.get("/student/:studentId", allowRoles("admin", "superadmin"), getFeesByStudentId);
 router.get("/child/:studentId", allowRoles("parent"), getChildFees);
-router.get("/", allowRoles("admin"), getFees);
-router.get("/:id", allowRoles("admin"), getFeeById);
-router.post("/", allowRoles("admin"), createFee);
-router.put("/:id", allowRoles("admin"), updateFee);
-router.patch("/:id/payment", allowRoles("admin"), markFeePayment);
-router.delete("/:id", allowRoles("admin"), deleteFee);
+router.get("/", allowRoles("admin", "superadmin"), getFees);
+router.get("/:id", allowRoles("admin", "superadmin"), getFeeById);
+router.post("/", allowRoles("admin", "superadmin"), createFee);
+router.put("/:id", allowRoles("admin", "superadmin"), updateFee);
+router.patch("/:id/payment", allowRoles("admin", "superadmin"), markFeePayment);
+router.delete("/:id", allowRoles("admin", "superadmin"), deleteFee);
 
 export default router;

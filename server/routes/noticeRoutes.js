@@ -16,11 +16,11 @@ const router = express.Router();
 router.use(protect);
 
 router.get("/my-notices", allowRoles("teacher", "student", "parent", "staff"), getMyNotices);
-router.get("/", allowRoles("admin"), getNotices);
-router.get("/:id", allowRoles("admin"), getNoticeById);
-router.post("/", allowRoles("admin"), createNotice);
-router.put("/:id", allowRoles("admin"), updateNotice);
-router.patch("/:id/status", allowRoles("admin"), updateNoticeStatus);
-router.delete("/:id", allowRoles("admin"), deleteNotice);
+router.get("/", allowRoles("admin", "superadmin"), getNotices);
+router.get("/:id", allowRoles("admin", "superadmin"), getNoticeById);
+router.post("/", allowRoles("admin", "superadmin"), createNotice);
+router.put("/:id", allowRoles("admin", "superadmin"), updateNotice);
+router.patch("/:id/status", allowRoles("admin", "superadmin"), updateNoticeStatus);
+router.delete("/:id", allowRoles("admin", "superadmin"), deleteNotice);
 
 export default router;

@@ -187,6 +187,7 @@ const forgotPassword = async (req, res, next) => {
       const user = await User.findOne({
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
+        ...(role ? { role } : {}),
         ...notDeletedFilter,
       });
       if (!user) {

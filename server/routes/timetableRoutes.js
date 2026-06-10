@@ -20,11 +20,11 @@ router.use(protect);
 router.get("/my-timetable", allowRoles("student"), getMyTimetable);
 router.get("/teacher/my-timetable", allowRoles("teacher"), getTeacherTimetable);
 router.get("/child/:studentId", allowRoles("parent"), getChildTimetable);
-router.get("/", allowRoles("admin"), getTimetables);
-router.get("/:id", allowRoles("admin"), getTimetableById);
-router.post("/", allowRoles("admin"), createTimetable);
-router.put("/:id", allowRoles("admin"), updateTimetable);
-router.patch("/:id/status", allowRoles("admin"), updateTimetableStatus);
-router.delete("/:id", allowRoles("admin"), deleteTimetable);
+router.get("/", allowRoles("admin", "superadmin"), getTimetables);
+router.get("/:id", allowRoles("admin", "superadmin"), getTimetableById);
+router.post("/", allowRoles("admin", "superadmin"), createTimetable);
+router.put("/:id", allowRoles("admin", "superadmin"), updateTimetable);
+router.patch("/:id/status", allowRoles("admin", "superadmin"), updateTimetableStatus);
+router.delete("/:id", allowRoles("admin", "superadmin"), deleteTimetable);
 
 export default router;

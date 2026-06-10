@@ -21,14 +21,14 @@ router.use(protect);
 
 router.get("/my-assignments", allowRoles("student"), getMyAssignments);
 router.get("/child/:studentId", allowRoles("parent"), getChildAssignments);
-router.get("/:id/submissions", allowRoles("admin", "teacher"), getAssignmentSubmissions);
+router.get("/:id/submissions", allowRoles("admin", "superadmin", "teacher"), getAssignmentSubmissions);
 router.post("/:id/submit", allowRoles("student"), submitAssignment);
-router.patch("/submissions/:submissionId/review", allowRoles("admin", "teacher"), reviewAssignmentSubmission);
-router.get("/", allowRoles("admin", "teacher"), getAssignments);
-router.get("/:id", allowRoles("admin", "teacher", "student"), getAssignmentById);
-router.post("/", allowRoles("admin", "teacher"), createAssignment);
-router.put("/:id", allowRoles("admin", "teacher"), updateAssignment);
-router.patch("/:id/status", allowRoles("admin", "teacher"), updateAssignmentStatus);
-router.delete("/:id", allowRoles("admin", "teacher"), deleteAssignment);
+router.patch("/submissions/:submissionId/review", allowRoles("admin", "superadmin", "teacher"), reviewAssignmentSubmission);
+router.get("/", allowRoles("admin", "superadmin", "teacher"), getAssignments);
+router.get("/:id", allowRoles("admin", "superadmin", "teacher", "student"), getAssignmentById);
+router.post("/", allowRoles("admin", "superadmin", "teacher"), createAssignment);
+router.put("/:id", allowRoles("admin", "superadmin", "teacher"), updateAssignment);
+router.patch("/:id/status", allowRoles("admin", "superadmin", "teacher"), updateAssignmentStatus);
+router.delete("/:id", allowRoles("admin", "superadmin", "teacher"), deleteAssignment);
 
 export default router;
