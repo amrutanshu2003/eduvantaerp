@@ -76,6 +76,26 @@ const AuditLogSettings = () => {
     }
   };
 
+  const handleClearAllLogs = async () => {
+    if (!window.confirm("Are you sure you want to permanently delete ALL audit logs from the database? This action cannot be undone and will delete everything.")) {
+      return;
+    }
+
+    setDeleting(true);
+    setMessage("");
+
+    try {
+      const { data } = await api.post("/audit-logs/delete", { clearAll: true });
+      setMessageTone("success");
+      setMessage(data.message);
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Failed to clear audit logs");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleRunAutoDelete = async () => {
     if (!window.confirm("Are you sure you want to run auto-delete now? This will delete audit logs based on your retention settings.")) {
       return;
@@ -229,6 +249,21 @@ const AuditLogSettings = () => {
                 className="mt-4 w-full rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {deleting ? "Deleting..." : `Delete Logs Older Than ${deleteDays} Days`}
+              </button>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-rose-100 bg-rose-50 p-4">
+              <p className="text-sm font-medium text-rose-800">Clear All Logs</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Permanently delete all audit logs from the database immediately.
+              </p>
+              <button
+                type="button"
+                onClick={handleClearAllLogs}
+                disabled={deleting}
+                className="btn-destructive-action mt-4 w-full rounded-2xl px-4 py-3 text-sm font-semibold shadow-sm"
+              >
+                {deleting ? "Clearing..." : "Delete All Logs Permanently"}
               </button>
             </div>
 

@@ -80,9 +80,11 @@ const Sidebar = () => {
   const basePath = user?.role === "superadmin" ? "/super-admin" : `/${user?.role}`;
   const superAdminItems = [
     { label: "Dashboard", icon: FiHome, path: "/super-admin/dashboard" },
+    { label: "Admin Dashboard", icon: FiHome, path: "/admin/dashboard" },
     { label: "My Profile", icon: FiUser, path: "/super-admin/settings" },
     { label: "Institutes", icon: FiUsers, path: "/super-admin/institutes" },
     { label: "Create Institute", icon: FiPlusSquare, path: "/super-admin/institutes/create" },
+    { label: "Academic Groups", icon: FiBookOpen, path: "/admin/academic-groups" },
     { label: "Global UI Settings", icon: FiSettings, path: "/super-admin/ui-settings" },
     { label: "Audit Log Settings", icon: FiTrash2, path: "/super-admin/audit-log-settings" },
     { label: "Recycle Bin", icon: FiPackage, path: "/super-admin/recycle-bin" },
@@ -90,7 +92,12 @@ const Sidebar = () => {
 
   const adminItemsForSuper = [];
   adminMenuItems.forEach((item) => {
-    if (item.label === "Recycle Bin") {
+    if (
+      item.label === "Recycle Bin" ||
+      item.label === "Academic Groups" ||
+      item.label === "My Profile" ||
+      item.label === "Dashboard"
+    ) {
       return;
     }
     let newItem = { ...item };

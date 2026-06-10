@@ -47,7 +47,7 @@ const getLatestNotices = async ({ instituteId, role, academicGroupIds = [] }) =>
 };
 
 const countFeesByStatus = async (query) => {
-  const fees = await Fee.find(query).select("amount discount fine paidAmount dueDate status");
+  const fees = await Fee.find(query).select("amount discount fine paidAmount dueDate status").lean();
 
   return fees.reduce(
     (summary, fee) => {
@@ -97,8 +97,12 @@ const countStudentTodayPeriods = async (instituteId, academicGroupId) => {
 };
 
 const countOverdueIssues = async (query) => {
-  const issues = await BookIssue.find(query).select("dueDate returnDate status");
-  return issues.filter((issue) => getIssueStatus(issue) === "overdue").length;
+  return BookIssue.countDocuments({
+    ...query,
+    status: { $in: ["issued", "overdue"] },
+    returnDate: null,
+    dueDate: { $lt: new Date() },
+  });
 };
 
 const getAdminPhase4Stats = async (req, res, next) => {

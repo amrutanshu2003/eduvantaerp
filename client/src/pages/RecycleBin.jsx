@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FiTrash2 } from "react-icons/fi";
 import api from "../api/axios";
 import AlertMessage from "../components/AlertMessage";
 import EmptyState from "../components/EmptyState";
@@ -164,6 +165,29 @@ const RecycleBin = () => {
     }
   };
 
+  const handleEmptyRecycleBin = async () => {
+    if (
+      !(await window.confirm(
+        "Are you sure you want to empty the recycle bin? This will permanently delete ALL deleted items and cannot be undone."
+      ))
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { data } = await api.delete("/admin/recycle-bin/empty");
+      setMessageTone("success");
+      setMessage(data.message || "Recycle bin emptied successfully.");
+      setItems([]);
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Unable to empty recycle bin");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return <LoadingBlock message="Loading recycle bin..." />;
   }
@@ -174,6 +198,17 @@ const RecycleBin = () => {
         eyebrow={user?.role === "superadmin" ? "Super Admin" : "Admin"}
         title="Recycle Bin"
         description={`Deleted records stay here for ${retentionDays} days before permanent database removal.`}
+        actions={
+          <button
+            onClick={handleEmptyRecycleBin}
+            disabled={items.length === 0}
+            style={{ borderRadius: getButtonRadius(settings.buttonStyle) }}
+            className="btn-destructive-action px-5 py-2.5 text-sm font-semibold shadow-sm flex items-center gap-2 transform active:scale-95 disabled:transform-none whitespace-nowrap self-start md:self-end"
+          >
+            <FiTrash2 className="w-4 h-4" />
+            Empty Recycle Bin
+          </button>
+        }
       />
 
       <AlertMessage tone={messageTone} message={message} />

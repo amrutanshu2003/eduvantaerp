@@ -34,6 +34,7 @@ import {
   getRecycleBinExpiryForRecord,
   hardDeleteStudentRecord,
   hardDeleteUserRecord,
+  GENERIC_RECYCLE_BIN_MODELS,
 } from "../utils/recycleBin.js";
 
 const getRequestInstituteId = (req) => req.user.instituteId?._id || req.user.instituteId || null;
@@ -738,8 +739,68 @@ const permanentlyDeleteRecycleBinItem = async (req, res, next) => {
   }
 };
 
+const emptyRecycleBin = async (req, res, next) => {
+  try {
+    const { instituteId = "all" } = req.query;
+    const requestedInstituteId =
+      req.user.role === "superadmin" && instituteId !== "all" ? instituteId : getRequestInstituteId(req);
+
+    // 1. Student
+    const studentQuery = { isDeleted: true };
+    if (requestedInstituteId) {
+      studentQuery.instituteId = requestedInstituteId;
+    }
+    const studentsToDelete = await Student.find(studentQuery);
+    for (const student of studentsToDelete) {
+      await hardDeleteStudentRecord(student);
+    }
+
+    // 2. Users (Teacher, Parent, StaffMember, Admin, SuperAdmin)
+    const allowedRoles = getAllowedRoles(req);
+    for (const role of allowedRoles) {
+      const Model = roleModelMap[role];
+      if (!Model) continue;
+      const userQuery = { isDeleted: true };
+      if (requestedInstituteId && role !== "superadmin") {
+        userQuery.instituteId = requestedInstituteId;
+      }
+      const usersToDelete = await Model.find(userQuery);
+      for (const user of usersToDelete) {
+        await hardDeleteUserRecord(user);
+      }
+    }
+
+    // 3. Generic Recycle Bin Models
+    for (const Model of GENERIC_RECYCLE_BIN_MODELS) {
+      const query = { isDeleted: true };
+      if (Model.modelName === "Institute" && req.user.role !== "superadmin") {
+        continue;
+      }
+      if (requestedInstituteId && Model.modelName !== "Institute") {
+        query.instituteId = requestedInstituteId;
+      }
+      await Model.deleteMany(query);
+    }
+
+    // Create Audit Log
+    await AuditLog.create({
+      instituteId: requestedInstituteId || null,
+      userId: req.user._id,
+      action: "empty_recycle_bin",
+      module: "recycle_bin",
+      metadata: { requestedInstituteId },
+      ipAddress: req.ip,
+    });
+
+    res.json({ message: "Recycle bin emptied successfully" });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export {
   listRecycleBinItems,
   restoreRecycleBinItem,
   permanentlyDeleteRecycleBinItem,
+  emptyRecycleBin,
 };

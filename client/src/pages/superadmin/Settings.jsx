@@ -6,10 +6,12 @@ import PageHeader from "../../components/PageHeader";
 import EmptyState from "../../components/EmptyState";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
+import { SkeletonCard, SkeletonLines } from "../../components/Skeleton";
 
 const Settings = () => {
   const { user, updateUser } = useAuth();
   const { settings, getButtonRadius } = useUISettings();
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Navigation Tab State
   const [activeTab, setActiveTab] = useState("profile");
@@ -106,6 +108,16 @@ const Settings = () => {
     }
   }, [activeTab, searchQuery]);
 
+  useEffect(() => {
+    if (user) {
+      setProfileName(user.name || "");
+      setProfileEmail(user.email || "");
+      setProfilePhone(user.phone || "");
+    }
+    const timer = setTimeout(() => setInitialLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [user]);
+
   // Open Create Modal
   const openCreateModal = () => {
     setModalMode("create");
@@ -180,6 +192,22 @@ const Settings = () => {
     backgroundColor: settings.primaryColor,
     borderRadius: getButtonRadius(settings.buttonStyle),
   };
+
+  if (initialLoading) {
+    return (
+      <section className="space-y-6">
+        <PageHeader
+          eyebrow="Super Admin"
+          title="Settings & Profile"
+          description="Manage your account preferences, reset passwords, and coordinate Super Admin credentials."
+        />
+        <div className="grid gap-6 md:grid-cols-2">
+          <SkeletonCard lines={["w-3/4", "w-1/2", "w-2/3"]} />
+          <SkeletonCard lines={["w-full", "w-5/6", "w-3/4", "w-1/2"]} />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="space-y-6">

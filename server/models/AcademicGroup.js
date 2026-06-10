@@ -59,7 +59,7 @@ const academicGroupSchema = new mongoose.Schema(
     },
     mentorOrClassTeacher: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Teacher",
       default: null,
     },
     createdBy: {

@@ -18,6 +18,7 @@ import {
   listRecycleBinItems,
   restoreRecycleBinItem,
   permanentlyDeleteRecycleBinItem,
+  emptyRecycleBin,
 } from "../controllers/recycleBinController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import allowRoles from "../middleware/roleMiddleware.js";
@@ -50,6 +51,7 @@ router.route("/superadmins/:id")
   .delete(allowRoles("superadmin"), deleteSuperAdmin);
 
 router.get("/recycle-bin", listRecycleBinItems);
+router.delete("/recycle-bin/empty", emptyRecycleBin);
 router.patch("/recycle-bin/:entityType/:id/restore", restoreRecycleBinItem);
 router.delete("/recycle-bin/:entityType/:id/permanent", permanentlyDeleteRecycleBinItem);
 

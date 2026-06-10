@@ -168,4 +168,5 @@ export {
   hardDeleteStudentRecord,
   hardDeleteUserRecord,
   purgeExpiredRecycleBinData,
+  GENERIC_RECYCLE_BIN_MODELS,
 };

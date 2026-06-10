@@ -52,16 +52,24 @@ const updateAuditLogSettings = async (req, res, next) => {
 
 const deleteAuditLogs = async (req, res, next) => {
   try {
-    const { days = 7 } = req.body;
-    const deleteBeforeDate = new Date();
-    deleteBeforeDate.setDate(deleteBeforeDate.getDate() - days);
+    const { days = 7, clearAll = false } = req.body;
+    let query = {};
+    let msg = "";
 
-    const result = await AuditLog.deleteMany({
-      createdAt: { $lt: deleteBeforeDate },
-    });
+    if (clearAll) {
+      query = {};
+      msg = "Permanently deleted all audit logs";
+    } else {
+      const deleteBeforeDate = new Date();
+      deleteBeforeDate.setDate(deleteBeforeDate.getDate() - days);
+      query = { createdAt: { $lt: deleteBeforeDate } };
+      msg = `Deleted audit logs older than ${days} days`;
+    }
+
+    const result = await AuditLog.deleteMany(query);
 
     res.json({
-      message: `Deleted ${result.deletedCount} audit logs older than ${days} days`,
+      message: `${msg} successfully. (${result.deletedCount} logs removed permanently)`,
       deletedCount: result.deletedCount,
     });
   } catch (error) {
