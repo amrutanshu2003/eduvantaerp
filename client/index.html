@@ -25,6 +25,7 @@
         min-width: 320px;
         background: inherit;
         color: #0f172a;
+        font-family: "Poppins", "Segoe UI", sans-serif;
       }
 
       html.theme-dark body {
@@ -35,6 +36,185 @@
       html.theme-light body {
         background: #f4f8fc;
         color: #0f172a;
+      }
+
+      #root {
+        min-height: 100vh;
+      }
+
+      .boot-login {
+        position: relative;
+        display: flex;
+        min-height: 100vh;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding: 16px;
+        background: #020617;
+      }
+
+      .boot-login::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at top left, rgba(20, 184, 166, 0.28), transparent 35%),
+          radial-gradient(circle at bottom right, rgba(245, 158, 11, 0.16), transparent 28%);
+      }
+
+      .boot-frame {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        width: min(100%, 1152px);
+        min-height: 44rem;
+        overflow: hidden;
+        border-radius: 32px;
+        background: #ffffff;
+        box-shadow: 0 24px 70px rgba(2, 6, 23, 0.42);
+      }
+
+      .boot-panel-brand {
+        position: relative;
+        display: flex;
+        overflow: hidden;
+        padding: 32px;
+        background: linear-gradient(160deg, #0f172a 0%, #0f766e 100%);
+      }
+
+      .boot-panel-brand::before,
+      .boot-panel-form::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(105deg, transparent 0%, transparent 38%, rgba(255,255,255,0.24) 50%, transparent 62%, transparent 100%);
+        transform: translateX(-130%);
+        animation: boot-sweep 3.8s ease-in-out infinite;
+      }
+
+      .boot-panel-form {
+        position: relative;
+        display: flex;
+        align-items: center;
+        padding: 32px;
+        background: #ffffff;
+      }
+
+      .boot-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .boot-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .boot-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .boot-grid-2 {
+        display: grid;
+        gap: 14px;
+      }
+
+      .boot-block {
+        position: relative;
+        overflow: hidden;
+        border-radius: 999px;
+        background: linear-gradient(110deg, rgba(226,232,240,0.95) 8%, #ffffff 18%, rgba(226,232,240,0.95) 33%);
+        background-size: 240% 100%;
+        animation: boot-shimmer 2s linear infinite;
+      }
+
+      .boot-block.dark {
+        background: linear-gradient(110deg, rgba(255,255,255,0.12) 8%, rgba(255,255,255,0.28) 18%, rgba(255,255,255,0.12) 33%);
+        background-size: 240% 100%;
+      }
+
+      .boot-card {
+        border-radius: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.1);
+        padding: 18px;
+        backdrop-filter: blur(10px);
+      }
+
+      .boot-input {
+        border-radius: 24px;
+        border: 1px solid #dbe4f0;
+        background: #ffffff;
+        padding: 16px;
+      }
+
+      .boot-button {
+        border-radius: 999px;
+        background: linear-gradient(90deg, #0f766e 0%, #14b8a6 50%, #0f766e 100%);
+        background-size: 220% 100%;
+        animation: boot-shimmer 2.15s linear infinite;
+      }
+
+      html.theme-dark .boot-frame {
+        background: #111c2d;
+        box-shadow: 0 24px 70px rgba(2, 6, 23, 0.56);
+      }
+
+      html.theme-dark .boot-panel-form {
+        background: #111c2d;
+      }
+
+      html.theme-dark .boot-input {
+        border-color: #243349;
+        background: #0a1423;
+      }
+
+      html.theme-dark .boot-panel-form::before {
+        background: linear-gradient(105deg, transparent 0%, transparent 36%, rgba(148,163,184,0.12) 50%, transparent 64%, transparent 100%);
+      }
+
+      @keyframes boot-shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      @keyframes boot-sweep {
+        0% {
+          transform: translateX(-130%);
+          opacity: 0;
+        }
+
+        20% {
+          opacity: 0.22;
+        }
+
+        56% {
+          opacity: 0.55;
+        }
+
+        100% {
+          transform: translateX(130%);
+          opacity: 0;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .boot-frame {
+          min-height: 47rem;
+          grid-template-columns: 1.05fr 0.95fr;
+        }
+
+        .boot-grid-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
       }
     </style>
     <script>
@@ -69,7 +249,79 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-login" aria-hidden="true">
+        <div class="boot-frame">
+          <div class="boot-panel-brand">
+            <div class="boot-stack" style="width: 100%; justify-content: space-between; gap: 28px;">
+              <div class="boot-row">
+                <div class="boot-block dark" style="width: 44px; height: 44px; border-radius: 16px;"></div>
+                <div class="boot-stack" style="gap: 10px;">
+                  <div class="boot-block dark" style="width: 130px; height: 12px;"></div>
+                  <div class="boot-block dark" style="width: 150px; height: 12px; opacity: 0.78;"></div>
+                </div>
+              </div>
+
+              <div class="boot-stack" style="gap: 16px;">
+                <div class="boot-block dark" style="width: 88%; height: 48px; border-radius: 18px;"></div>
+                <div class="boot-block dark" style="width: 68%; height: 48px; border-radius: 18px; opacity: 0.88;"></div>
+                <div class="boot-block dark" style="width: 100%; height: 14px;"></div>
+                <div class="boot-block dark" style="width: 92%; height: 14px; opacity: 0.88;"></div>
+                <div class="boot-block dark" style="width: 76%; height: 14px; opacity: 0.76;"></div>
+              </div>
+
+              <div class="boot-grid-2">
+                <div class="boot-card">
+                  <div class="boot-block dark" style="width: 120px; height: 14px;"></div>
+                  <div class="boot-stack" style="margin-top: 16px; gap: 12px;">
+                    <div class="boot-block dark" style="width: 100%; height: 12px;"></div>
+                    <div class="boot-block dark" style="width: 84%; height: 12px;"></div>
+                    <div class="boot-block dark" style="width: 70%; height: 12px;"></div>
+                  </div>
+                </div>
+                <div class="boot-card">
+                  <div class="boot-block dark" style="width: 120px; height: 14px;"></div>
+                  <div class="boot-stack" style="margin-top: 16px; gap: 12px;">
+                    <div class="boot-block dark" style="width: 100%; height: 12px;"></div>
+                    <div class="boot-block dark" style="width: 84%; height: 12px;"></div>
+                    <div class="boot-block dark" style="width: 70%; height: 12px;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="boot-block dark" style="width: 220px; height: 12px; opacity: 0.8;"></div>
+            </div>
+          </div>
+
+          <div class="boot-panel-form">
+            <div class="boot-stack" style="width: 100%; max-width: 480px; gap: 18px; justify-content: center;">
+              <div class="boot-block" style="width: 130px; height: 12px;"></div>
+              <div class="boot-block" style="width: 72%; height: 44px; border-radius: 18px;"></div>
+              <div class="boot-block" style="width: 100%; height: 12px;"></div>
+              <div class="boot-block" style="width: 88%; height: 12px;"></div>
+              <div class="boot-block" style="width: 76%; height: 12px;"></div>
+
+              <div class="boot-stack" style="margin-top: 12px; gap: 18px;">
+                <div class="boot-input">
+                  <div class="boot-block" style="width: 100%; height: 24px; border-radius: 16px;"></div>
+                </div>
+                <div class="boot-stack" style="gap: 10px;">
+                  <div class="boot-block" style="width: 120px; height: 12px; margin-left: auto;"></div>
+                  <div class="boot-input">
+                    <div class="boot-block" style="width: 100%; height: 24px; border-radius: 16px;"></div>
+                  </div>
+                </div>
+                <div class="boot-row" style="justify-content: space-between;">
+                  <div class="boot-block" style="width: 132px; height: 12px;"></div>
+                  <div class="boot-block" style="width: 150px; height: 12px;"></div>
+                </div>
+                <div class="boot-button" style="width: 100%; height: 46px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
   </html>

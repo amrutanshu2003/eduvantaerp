@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { ensureUniqueStudentFields, ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const sanitizeStudent = (student) => ({
   _id: student._id,
@@ -65,11 +66,15 @@ const createStudent = async (req, res, next) => {
       throw new Error("Name, email, password, roll number, and admission number are required");
     }
 
-    const existingUser = await User.findOne({ email: email.trim().toLowerCase(), isDeleted: false });
-    if (existingUser) {
-      res.status(409);
-      throw new Error("User with this email already exists");
-    }
+    await ensureUniqueUserFields({
+      email,
+      phone,
+    });
+    await ensureUniqueStudentFields({
+      rollNumber,
+      admissionNumber,
+      registrationNumber,
+    });
 
     if (academicGroupId) {
       const group = await AcademicGroup.findOne({ _id: academicGroupId, instituteId, isDeleted: false });
@@ -203,17 +208,17 @@ const updateStudent = async (req, res, next) => {
       throw new Error("Student user not found");
     }
 
-    if (req.body.email && req.body.email.trim().toLowerCase() !== user.email) {
-      const duplicateUser = await User.findOne({
-        email: req.body.email.trim().toLowerCase(),
-        isDeleted: false,
-        _id: { $ne: user._id },
-      });
-      if (duplicateUser) {
-        res.status(409);
-        throw new Error("User with this email already exists");
-      }
-    }
+    await ensureUniqueUserFields({
+      email: req.body.email ?? user.email,
+      phone: req.body.phone ?? user.phone,
+      excludeUserId: user._id,
+    });
+    await ensureUniqueStudentFields({
+      rollNumber: req.body.rollNumber ?? student.rollNumber,
+      admissionNumber: req.body.admissionNumber ?? student.admissionNumber,
+      registrationNumber: req.body.registrationNumber ?? student.registrationNumber,
+      excludeStudentId: student._id,
+    });
 
     if (req.body.academicGroupId) {
       const group = await AcademicGroup.findOne({

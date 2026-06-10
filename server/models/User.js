@@ -151,6 +151,39 @@ userSchema.index(
   }
 );
 
+userSchema.index(
+  { phone: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isDeleted: false,
+      phone: { $type: "string", $gt: "" },
+    },
+  }
+);
+
+userSchema.index(
+  { employeeId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isDeleted: false,
+      employeeId: { $type: "string", $gt: "" },
+    },
+  }
+);
+
+userSchema.index(
+  { staffId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isDeleted: false,
+      staffId: { $type: "string", $gt: "" },
+    },
+  }
+);
+
 userSchema.pre("save", async function hashPassword(next) {
   if (!this.isModified("password")) {
     return next();

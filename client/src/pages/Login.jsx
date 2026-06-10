@@ -339,7 +339,7 @@ const Login = () => {
       setShakeKey((current) => current + 1);
       setError(
         requestError.response?.data?.message ||
-          "Unable to sign in. Please check your username and password."
+          "Unable to sign in."
       );
       refreshCaptcha();
     } finally {

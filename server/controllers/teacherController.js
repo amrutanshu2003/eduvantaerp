@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const buildTeacherQuery = (req) => {
   const query = {
@@ -52,15 +53,11 @@ const createTeacher = async (req, res, next) => {
       throw new Error(validationError);
     }
 
-    const existingUser = await User.findOne({
-      email: req.body.email.trim().toLowerCase(),
-      isDeleted: false,
+    await ensureUniqueUserFields({
+      email: req.body.email,
+      phone: req.body.phone,
+      employeeId: req.body.employeeId,
     });
-
-    if (existingUser) {
-      res.status(409);
-      throw new Error("User with this email already exists");
-    }
 
     const teacher = await User.create({
       ...req.body,
@@ -153,18 +150,12 @@ const updateTeacher = async (req, res, next) => {
       throw new Error(validationError);
     }
 
-    if (req.body.email && req.body.email.trim().toLowerCase() !== teacher.email) {
-      const duplicateUser = await User.findOne({
-        email: req.body.email.trim().toLowerCase(),
-        isDeleted: false,
-        _id: { $ne: teacher._id },
-      });
-
-      if (duplicateUser) {
-        res.status(409);
-        throw new Error("User with this email already exists");
-      }
-    }
+    await ensureUniqueUserFields({
+      email: req.body.email ?? teacher.email,
+      phone: req.body.phone ?? teacher.phone,
+      employeeId: req.body.employeeId ?? teacher.employeeId,
+      excludeUserId: teacher._id,
+    });
 
     Object.assign(teacher, {
       name: req.body.name?.trim() ?? teacher.name,

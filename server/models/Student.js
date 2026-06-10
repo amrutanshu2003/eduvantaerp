@@ -85,6 +85,39 @@ const studentSchema = new mongoose.Schema(
   }
 );
 
+studentSchema.index(
+  { rollNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isDeleted: false,
+      rollNumber: { $type: "string", $gt: "" },
+    },
+  }
+);
+
+studentSchema.index(
+  { admissionNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isDeleted: false,
+      admissionNumber: { $type: "string", $gt: "" },
+    },
+  }
+);
+
+studentSchema.index(
+  { registrationNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      isDeleted: false,
+      registrationNumber: { $type: "string", $gt: "" },
+    },
+  }
+);
+
 const Student = mongoose.model("Student", studentSchema);
 
 export default Student;

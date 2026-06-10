@@ -11,13 +11,13 @@ const LoginSkeleton = ({ message = "Loading login experience..." }) => {
         }}
       />
 
-      <div className="relative grid w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white shadow-card lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="reveal-fade-up relative overflow-hidden px-6 py-7 text-white sm:px-8 sm:py-8 lg:px-10">
+      <div className="relative grid min-h-[44rem] w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white shadow-card lg:min-h-[47rem] lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="reveal-fade-up relative flex overflow-hidden px-6 py-7 text-white sm:px-8 sm:py-8 lg:px-10 lg:py-10">
           <div className="absolute inset-0 bg-[linear-gradient(160deg,#0f172a_0%,#0f766e_100%)]" />
           <div className="absolute -right-16 top-10 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
           <div className="absolute -bottom-16 left-8 h-52 w-52 rounded-full bg-slate-950/20 blur-3xl" />
 
-          <div className="relative z-10 flex h-full flex-col gap-6" aria-hidden="true">
+          <div className="relative z-10 flex h-full w-full flex-col justify-between gap-8" aria-hidden="true">
             <div>
               <div className="flex items-center gap-3">
                 <SkeletonBlock className="h-11 w-11 rounded-2xl bg-white/15" />
@@ -50,8 +50,8 @@ const LoginSkeleton = ({ message = "Loading login experience..." }) => {
           </div>
         </div>
 
-        <div className="reveal-fade-up reveal-delay-2 p-6 sm:p-8 lg:p-10">
-          <div className="reveal-stagger mx-auto w-full max-w-md" aria-hidden="true">
+        <div className="reveal-fade-up reveal-delay-2 flex p-6 sm:p-8 lg:p-10">
+          <div className="reveal-stagger mx-auto flex w-full max-w-md flex-col justify-center" aria-hidden="true">
             <SkeletonBlock className="h-3.5 w-32 rounded-full" />
             <SkeletonBlock className="mt-5 h-10 w-9/12 rounded-[1rem]" />
             <SkeletonLines className="mt-5" lines={["w-full", "w-11/12", "w-8/12"]} />

@@ -89,16 +89,36 @@ input {
 }
 
 .skeleton-surface {
+  position: relative;
+  overflow: hidden;
   background-color: color-mix(in srgb, var(--theme-surface-strong) 92%, transparent);
   border: 1px solid color-mix(in srgb, var(--theme-border) 92%, transparent);
+  isolation: isolate;
+}
+
+.skeleton-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.42) 50%,
+    transparent 62%,
+    transparent 100%
+  );
+  transform: translateX(-130%);
+  animation: skeleton-surface-shimmer 3.4s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .skeleton-block {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(110deg, #e2e8f0 8%, #f8fafc 18%, #e2e8f0 33%);
-  background-size: 220% 100%;
-  animation: skeleton-shimmer 1.35s linear infinite;
+  background: linear-gradient(110deg, #d9e3ef 8%, #ffffff 18%, #d9e3ef 33%);
+  background-size: 240% 100%;
+  animation: skeleton-shimmer 1.9s linear infinite;
 }
 
 @keyframes skeleton-shimmer {
@@ -108,6 +128,26 @@ input {
 
   100% {
     background-position: -200% 0;
+  }
+}
+
+@keyframes skeleton-surface-shimmer {
+  0% {
+    transform: translateX(-130%);
+    opacity: 0;
+  }
+
+  18% {
+    opacity: 0.28;
+  }
+
+  52% {
+    opacity: 0.62;
+  }
+
+  100% {
+    transform: translateX(130%);
+    opacity: 0;
   }
 }
 
@@ -260,8 +300,19 @@ input {
 }
 
 :root.theme-dark .skeleton-block {
-  background: linear-gradient(110deg, #1e293b 8%, #334155 18%, #1e293b 33%);
-  background-size: 220% 100%;
+  background: linear-gradient(110deg, #162437 8%, #31445d 18%, #162437 33%);
+  background-size: 240% 100%;
+}
+
+:root.theme-dark .skeleton-surface::after {
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 36%,
+    rgba(148, 163, 184, 0.16) 50%,
+    transparent 64%,
+    transparent 100%
+  );
 }
 
 body,

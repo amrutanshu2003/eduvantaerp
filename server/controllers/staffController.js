@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const buildStaffQuery = (req) => {
   const query = { role: "staff", isDeleted: false };
@@ -33,11 +34,11 @@ const createStaff = async (req, res, next) => {
       throw new Error("Name, email, password, staff ID, and designation are required");
     }
 
-    const existingUser = await User.findOne({ email: email.trim().toLowerCase(), isDeleted: false });
-    if (existingUser) {
-      res.status(409);
-      throw new Error("User with this email already exists");
-    }
+    await ensureUniqueUserFields({
+      email,
+      phone,
+      staffId,
+    });
 
     const staff = await User.create({
       name: name.trim(),
@@ -113,17 +114,12 @@ const updateStaff = async (req, res, next) => {
       throw new Error("Access denied for this staff member");
     }
 
-    if (req.body.email && req.body.email.trim().toLowerCase() !== staff.email) {
-      const duplicateUser = await User.findOne({
-        email: req.body.email.trim().toLowerCase(),
-        isDeleted: false,
-        _id: { $ne: staff._id },
-      });
-      if (duplicateUser) {
-        res.status(409);
-        throw new Error("User with this email already exists");
-      }
-    }
+    await ensureUniqueUserFields({
+      email: req.body.email ?? staff.email,
+      phone: req.body.phone ?? staff.phone,
+      staffId: req.body.staffId ?? staff.staffId,
+      excludeUserId: staff._id,
+    });
 
     Object.assign(staff, {
       name: req.body.name?.trim() ?? staff.name,

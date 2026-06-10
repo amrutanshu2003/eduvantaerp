@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import Institute from "../models/Institute.js";
 import AuditLog from "../models/AuditLog.js";
 import { serializeUser } from "../utils/serializers.js";
+import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const getAdmins = async (req, res, next) => {
   try {
@@ -62,12 +63,10 @@ const createAdmin = async (req, res, next) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const existingUser = await User.findOne({ email: normalizedEmail });
-
-    if (existingUser) {
-      res.status(409);
-      throw new Error("User with this email already exists");
-    }
+    await ensureUniqueUserFields({
+      email: normalizedEmail,
+      phone,
+    });
 
     const institute = await Institute.findOne({ _id: instituteId, isDeleted: false });
     if (!institute) {
@@ -118,18 +117,11 @@ const updateAdmin = async (req, res, next) => {
 
     const { name, email, phone, password, instituteId, permissions, status } = req.body;
 
-    if (email && email.trim().toLowerCase() !== admin.email) {
-      const duplicateUser = await User.findOne({
-        email: email.trim().toLowerCase(),
-        isDeleted: false,
-        _id: { $ne: admin._id },
-      });
-
-      if (duplicateUser) {
-        res.status(409);
-        throw new Error("User with this email already exists");
-      }
-    }
+    await ensureUniqueUserFields({
+      email: email ?? admin.email,
+      phone: phone ?? admin.phone,
+      excludeUserId: admin._id,
+    });
 
     if (instituteId && String(instituteId) !== String(admin.instituteId)) {
       const institute = await Institute.findOne({ _id: instituteId, isDeleted: false });

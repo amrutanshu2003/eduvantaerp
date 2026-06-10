@@ -1,6 +1,7 @@
 import AuditLog from "../models/AuditLog.js";
 import Institute from "../models/Institute.js";
 import User from "../models/User.js";
+import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const instituteSelectFields =
   "name instituteCode instituteType email phone address logo headName status plan paymentStatus createdBy isDeleted deletedAt createdAt updatedAt";
@@ -351,12 +352,10 @@ const createInstituteAdmin = async (req, res, next) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    const existingUser = await User.findOne({ email: normalizedEmail });
-
-    if (existingUser) {
-      res.status(409);
-      throw new Error("User with this email already exists");
-    }
+    await ensureUniqueUserFields({
+      email: normalizedEmail,
+      phone,
+    });
 
     const adminUser = await User.create({
       name: name.trim(),

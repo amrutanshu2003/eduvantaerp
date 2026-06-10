@@ -14,6 +14,7 @@ import {
   splitPipeValues,
 } from "../utils/bulkImportUtils.js";
 import { getScopedInstituteId } from "../utils/scope.js";
+import { ensureUniqueStudentFields, ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const supportedEntityTypes = [
   "academic_groups",
@@ -43,16 +44,30 @@ const createContext = async (req) => {
   const instituteId = institute._id;
 
   const [users, groups, students, subjects] = await Promise.all([
-    User.find({ instituteId, isDeleted: false }).select("name email role"),
+    User.find({ instituteId, isDeleted: false }).select("name email phone role employeeId staffId"),
     AcademicGroup.find({ instituteId, isDeleted: false }).select(
       "instituteType schoolLevel className programLevel department course semester year batch section"
     ),
-    Student.find({ instituteId, isDeleted: false }).select("admissionNumber rollNumber academicGroupId userId"),
+    Student.find({ instituteId, isDeleted: false }).select("admissionNumber rollNumber registrationNumber academicGroupId userId"),
     Subject.find({ instituteId, isDeleted: false }).select("subjectCode"),
   ]);
 
   const usersByEmail = new Map();
+  const usersByPhone = new Map();
+  const usersByEmployeeId = new Map();
+  const usersByStaffId = new Map();
   users.forEach((user) => usersByEmail.set(String(user.email).toLowerCase(), user));
+  users.forEach((user) => {
+    if (user.phone) {
+      usersByPhone.set(String(user.phone), user);
+    }
+    if (user.employeeId) {
+      usersByEmployeeId.set(String(user.employeeId), user);
+    }
+    if (user.staffId) {
+      usersByStaffId.set(String(user.staffId), user);
+    }
+  });
 
   const groupsByKey = new Map();
   groups.forEach((group) => {
@@ -61,12 +76,16 @@ const createContext = async (req) => {
 
   const studentsByAdmissionNumber = new Map();
   const studentsByRollNumber = new Map();
+  const studentsByRegistrationNumber = new Map();
   students.forEach((student) => {
     if (student.admissionNumber) {
       studentsByAdmissionNumber.set(String(student.admissionNumber).toLowerCase(), student);
     }
     if (student.rollNumber) {
       studentsByRollNumber.set(String(student.rollNumber).toLowerCase(), student);
+    }
+    if (student.registrationNumber) {
+      studentsByRegistrationNumber.set(String(student.registrationNumber).toLowerCase(), student);
     }
   });
 
@@ -76,9 +95,13 @@ const createContext = async (req) => {
     institute,
     instituteId,
     usersByEmail,
+    usersByPhone,
+    usersByEmployeeId,
+    usersByStaffId,
     groupsByKey,
     studentsByAdmissionNumber,
     studentsByRollNumber,
+    studentsByRegistrationNumber,
     subjectCodes,
   };
 };
@@ -188,15 +211,24 @@ const importTeacherRow = async (row, context, req) => {
   if (context.usersByEmail.has(email)) {
     throw new Error("User with this email already exists");
   }
+  const phone = getTrimmedValue(row, "phone");
+  const employeeId = getTrimmedValue(row, "employee_id");
+  if (phone && context.usersByPhone.has(phone)) {
+    throw new Error("User with this phone number already exists");
+  }
+  if (employeeId && context.usersByEmployeeId.has(employeeId)) {
+    throw new Error("User with this employee ID already exists");
+  }
+  await ensureUniqueUserFields({ email, phone, employeeId });
 
   const teacher = await User.create({
     name,
     email,
     password,
-    phone: getTrimmedValue(row, "phone"),
+    phone,
     role: "teacher",
     instituteId: context.instituteId,
-    employeeId: getTrimmedValue(row, "employee_id"),
+    employeeId,
     qualification: getTrimmedValue(row, "qualification"),
     experience: getTrimmedValue(row, "experience"),
     department: getTrimmedValue(row, "department"),
@@ -206,6 +238,12 @@ const importTeacherRow = async (row, context, req) => {
   });
 
   context.usersByEmail.set(email, teacher);
+  if (phone) {
+    context.usersByPhone.set(phone, teacher);
+  }
+  if (employeeId) {
+    context.usersByEmployeeId.set(employeeId, teacher);
+  }
 
   await createAuditLog({
     req,
@@ -225,6 +263,8 @@ const importStudentRow = async (row, context, req) => {
   const password = getTrimmedValue(row, "password");
   const rollNumber = getTrimmedValue(row, "roll_number");
   const admissionNumber = getTrimmedValue(row, "admission_number");
+  const registrationNumber = getTrimmedValue(row, "registration_number");
+  const phone = getTrimmedValue(row, "phone");
 
   if (!name || !email || !password || !rollNumber || !admissionNumber) {
     throw new Error("name, email, password, roll_number, and admission_number are required");
@@ -233,9 +273,20 @@ const importStudentRow = async (row, context, req) => {
   if (context.usersByEmail.has(email)) {
     throw new Error("User with this email already exists");
   }
+  if (phone && context.usersByPhone.has(phone)) {
+    throw new Error("User with this phone number already exists");
+  }
+  if (context.studentsByRollNumber.has(rollNumber.toLowerCase())) {
+    throw new Error("Student with this roll number already exists");
+  }
   if (context.studentsByAdmissionNumber.has(admissionNumber.toLowerCase())) {
     throw new Error("Student with this admission number already exists");
   }
+  if (registrationNumber && context.studentsByRegistrationNumber.has(registrationNumber.toLowerCase())) {
+    throw new Error("Student with this registration number already exists");
+  }
+  await ensureUniqueUserFields({ email, phone });
+  await ensureUniqueStudentFields({ rollNumber, admissionNumber, registrationNumber });
 
   const academicGroupId =
     getTrimmedValue(row, "academic_group_id") ||
@@ -249,7 +300,7 @@ const importStudentRow = async (row, context, req) => {
   const user = await User.create({
     name,
     email,
-    phone: getTrimmedValue(row, "phone"),
+    phone,
     password,
     role: "student",
     instituteId: context.instituteId,
@@ -263,7 +314,7 @@ const importStudentRow = async (row, context, req) => {
     academicGroupId,
     rollNumber,
     admissionNumber,
-    registrationNumber: getTrimmedValue(row, "registration_number"),
+    registrationNumber,
     dob: coerceDate(row.dob),
     gender: getTrimmedValue(row, "gender").toLowerCase(),
     bloodGroup: getTrimmedValue(row, "blood_group"),
@@ -274,8 +325,14 @@ const importStudentRow = async (row, context, req) => {
   });
 
   context.usersByEmail.set(email, user);
+  if (phone) {
+    context.usersByPhone.set(phone, user);
+  }
   context.studentsByAdmissionNumber.set(admissionNumber.toLowerCase(), student);
   context.studentsByRollNumber.set(rollNumber.toLowerCase(), student);
+  if (registrationNumber) {
+    context.studentsByRegistrationNumber.set(registrationNumber.toLowerCase(), student);
+  }
 
   await createAuditLog({
     req,
@@ -306,6 +363,11 @@ const importParentRow = async (row, context, req) => {
   if (context.usersByEmail.has(email)) {
     throw new Error("User with this email already exists");
   }
+  const phone = getTrimmedValue(row, "phone");
+  if (phone && context.usersByPhone.has(phone)) {
+    throw new Error("User with this phone number already exists");
+  }
+  await ensureUniqueUserFields({ email, phone });
 
   const linkedAdmissions = splitPipeValues(row.linked_student_admission_numbers);
   const linkedRollNumbers = splitPipeValues(row.linked_student_roll_numbers);
@@ -332,7 +394,7 @@ const importParentRow = async (row, context, req) => {
   const parent = await User.create({
     name,
     email,
-    phone: getTrimmedValue(row, "phone"),
+    phone,
     password,
     role: "parent",
     instituteId: context.instituteId,
@@ -344,6 +406,9 @@ const importParentRow = async (row, context, req) => {
   });
 
   context.usersByEmail.set(email, parent);
+  if (phone) {
+    context.usersByPhone.set(phone, parent);
+  }
 
   await createAuditLog({
     req,
@@ -363,6 +428,7 @@ const importStaffRow = async (row, context, req) => {
   const password = getTrimmedValue(row, "password");
   const staffId = getTrimmedValue(row, "staff_id");
   const designation = getTrimmedValue(row, "designation");
+  const phone = getTrimmedValue(row, "phone");
 
   if (!name || !email || !password || !staffId || !designation) {
     throw new Error("name, email, password, staff_id, and designation are required");
@@ -371,11 +437,18 @@ const importStaffRow = async (row, context, req) => {
   if (context.usersByEmail.has(email)) {
     throw new Error("User with this email already exists");
   }
+  if (phone && context.usersByPhone.has(phone)) {
+    throw new Error("User with this phone number already exists");
+  }
+  if (context.usersByStaffId.has(staffId)) {
+    throw new Error("User with this staff ID already exists");
+  }
+  await ensureUniqueUserFields({ email, phone, staffId });
 
   const staff = await User.create({
     name,
     email,
-    phone: getTrimmedValue(row, "phone"),
+    phone,
     password,
     role: "staff",
     instituteId: context.instituteId,
@@ -391,6 +464,10 @@ const importStaffRow = async (row, context, req) => {
   });
 
   context.usersByEmail.set(email, staff);
+  if (phone) {
+    context.usersByPhone.set(phone, staff);
+  }
+  context.usersByStaffId.set(staffId, staff);
 
   await createAuditLog({
     req,

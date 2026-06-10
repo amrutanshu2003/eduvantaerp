@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import createAuditLog from "../utils/audit.js";
 import { serializeUser } from "../utils/serializers.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { ensureUniqueUserFields } from "../utils/uniqueFields.js";
 
 const buildParentQuery = (req) => {
   const query = { role: "parent", isDeleted: false };
@@ -33,11 +34,10 @@ const createParent = async (req, res, next) => {
       throw new Error("Name, email, password, and relation are required");
     }
 
-    const existingUser = await User.findOne({ email: email.trim().toLowerCase(), isDeleted: false });
-    if (existingUser) {
-      res.status(409);
-      throw new Error("User with this email already exists");
-    }
+    await ensureUniqueUserFields({
+      email,
+      phone,
+    });
 
     if (linkedStudentIds.length > 0) {
       const students = await Student.find({
@@ -130,17 +130,11 @@ const updateParent = async (req, res, next) => {
       throw new Error("Access denied for this parent");
     }
 
-    if (req.body.email && req.body.email.trim().toLowerCase() !== parent.email) {
-      const duplicateUser = await User.findOne({
-        email: req.body.email.trim().toLowerCase(),
-        isDeleted: false,
-        _id: { $ne: parent._id },
-      });
-      if (duplicateUser) {
-        res.status(409);
-        throw new Error("User with this email already exists");
-      }
-    }
+    await ensureUniqueUserFields({
+      email: req.body.email ?? parent.email,
+      phone: req.body.phone ?? parent.phone,
+      excludeUserId: parent._id,
+    });
 
     if (Array.isArray(req.body.linkedStudentIds) && req.body.linkedStudentIds.length > 0) {
       const students = await Student.find({
