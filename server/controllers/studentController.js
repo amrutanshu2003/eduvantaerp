@@ -1,5 +1,6 @@
 import AcademicGroup from "../models/AcademicGroup.js";
 import Student from "../models/Student.js";
+import Institute from "../models/Institute.js";
 import createAuditLog from "../utils/audit.js";
 import { getRecycleBinExpiryDate } from "../utils/recycleBin.js";
 import { serializeUser } from "../utils/serializers.js";
@@ -406,6 +407,126 @@ const getStudentProfile = async (req, res, next) => {
   }
 };
 
+const getNextStudentSequences = async (req, res, next) => {
+  try {
+    const instituteId = getScopedInstituteId(req, true);
+    if (!instituteId) {
+      res.status(400);
+      throw new Error("Institute ID is required");
+    }
+
+    const { academicGroupId } = req.query;
+
+    let departmentCode = "std";
+    let programLevel = "UG";
+
+    if (academicGroupId) {
+      const group = await AcademicGroup.findOne({
+        _id: academicGroupId,
+        instituteId,
+        isDeleted: false,
+      });
+
+      if (group) {
+        if (group.instituteType === "school") {
+          programLevel = "SCH";
+          if (group.className) {
+            departmentCode = group.className
+              .toLowerCase()
+              .replace(/\s+/g, "")
+              .replace(/class/g, "c");
+          }
+        } else {
+          if (group.programLevel) {
+            programLevel = group.programLevel;
+          }
+
+          const dept = group.department?.trim();
+          const crs = group.course?.trim();
+
+          if (dept) {
+            const words = dept.split(/\s+/).filter(Boolean);
+            if (words.length > 1) {
+              departmentCode = words.map((w) => w[0]).join("").toLowerCase();
+            } else {
+              departmentCode = dept.toLowerCase().slice(0, 3);
+            }
+          } else if (crs) {
+            departmentCode = crs.toLowerCase().replace(/[^a-z0-9]/gi, "");
+          }
+        }
+      }
+    }
+
+    const currentYear = new Date().getFullYear();
+    const shortYear = String(currentYear).slice(-2);
+
+    // 1. Roll Number
+    const rollPattern = new RegExp(`^${shortYear}${departmentCode}\\d+$`);
+    const rollStudents = await Student.find({
+      instituteId,
+      rollNumber: { $regex: rollPattern },
+    }).select("rollNumber");
+
+    let maxRollSeq = 0;
+    rollStudents.forEach((s) => {
+      const seqStr = s.rollNumber.slice(shortYear.length + departmentCode.length);
+      const seq = parseInt(seqStr, 10);
+      if (!isNaN(seq) && seq > maxRollSeq) {
+        maxRollSeq = seq;
+      }
+    });
+    const nextRollNumber = `${shortYear}${departmentCode}${String(maxRollSeq + 1).padStart(3, "0")}`;
+
+    // 2. Registration Number
+    const regPrefix = `${shortYear}${programLevel}01`;
+    const regPattern = new RegExp(`^${regPrefix}\\d+$`);
+    const regStudents = await Student.find({
+      instituteId,
+      registrationNumber: { $regex: regPattern },
+    }).select("registrationNumber");
+
+    let maxRegSeq = 0;
+    regStudents.forEach((s) => {
+      const seqStr = s.registrationNumber.slice(regPrefix.length);
+      const seq = parseInt(seqStr, 10);
+      if (!isNaN(seq) && seq > maxRegSeq) {
+        maxRegSeq = seq;
+      }
+    });
+    const nextRegistrationNumber = `${regPrefix}${String(maxRegSeq + 1).padStart(4, "0")}`;
+
+    // 3. Admission Number
+    const admPrefix = `${shortYear}${programLevel}ADM`;
+    const admPattern = new RegExp(`^${admPrefix}\\d+$`);
+    const admStudents = await Student.find({
+      instituteId,
+      admissionNumber: { $regex: admPattern },
+    }).select("admissionNumber");
+
+    let maxAdmSeq = 0;
+    admStudents.forEach((s) => {
+      const seqStr = s.admissionNumber.slice(admPrefix.length);
+      const seq = parseInt(seqStr, 10);
+      if (!isNaN(seq) && seq > maxAdmSeq) {
+        maxAdmSeq = seq;
+      }
+    });
+    const nextAdmissionNumber = `${admPrefix}${String(maxAdmSeq + 1).padStart(4, "0")}`;
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    res.json({
+      rollNumber: nextRollNumber,
+      registrationNumber: nextRegistrationNumber,
+      admissionNumber: nextAdmissionNumber,
+      admissionDate: today,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export {
   createStudent,
   getStudents,
@@ -415,4 +536,5 @@ export {
   deleteStudent,
   assignAcademicGroupToStudent,
   getStudentProfile,
+  getNextStudentSequences,
 };

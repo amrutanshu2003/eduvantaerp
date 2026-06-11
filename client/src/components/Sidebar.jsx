@@ -2,14 +2,9 @@ import { FiBookOpen, FiCalendar, FiCheckSquare, FiClock, FiCreditCard, FiEdit, F
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
+import { useLabelSettings } from "../context/LabelSettingsContext";
 import { canManageHostel, isHostelSecurityUser } from "../utils/hostelAccess";
 import { canManageTransport, isDriverUser } from "../utils/transportAccess";
-import {
-  getAcademicGroupLabel,
-  getParentLabelPlural,
-  getSubjectLabelPlural,
-  getTeacherLabelPlural,
-} from "../utils/instituteLabels";
 
 const roleLabels = {
   superadmin: "Super Admin",
@@ -64,6 +59,7 @@ const defaultMenuItems = [
 const Sidebar = () => {
   const { user } = useAuth();
   const { settings, resolvedTheme, getButtonRadius } = useUISettings();
+  const { getLabel, isModuleEnabled } = useLabelSettings();
   const isDark = resolvedTheme === "dark";
   const sidebarStyle = isDark
     ? { backgroundColor: settings.sidebarColor }
@@ -78,13 +74,35 @@ const Sidebar = () => {
   const canManageHostelModule = canManageHostel(user);
   const isHostelSecurity = isHostelSecurityUser(user);
   const basePath = user?.role === "superadmin" ? "/super-admin" : `/${user?.role}`;
+
+  // Helper functions to get plural labels
+  const getAcademicGroupLabel = () => {
+    const label = getLabel("academicGroupLabel");
+    return label + (label.endsWith("s") ? "" : "s");
+  };
+
+  const getTeacherLabelPlural = () => {
+    const label = getLabel("teacherLabel");
+    return label + (label.endsWith("s") ? "" : "s");
+  };
+
+  const getParentLabelPlural = () => {
+    const label = getLabel("parentLabel");
+    return label + (label.endsWith("s") ? "" : "s");
+  };
+
+  const getSubjectLabelPlural = () => {
+    const label = getLabel("subjectLabel");
+    return label + (label.endsWith("s") ? "" : "s");
+  };
+
   const superAdminItems = [
     { label: "Dashboard", icon: FiHome, path: "/super-admin/dashboard" },
     { label: "Admin Dashboard", icon: FiHome, path: "/admin/dashboard" },
     { label: "My Profile", icon: FiUser, path: "/super-admin/settings" },
     { label: "Institutes", icon: FiUsers, path: "/super-admin/institutes" },
     { label: "Create Institute", icon: FiPlusSquare, path: "/super-admin/institutes/create" },
-    { label: "Academic Groups", icon: FiBookOpen, path: "/admin/academic-groups" },
+    { label: "Global Settings", icon: FiSettings, path: "/super-admin/settings" },
     { label: "Global UI Settings", icon: FiSettings, path: "/super-admin/ui-settings" },
     { label: "Audit Log Settings", icon: FiTrash2, path: "/super-admin/audit-log-settings" },
     { label: "Recycle Bin", icon: FiPackage, path: "/super-admin/recycle-bin" },
@@ -94,7 +112,6 @@ const Sidebar = () => {
   adminMenuItems.forEach((item) => {
     if (
       item.label === "Recycle Bin" ||
-      item.label === "Academic Groups" ||
       item.label === "My Profile" ||
       item.label === "Dashboard"
     ) {
@@ -102,14 +119,14 @@ const Sidebar = () => {
     }
     let newItem = { ...item };
     if (newItem.label === "Academic Groups") {
-      newItem.label = getAcademicGroupLabel(user);
+      newItem.label = getAcademicGroupLabel();
     } else if (newItem.label === "Teachers") {
-      newItem.label = getTeacherLabelPlural(user);
+      newItem.label = getTeacherLabelPlural();
       adminItemsForSuper.push({ label: "Admins", icon: FiShield, path: "/super-admin/admins" });
     } else if (newItem.label === "Parents") {
-      newItem.label = getParentLabelPlural(user);
+      newItem.label = getParentLabelPlural();
     } else if (newItem.label === "Subjects") {
-      newItem.label = getSubjectLabelPlural(user);
+      newItem.label = getSubjectLabelPlural();
     }
     adminItemsForSuper.push(newItem);
   });
@@ -121,87 +138,126 @@ const Sidebar = () => {
           ...adminItemsForSuper,
         ]
       : user?.role === "admin"
-        ? adminMenuItems.map((item) => {
-            if (item.label === "Academic Groups") {
-              return { ...item, label: getAcademicGroupLabel(user) };
-            }
-            if (item.label === "Teachers") {
-              return { ...item, label: getTeacherLabelPlural(user) };
-            }
-            if (item.label === "Parents") {
-              return { ...item, label: getParentLabelPlural(user) };
-            }
-            if (item.label === "Subjects") {
-              return { ...item, label: getSubjectLabelPlural(user) };
-            }
-            return item;
-          })
+        ? [
+            { label: "Dashboard", icon: FiHome, path: "/admin/dashboard" },
+            { label: "My Profile", icon: FiUser, path: "/admin/profile" },
+            { label: "Institute Settings", icon: FiSettings, path: "/admin/settings" },
+            { label: "Bulk Import", icon: FiPlusSquare, path: "/admin/bulk-import" },
+            { label: getAcademicGroupLabel(), icon: FiBookOpen, path: "/admin/academic-groups" },
+            ...(isModuleEnabled("teachers") ? [{ label: getTeacherLabelPlural(), icon: FiUser, path: "/admin/teachers" }] : []),
+            ...(isModuleEnabled("students") ? [{ label: getLabel("studentLabel") + "s", icon: FiUsers, path: "/admin/students" }] : []),
+            ...(isModuleEnabled("parents") ? [{ label: getParentLabelPlural(), icon: FiShield, path: "/admin/parents" }] : []),
+            ...(isModuleEnabled("staff") ? [{ label: getLabel("staffLabel") + "s", icon: FiLayers, path: "/admin/staff" }] : []),
+            ...(isModuleEnabled("subjects") ? [{ label: getSubjectLabelPlural(), icon: FiBookOpen, path: "/admin/subjects" }] : []),
+            ...(isModuleEnabled("attendance") ? [
+              { label: getLabel("attendanceLabel"), icon: FiCheckSquare, path: "/admin/attendance" },
+              { label: "Attendance Reports", icon: FiFileText, path: "/admin/attendance/reports" },
+            ] : []),
+            ...(isModuleEnabled("exams") ? [{ label: getLabel("examLabel") + "s", icon: FiCalendar, path: "/admin/exams" }] : []),
+            ...(isModuleEnabled("marks") ? [
+              { label: getLabel("marksLabel"), icon: FiEdit, path: "/admin/marks" },
+              { label: getLabel("resultLabel") + "s", icon: FiFileText, path: "/admin/results" },
+            ] : []),
+            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/admin/notices" }] : []),
+            ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/admin/fees" }] : []),
+            ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/admin/timetables" }] : []),
+            ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/admin/assignments" }] : []),
+            { label: "Recycle Bin", icon: FiPackage, path: "/admin/recycle-bin" },
+            ...(isModuleEnabled("library") ? [
+              { label: getLabel("libraryLabel") + " Books", icon: FiBookOpen, path: "/admin/library/books" },
+              { label: "Book Issues", icon: FiFileText, path: "/admin/library/issues" },
+              { label: "Overdue Books", icon: FiCalendar, path: "/admin/library/issues/overdue" },
+            ] : []),
+            ...(isModuleEnabled("transport") ? [
+              { label: getLabel("transportLabel") + " Vehicles", icon: FiTruck, path: "/admin/transport/vehicles" },
+              { label: getLabel("transportLabel") + " Routes", icon: FiMap, path: "/admin/transport/routes" },
+              { label: getLabel("transportLabel") + " Allocations", icon: FiUsers, path: "/admin/transport/allocations" },
+            ] : []),
+            ...(isModuleEnabled("hostel") ? [
+              { label: getLabel("hostelLabel") + "s", icon: FiHome, path: "/admin/hostels" },
+              { label: getLabel("hostelLabel") + " Rooms", icon: FiLayers, path: "/admin/hostel-rooms" },
+              { label: getLabel("hostelLabel") + " Beds", icon: FiPackage, path: "/admin/hostel-beds" },
+              { label: getLabel("hostelLabel") + " Allocations", icon: FiUsers, path: "/admin/hostel-allocations" },
+              { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/admin/hostel-outpasses" },
+              { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/admin/hostel-complaints" },
+            ] : []),
+          ]
       : user?.role === "teacher"
         ? [
             { label: "Dashboard", icon: FiHome, path: "/teacher/dashboard" },
             { label: "My Profile", icon: FiUser, path: "/teacher/profile" },
-            { label: "My Subjects", icon: FiBookOpen, path: "/teacher/subjects" },
-            { label: "Mark Attendance", icon: FiCheckSquare, path: "/teacher/attendance/mark" },
-            { label: "Attendance History", icon: FiFileText, path: "/teacher/attendance/history" },
-            { label: "Exams", icon: FiCalendar, path: "/teacher/exams" },
-            { label: "Upload Marks", icon: FiEdit, path: "/teacher/marks/upload" },
-            { label: "Marks History", icon: FiFileText, path: "/teacher/marks/history" },
-            { label: "Notices", icon: FiFileText, path: "/teacher/notices" },
-            { label: "Timetable", icon: FiClock, path: "/teacher/timetable" },
-            { label: "Assignments", icon: FiEdit, path: "/teacher/assignments" },
-            { label: "Create Assignment", icon: FiPlusSquare, path: "/teacher/assignments/create" },
+            ...(isModuleEnabled("subjects") ? [{ label: "My Subjects", icon: FiBookOpen, path: "/teacher/subjects" }] : []),
+            ...(isModuleEnabled("attendance") ? [
+              { label: "Mark Attendance", icon: FiCheckSquare, path: "/teacher/attendance/mark" },
+              { label: "Attendance History", icon: FiFileText, path: "/teacher/attendance/history" },
+            ] : []),
+            ...(isModuleEnabled("exams") ? [{ label: getLabel("examLabel") + "s", icon: FiCalendar, path: "/teacher/exams" }] : []),
+            ...(isModuleEnabled("marks") ? [
+              { label: "Upload Marks", icon: FiEdit, path: "/teacher/marks/upload" },
+              { label: "Marks History", icon: FiFileText, path: "/teacher/marks/history" },
+            ] : []),
+            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/teacher/notices" }] : []),
+            ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/teacher/timetable" }] : []),
+            ...(isModuleEnabled("assignments") ? [
+              { label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/teacher/assignments" },
+              { label: "Create Assignment", icon: FiPlusSquare, path: "/teacher/assignments/create" },
+            ] : []),
           ]
       : user?.role === "student"
         ? [
             { label: "Dashboard", icon: FiHome, path: "/student/dashboard" },
             { label: "My Profile", icon: FiUser, path: "/student/profile" },
-            { label: "My Attendance", icon: FiCheckSquare, path: "/student/attendance" },
-            { label: "My Exams", icon: FiCalendar, path: "/student/exams" },
-            { label: "My Results", icon: FiFileText, path: "/student/results" },
-            { label: "Notices", icon: FiFileText, path: "/student/notices" },
-            { label: "Fees", icon: FiCreditCard, path: "/student/fees" },
-            { label: "Timetable", icon: FiClock, path: "/student/timetable" },
-            { label: "Assignments", icon: FiEdit, path: "/student/assignments" },
-            { label: "Library", icon: FiBookOpen, path: "/student/library" },
-            { label: "Transport", icon: FiTruck, path: "/student/transport" },
-            { label: "My Hostel", icon: FiHome, path: "/student/hostel" },
-            { label: "Hostel Outpass", icon: FiFileText, path: "/student/hostel/outpasses" },
-            { label: "Hostel Complaints", icon: FiShield, path: "/student/hostel/complaints" },
+            ...(isModuleEnabled("attendance") ? [{ label: "My Attendance", icon: FiCheckSquare, path: "/student/attendance" }] : []),
+            ...(isModuleEnabled("exams") ? [{ label: "My Exams", icon: FiCalendar, path: "/student/exams" }] : []),
+            ...(isModuleEnabled("marks") ? [{ label: "My Results", icon: FiFileText, path: "/student/results" }] : []),
+            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/student/notices" }] : []),
+            ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/student/fees" }] : []),
+            ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/student/timetable" }] : []),
+            ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/student/assignments" }] : []),
+            ...(isModuleEnabled("library") ? [{ label: getLabel("libraryLabel"), icon: FiBookOpen, path: "/student/library" }] : []),
+            ...(isModuleEnabled("transport") ? [{ label: getLabel("transportLabel"), icon: FiTruck, path: "/student/transport" }] : []),
+            ...(isModuleEnabled("hostel") ? [
+              { label: "My Hostel", icon: FiHome, path: "/student/hostel" },
+              { label: "Hostel Outpass", icon: FiFileText, path: "/student/hostel/outpasses" },
+              { label: "Hostel Complaints", icon: FiShield, path: "/student/hostel/complaints" },
+            ] : []),
           ]
       : user?.role === "parent"
         ? [
             { label: "Dashboard", icon: FiHome, path: "/parent/dashboard" },
             { label: "My Profile", icon: FiUser, path: "/parent/profile" },
-            { label: "Child Attendance", icon: FiCheckSquare, path: "/parent/attendance" },
-            { label: "Child Exams", icon: FiCalendar, path: "/parent/exams" },
-            { label: "Child Results", icon: FiFileText, path: "/parent/results" },
-            { label: "Notices", icon: FiFileText, path: "/parent/notices" },
-            { label: "Fees", icon: FiCreditCard, path: "/parent/fees" },
-            { label: "Timetable", icon: FiClock, path: "/parent/timetable" },
-            { label: "Assignments", icon: FiEdit, path: "/parent/assignments" },
-            { label: "Child Library", icon: FiBookOpen, path: "/parent/library" },
-            { label: "Child Transport", icon: FiTruck, path: "/parent/transport" },
-            { label: "Child Hostel", icon: FiHome, path: "/parent/hostel" },
-            { label: "Hostel Outpasses", icon: FiFileText, path: "/parent/hostel/outpasses" },
-            { label: "Hostel Complaints", icon: FiShield, path: "/parent/hostel/complaints" },
+            ...(isModuleEnabled("attendance") ? [{ label: "Child Attendance", icon: FiCheckSquare, path: "/parent/attendance" }] : []),
+            ...(isModuleEnabled("exams") ? [{ label: "Child Exams", icon: FiCalendar, path: "/parent/exams" }] : []),
+            ...(isModuleEnabled("marks") ? [{ label: "Child Results", icon: FiFileText, path: "/parent/results" }] : []),
+            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/parent/notices" }] : []),
+            ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/parent/fees" }] : []),
+            ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/parent/timetable" }] : []),
+            ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/parent/assignments" }] : []),
+            ...(isModuleEnabled("library") ? [{ label: "Child Library", icon: FiBookOpen, path: "/parent/library" }] : []),
+            ...(isModuleEnabled("transport") ? [{ label: "Child Transport", icon: FiTruck, path: "/parent/transport" }] : []),
+            ...(isModuleEnabled("hostel") ? [
+              { label: "Child Hostel", icon: FiHome, path: "/parent/hostel" },
+              { label: "Hostel Outpasses", icon: FiFileText, path: "/parent/hostel/outpasses" },
+              { label: "Hostel Complaints", icon: FiShield, path: "/parent/hostel/complaints" },
+            ] : []),
           ]
       : user?.role === "staff"
         ? [
             { label: "Dashboard", icon: FiHome, path: "/staff/dashboard" },
             { label: "My Profile", icon: FiUser, path: "/staff/profile" },
-            { label: "Notices", icon: FiFileText, path: "/staff/notices" },
-            ...(canManageLibrary
+            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/staff/notices" }] : []),
+            ...(canManageLibrary && isModuleEnabled("library")
               ? [
-                  { label: "Library Books", icon: FiBookOpen, path: "/staff/library/books" },
+                  { label: getLabel("libraryLabel") + " Books", icon: FiBookOpen, path: "/staff/library/books" },
                   { label: "Book Issues", icon: FiFileText, path: "/staff/library/issues" },
                   { label: "Overdue Books", icon: FiCalendar, path: "/staff/library/issues/overdue" },
                 ]
               : []),
-            ...(canManageTransportModule
+            ...(canManageTransportModule && isModuleEnabled("transport")
               ? [
-                  { label: "Transport Vehicles", icon: FiTruck, path: "/staff/transport/vehicles" },
-                  { label: "Transport Routes", icon: FiMap, path: "/staff/transport/routes" },
-                  { label: "Transport Allocations", icon: FiUsers, path: "/staff/transport/allocations" },
+                  { label: getLabel("transportLabel") + " Vehicles", icon: FiTruck, path: "/staff/transport/vehicles" },
+                  { label: getLabel("transportLabel") + " Routes", icon: FiMap, path: "/staff/transport/routes" },
+                  { label: getLabel("transportLabel") + " Allocations", icon: FiUsers, path: "/staff/transport/allocations" },
                 ]
               : []),
             ...(isDriver
@@ -210,21 +266,21 @@ const Sidebar = () => {
                   { label: "My Students", icon: FiUsers, path: "/staff/transport/my-students" },
                 ]
               : []),
-            ...(canManageHostelModule
+            ...(canManageHostelModule && isModuleEnabled("hostel")
               ? [
-                  { label: "Hostels", icon: FiHome, path: "/staff/hostels" },
-                  { label: "Hostel Rooms", icon: FiLayers, path: "/staff/hostel-rooms" },
-                  { label: "Hostel Beds", icon: FiPackage, path: "/staff/hostel-beds" },
-                  { label: "Hostel Allocations", icon: FiUsers, path: "/staff/hostel-allocations" },
-                  { label: "Hostel Outpasses", icon: FiFileText, path: "/staff/hostel-outpasses" },
-                  { label: "Hostel Complaints", icon: FiShield, path: "/staff/hostel-complaints" },
+                  { label: getLabel("hostelLabel") + "s", icon: FiHome, path: "/staff/hostels" },
+                  { label: getLabel("hostelLabel") + " Rooms", icon: FiLayers, path: "/staff/hostel-rooms" },
+                  { label: getLabel("hostelLabel") + " Beds", icon: FiPackage, path: "/staff/hostel-beds" },
+                  { label: getLabel("hostelLabel") + " Allocations", icon: FiUsers, path: "/staff/hostel-allocations" },
+                  { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/staff/hostel-outpasses" },
+                  { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/staff/hostel-complaints" },
                 ]
               : []),
             ...(isHostelSecurity
               ? [
-                  { label: "Hostels View", icon: FiHome, path: "/staff/hostels" },
-                  { label: "Hostel Outpasses", icon: FiFileText, path: "/staff/hostel-outpasses" },
-                  { label: "Hostel Complaints", icon: FiShield, path: "/staff/hostel-complaints" },
+                  { label: getLabel("hostelLabel") + "s View", icon: FiHome, path: "/staff/hostels" },
+                  { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/staff/hostel-outpasses" },
+                  { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/staff/hostel-complaints" },
                 ]
               : []),
           ]

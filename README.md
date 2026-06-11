@@ -104,6 +104,170 @@ Eduvanta ERP is a MERN-based SaaS foundation for schools and colleges.
 - Sidebar updates for hostel allocations, outpasses, and complaints
 - Existing dashboard pages updated with hostel workflow stats
 
+## ERP Customization Module
+
+The ERP Customization module enables full customization of the ERP system at two levels:
+
+### Two-Level Settings Architecture
+
+1. **Global Settings (Super Admin)** - Default settings that apply to all institutes
+2. **Institute Settings (Institute Admin)** - Institute-specific settings that override global defaults
+
+### Customization Features
+
+#### 1. Branding & UI Settings (ERPSettings)
+- App name, short name, and tagline
+- Logo and favicon
+- Color scheme (primary, secondary, accent, sidebar, navbar, background, card, text)
+- Button style (rounded, pill, square)
+- Theme mode (light, dark, system)
+- Login layout (split, centered, minimal)
+- Login page customization (background, hero title, subtitle)
+- Footer text
+- Feature toggles (dark mode, captcha, remember me, forgot password)
+- Regional settings (language, date format, time format, currency, timezone)
+
+#### 2. Label Settings (LabelSettings)
+- Customize labels for all entities (Institute, Class/Section, Teacher, Parent, Student, Staff, Subject, Exam, Result, Fee, Notice, Timetable, Assignment, Library, Transport, Hostel, Attendance, Marks)
+- Institute-specific label overrides
+
+#### 3. Module Settings (ModuleSettings)
+- Enable/disable modules (academics, students, teachers, parents, staff, subjects, attendance, exams, marks, fees, notices, timetable, assignments, library, transport, hostel, payroll, reports)
+- Institute-specific module availability
+- Sidebar automatically hides disabled modules
+
+#### 4. Academic Settings (AcademicSettings)
+- Customize academic structure labels (academic group, sub-group, teacher, parent, student)
+- Define academic levels (e.g., Class 1-10, UG/PG/PhD, Semester 1-8)
+- Add custom fields for academic groups
+- Template presets (School, College, University, Minimal)
+- Dynamic academic group form fields
+
+#### 5. Form Settings (FormSettings)
+- Dynamic form field configuration for entities (student, teacher, parent, staff, fee, admission, hostel, transport)
+- Field properties: key, label, type (text, number, select, date, textarea), required, options, placeholder
+- Show/hide in form and list views
+- Field ordering
+- Auto-generation support with patterns
+
+### Frontend Integration
+
+#### Settings Pages
+- **Super Admin**: `/super-admin/settings` - Global settings management with tabs for branding, labels, modules, academic, and forms
+- **Institute Admin**: `/admin/settings` - Institute settings management with reset to global option
+
+#### Dynamic Components
+- **Sidebar**: Dynamically shows/hides menu items based on ModuleSettings and uses LabelSettings for labels
+- **Login Page**: Uses ERPSettings from public endpoint for branding and UI customization
+- **Dashboard**: Filters cards and quick action links based on enabled modules
+- **Academic Group Form**: Renders dynamic fields from AcademicSettings
+- **Student Form**: Renders dynamic fields from FormSettings with auto-generation support
+
+### API Routes
+
+#### Public Settings (No Authentication)
+- `GET /api/settings/public` - Public ERP settings for login page
+
+#### Global Settings (Super Admin Only)
+- `GET /api/settings/global/erp` - Get global ERP settings
+- `PUT /api/settings/global/erp` - Update global ERP settings
+- `POST /api/settings/global/erp/reset` - Reset global ERP settings to defaults
+- `GET /api/settings/global/labels` - Get global label settings
+- `PUT /api/settings/global/labels` - Update global label settings
+- `POST /api/settings/global/labels/reset` - Reset global label settings to defaults
+- `GET /api/settings/global/modules` - Get global module settings
+- `PUT /api/settings/global/modules` - Update global module settings
+- `POST /api/settings/global/modules/reset` - Reset global module settings to defaults
+- `GET /api/settings/global/academic` - Get global academic settings
+- `PUT /api/settings/global/academic` - Update global academic settings
+- `POST /api/settings/global/academic/reset` - Reset global academic settings to defaults or apply template
+- `GET /api/settings/global/forms/:entity` - Get global form settings for entity
+- `PUT /api/settings/global/forms/:entity` - Update global form settings for entity
+- `POST /api/settings/global/forms/:entity/reset` - Reset global form settings to defaults
+
+#### Institute Settings (Admin/Super Admin)
+- `GET /api/settings/institute/erp` - Get institute ERP settings (falls back to global)
+- `PUT /api/settings/institute/erp` - Update institute ERP settings
+- `POST /api/settings/institute/erp/reset` - Reset institute ERP settings to global defaults
+- `GET /api/settings/institute/labels` - Get institute label settings (falls back to global)
+- `PUT /api/settings/institute/labels` - Update institute label settings
+- `POST /api/settings/institute/labels/reset` - Reset institute label settings to global defaults
+- `GET /api/settings/institute/modules` - Get institute module settings (falls back to global)
+- `PUT /api/settings/institute/modules` - Update institute module settings
+- `POST /api/settings/institute/modules/reset` - Reset institute module settings to global defaults
+- `GET /api/settings/institute/academic` - Get institute academic settings (falls back to global)
+- `PUT /api/settings/institute/academic` - Update institute academic settings
+- `POST /api/settings/institute/academic/reset` - Reset institute academic settings to global defaults or apply template
+- `GET /api/settings/institute/forms/:entity` - Get institute form settings for entity (falls back to global)
+- `PUT /api/settings/institute/forms/:entity` - Update institute form settings for entity
+- `POST /api/settings/institute/forms/:entity/reset` - Reset institute form settings to global defaults
+
+### Backward Compatibility
+
+The customization system includes built-in backward compatibility:
+
+1. **Fallback to Defaults**: All API endpoints fall back to global settings if institute-specific settings don't exist
+2. **Default Values**: Controllers return sensible defaults if no settings are configured
+3. **Initialization Script**: Run `node server/initialize_settings.js` to create default settings for existing institutes
+4. **No Breaking Changes**: Existing data and functionality continue to work without settings
+
+### Initialization
+
+For existing deployments, run the initialization script to create default settings:
+
+```bash
+cd server
+node initialize_settings.js
+```
+
+This script:
+- Creates default settings for all existing institutes
+- Creates global default settings for Super Admin
+- Skips settings that already exist
+- Reports created vs skipped counts
+
+### Testing Customization
+
+1. **Global Settings**:
+   - Login as Super Admin
+   - Navigate to `/super-admin/settings`
+   - Customize branding, labels, modules, academic structure, and form fields
+   - Verify changes apply to all institutes
+
+2. **Institute Settings**:
+   - Login as Institute Admin
+   - Navigate to `/admin/settings`
+   - Customize settings for your institute
+   - Use "Reset to Global" to revert to defaults
+   - Verify institute-specific overrides work
+
+3. **Module Enable/Disable**:
+   - Disable a module in settings
+   - Verify sidebar menu item disappears
+   - Verify dashboard cards for that module hide
+   - Verify quick action links hide
+
+4. **Label Customization**:
+   - Change labels (e.g., "Class" to "Grade", "Teacher" to "Faculty")
+   - Verify labels update across sidebar, forms, and pages
+
+5. **Dynamic Academic Fields**:
+   - Add custom academic levels
+   - Add custom fields to academic groups
+   - Verify academic group form shows new fields
+
+6. **Dynamic Form Fields**:
+   - Add custom fields to student form
+   - Set field types, required status, and options
+   - Verify student form renders new fields
+
+### Security & Audit
+
+- Role-based access control (Super Admin for global, Admin for institute)
+- All settings changes are logged with user information
+- Public settings endpoint only returns safe, non-sensitive data
+- Institute settings automatically scoped to user's institute
+
 ## Folder Structure
 
 ```text

@@ -57,6 +57,11 @@ const academicGroupSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    dynamicFields: {
+      type: Map,
+      of: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     mentorOrClassTeacher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Teacher",

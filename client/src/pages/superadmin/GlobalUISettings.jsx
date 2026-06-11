@@ -3,6 +3,9 @@ import AlertMessage from "../../components/AlertMessage";
 import PageHeader from "../../components/PageHeader";
 import { useUISettings } from "../../context/UISettingsContext";
 
+const ALL_SCHOOL_LEVELS = ["Pre-Primary", "Primary", "Middle", "Secondary", "Higher Secondary"];
+const ALL_PROGRAM_LEVELS = ["UG", "PG", "PhD", "Diploma", "Certificate"];
+
 const GlobalUISettings = () => {
   const { settings, updateGlobalSettings, refreshSettings, getButtonRadius } = useUISettings();
   const [formData, setFormData] = useState(settings);
@@ -11,6 +14,8 @@ const GlobalUISettings = () => {
   const [messageTone, setMessageTone] = useState("success");
   const [recoveryKey, setRecoveryKey] = useState("");
   const [clearRecoveryKey, setClearRecoveryKey] = useState(false);
+  const [expandedPanel, setExpandedPanel] = useState(null);
+  const [customFieldInput, setCustomFieldInput] = useState("");
 
   useEffect(() => {
     setFormData(settings);
@@ -24,6 +29,83 @@ const GlobalUISettings = () => {
 
   const handleToggleChange = (event) => {
     setFormData((current) => ({ ...current, [event.target.name]: event.target.checked }));
+  };
+
+  const handleAcademicCheckbox = (instituteType, field, value, checked) => {
+    setFormData((current) => {
+      const prev = current.academicConfig || {};
+      const prevType = prev[instituteType] || {};
+      const prevList = prevType[field] || [];
+      const nextList = checked ? [...prevList, value] : prevList.filter((v) => v !== value);
+      return {
+        ...current,
+        academicConfig: {
+          ...prev,
+          [instituteType]: {
+            ...prevType,
+            [field]: nextList,
+          },
+        },
+      };
+    });
+  };
+
+  const handleAcademicNumber = (instituteType, field, value) => {
+    setFormData((current) => {
+      const prev = current.academicConfig || {};
+      const prevType = prev[instituteType] || {};
+      return {
+        ...current,
+        academicConfig: {
+          ...prev,
+          [instituteType]: {
+            ...prevType,
+            [field]: parseInt(value, 10) || 1,
+          },
+        },
+      };
+    });
+  };
+
+  const handleAddCustomField = (instituteType, field) => {
+    if (!customFieldInput.trim()) return;
+    setFormData((current) => {
+      const prev = current.academicConfig || {};
+      const prevType = prev[instituteType] || {};
+      const customFieldsKey = `${field}CustomFields`;
+      const prevCustomFields = prevType[customFieldsKey] || [];
+      if (prevCustomFields.includes(customFieldInput.trim())) return current;
+      return {
+        ...current,
+        academicConfig: {
+          ...prev,
+          [instituteType]: {
+            ...prevType,
+            [customFieldsKey]: [...prevCustomFields, customFieldInput.trim()],
+          },
+        },
+      };
+    });
+    setCustomFieldInput("");
+  };
+
+  const handleRemoveCustomField = (instituteType, field, value) => {
+    setFormData((current) => {
+      const prev = current.academicConfig || {};
+      const prevType = prev[instituteType] || {};
+      const customFieldsKey = `${field}CustomFields`;
+      const prevCustomFields = prevType[customFieldsKey] || [];
+      return {
+        ...current,
+        academicConfig: {
+          ...prev,
+          [instituteType]: {
+            ...prevType,
+            [customFieldsKey]: prevCustomFields.filter((v) => v !== value),
+          },
+        },
+      };
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -52,6 +134,122 @@ const GlobalUISettings = () => {
 
   const inputClassName =
     "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400";
+
+  const ac = formData.academicConfig || {};
+
+  const togglePanel = (panel) => {
+    setExpandedPanel((prev) => (prev === panel ? null : panel));
+  };
+
+  const renderCheckboxGroup = (instituteType, field, allValues) => {
+    const currentList = ac[instituteType]?.[field] || [];
+    return (
+      <div className="flex flex-wrap gap-3">
+        {allValues.map((val) => {
+          const isChecked = currentList.includes(val);
+          return (
+            <label
+              key={val}
+              className={`flex cursor-pointer items-center gap-2.5 rounded-xl border px-4 py-2.5 text-sm transition-all ${
+                isChecked
+                  ? "border-emerald-300 bg-emerald-50 font-medium text-emerald-700 shadow-sm"
+                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={(e) => handleAcademicCheckbox(instituteType, field, val, e.target.checked)}
+                className="sr-only"
+              />
+              <span
+                className={`flex h-5 w-5 items-center justify-center rounded-md border text-xs transition-all ${
+                  isChecked ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300 bg-white"
+                }`}
+              >
+                {isChecked && "✓"}
+              </span>
+              {val}
+            </label>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderCustomFields = (instituteType, field) => {
+    const customFieldsKey = `${field}CustomFields`;
+    const customFields = ac[instituteType]?.[customFieldsKey] || [];
+    return (
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {customFields.map((customField) => (
+            <div
+              key={customField}
+              className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700"
+            >
+              {customField}
+              <button
+                type="button"
+                onClick={() => handleRemoveCustomField(instituteType, field, customField)}
+                className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-indigo-200 text-indigo-600 hover:bg-indigo-300 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={customFieldInput}
+            onChange={(e) => setCustomFieldInput(e.target.value)}
+            placeholder="Add custom field (e.g., Science, Arts)"
+            className={`${inputClassName} flex-1`}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddCustomField(instituteType, field);
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => handleAddCustomField(instituteType, field)}
+            className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 transition-colors"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPanelHeader = (label, icon, panelKey, badgeCount) => {
+    const isOpen = expandedPanel === panelKey;
+    return (
+      <button
+        type="button"
+        onClick={() => togglePanel(panelKey)}
+        className="flex w-full items-center justify-between rounded-2xl px-5 py-4 text-left transition bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl text-lg" style={{ backgroundColor: `${formData.primaryColor}18`, color: formData.primaryColor }}>
+            {icon}
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{badgeCount} level{badgeCount !== 1 ? "s" : ""} enabled</p>
+          </div>
+        </div>
+        <span className={`text-slate-400 dark:text-slate-500 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>▼</span>
+      </button>
+    );
+  };
+
+  const schoolLevelsCount = (ac.school?.allowedSchoolLevels || []).length;
+  const collegeLevelsCount = (ac.college?.allowedSchoolLevels || []).length + (ac.college?.allowedProgramLevels || []).length;
+  const uniLevelsCount = (ac.university?.allowedProgramLevels || []).length;
 
   return (
     <section className="space-y-6">
@@ -209,6 +407,105 @@ const GlobalUISettings = () => {
             </div>
           </div>
 
+          {/* Academic Group Configuration */}
+          <div className="mt-8 border-t border-slate-200 pt-6">
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold text-slate-800">Academic Group Configuration</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Control which academic levels and options are available when creating academic groups for each institute type.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {/* School Panel */}
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                {renderPanelHeader("School", "🏫", "school", schoolLevelsCount)}
+                {expandedPanel === "school" && (
+                  <div className="space-y-5 border-t border-slate-100 px-5 py-5">
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-slate-700">Allowed School Levels</p>
+                      {renderCheckboxGroup("school", "allowedSchoolLevels", ALL_SCHOOL_LEVELS)}
+                    </div>
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-slate-700">Custom School Levels</p>
+                      {renderCustomFields("school", "allowedSchoolLevels")}
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Max Class Number</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={ac.school?.maxClassNumber || 10}
+                        onChange={(e) => handleAcademicNumber("school", "maxClassNumber", e.target.value)}
+                        className={`${inputClassName} max-w-[160px]`}
+                      />
+                      <p className="mt-2 text-xs text-slate-500">
+                        Defines the maximum class number (e.g. 10 = Class 1 to Class 10)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* College Panel */}
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                {renderPanelHeader("College", "🎓", "college", collegeLevelsCount)}
+                {expandedPanel === "college" && (
+                  <div className="space-y-5 border-t border-slate-100 px-5 py-5">
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-slate-700">Allowed School Levels (for 11th / 12th)</p>
+                      {renderCheckboxGroup("college", "allowedSchoolLevels", ALL_SCHOOL_LEVELS)}
+                    </div>
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-slate-700">Custom School Levels</p>
+                      {renderCustomFields("college", "allowedSchoolLevels")}
+                    </div>
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-slate-700">Allowed Program Levels</p>
+                      {renderCheckboxGroup("college", "allowedProgramLevels", ALL_PROGRAM_LEVELS)}
+                    </div>
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-slate-700">Custom Program Levels</p>
+                      {renderCustomFields("college", "allowedProgramLevels")}
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-sm font-medium text-slate-700">Max Class Number</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="12"
+                        value={ac.college?.maxClassNumber || 12}
+                        onChange={(e) => handleAcademicNumber("college", "maxClassNumber", e.target.value)}
+                        className={`${inputClassName} max-w-[160px]`}
+                      />
+                      <p className="mt-2 text-xs text-slate-500">
+                        For Higher Secondary classes (e.g. 12 = up to Class 12)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* University Panel */}
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                {renderPanelHeader("University", "🏛️", "university", uniLevelsCount)}
+                {expandedPanel === "university" && (
+                  <div className="space-y-5 border-t border-slate-100 px-5 py-5">
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-slate-700">Allowed Program Levels</p>
+                      {renderCheckboxGroup("university", "allowedProgramLevels", ALL_PROGRAM_LEVELS)}
+                    </div>
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-slate-700">Custom Program Levels</p>
+                      {renderCustomFields("university", "allowedProgramLevels")}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={submitting}
@@ -264,6 +561,35 @@ const GlobalUISettings = () => {
                 <span className="h-10 w-10 rounded-full border border-slate-200" style={{ backgroundColor: formData.sidebarColor }} />
               </div>
             </div>
+          </div>
+
+          {/* Academic Config Preview */}
+          <div className="mt-6 space-y-3">
+            <p className="text-sm uppercase tracking-[0.25em] text-slate-400">Academic Config Preview</p>
+            {[
+              { label: "School", icon: "🏫", levels: ac.school?.allowedSchoolLevels || [], max: ac.school?.maxClassNumber },
+              { label: "College", icon: "🎓", levels: [...(ac.college?.allowedSchoolLevels || []), ...(ac.college?.allowedProgramLevels || [])], max: ac.college?.maxClassNumber },
+              { label: "University", icon: "🏛️", levels: ac.university?.allowedProgramLevels || [] },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-slate-200 px-4 py-3">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <span>{item.icon}</span>
+                  <span>{item.label}</span>
+                  {item.max && <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">Max Class {item.max}</span>}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {item.levels.length > 0 ? (
+                    item.levels.map((l) => (
+                      <span key={l} className="rounded-lg px-2 py-1 text-xs font-medium" style={{ backgroundColor: `${formData.primaryColor}15`, color: formData.primaryColor }}>
+                        {l}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-400">No levels enabled</span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

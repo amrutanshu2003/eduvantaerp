@@ -1,14 +1,33 @@
+import { useEffect, useState } from "react";
 import AlertMessage from "../../components/AlertMessage";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { getInstituteType } from "../../utils/instituteLabels";
+import api from "../../api/axios";
 
-const inputClass = "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none";
+const inputClass = "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200";
 
 const AcademicGroupForm = ({ formData, onChange, onSubmit, submitting, errorMessage, title, description, institutes = [] }) => {
   const { user } = useAuth();
   const { settings, getButtonRadius } = useUISettings();
-  
+  const [academicSettings, setAcademicSettings] = useState(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
+  useEffect(() => {
+    fetchAcademicSettings();
+  }, []);
+
+  const fetchAcademicSettings = async () => {
+    try {
+      const { data } = await api.get("/settings/institute/academic");
+      setAcademicSettings(data.academicSettings);
+    } catch (error) {
+      console.error("Failed to load academic settings:", error);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
   let instituteType = getInstituteType(user);
   if (user?.role === "superadmin" && formData.instituteId && institutes.length > 0) {
     const selectedInst = institutes.find((i) => i._id === formData.instituteId);
@@ -17,18 +36,117 @@ const AcademicGroupForm = ({ formData, onChange, onSubmit, submitting, errorMess
     }
   }
 
+  // Fallback to global settings if academic settings not loaded
+  const ac = settings.academicConfig || {};
+  const typeConfig = ac[instituteType] || {};
+
+  // Get allowed levels based on academic settings or global settings
+  const allowedSchoolLevels = academicSettings?.levels
+    ?.filter((l) => l.status === "active")
+    ?.map((l) => l.name) || typeConfig.allowedSchoolLevels || [];
+  const allowedProgramLevels = academicSettings?.levels
+    ?.filter((l) => l.status === "active")
+    ?.map((l) => l.name) || typeConfig.allowedProgramLevels || [];
+
+  // Get dynamic fields from academic settings
+  const dynamicFields = academicSettings?.fields?.filter((f) => f.status === "active") || [];
+
+  const hasSchoolLevels = allowedSchoolLevels.length > 0;
+  const hasProgramLevels = allowedProgramLevels.length > 0;
+
+  // Get labels from academic settings or use defaults
+  const academicGroupLabel = academicSettings?.academicGroupLabel || "Class";
+  const subGroupLabel = academicSettings?.subGroupLabel || "Section";
+
+  const renderDynamicField = (field) => {
+    const value = formData.dynamicFields?.[field.fieldKey] || formData[field.fieldKey] || "";
+
+    const handleChange = (e) => {
+      if (field.fieldKey in formData) {
+        onChange(e);
+      } else {
+        onChange({
+          target: {
+            name: "dynamicFields",
+            value: { ...formData.dynamicFields, [field.fieldKey]: e.target.value },
+          },
+        });
+      }
+    };
+
+    if (field.type === "select") {
+      return (
+        <select
+          name={field.fieldKey in formData ? field.fieldKey : undefined}
+          value={value}
+          onChange={handleChange}
+          className={inputClass}
+          required={field.required}
+        >
+          <option value="">Select {field.label}</option>
+          {field.options?.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
+    if (field.type === "date") {
+      return (
+        <input
+          type="date"
+          name={field.fieldKey in formData ? field.fieldKey : undefined}
+          value={value}
+          onChange={handleChange}
+          className={inputClass}
+          required={field.required}
+        />
+      );
+    }
+
+    if (field.type === "number") {
+      return (
+        <input
+          type="number"
+          name={field.fieldKey in formData ? field.fieldKey : undefined}
+          value={value}
+          onChange={handleChange}
+          className={inputClass}
+          required={field.required}
+        />
+      );
+    }
+
+    return (
+      <input
+        type="text"
+        name={field.fieldKey in formData ? field.fieldKey : undefined}
+        value={value}
+        onChange={handleChange}
+        className={inputClass}
+        required={field.required}
+      />
+    );
+  };
+
+  if (loadingSettings) {
+    return <div className="flex items-center justify-center p-12">Loading settings...</div>;
+  }
+
   return (
     <section className="space-y-6">
-      <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <h1 className="text-3xl font-semibold text-ink">{title}</h1>
-        <p className="mt-3 text-sm text-slate-600">{description}</p>
+      <div className="rounded-[1.75rem] bg-white p-6 shadow-card dark:bg-slate-900">
+        <h1 className="text-3xl font-semibold text-ink dark:text-slate-200">{title}</h1>
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">{description}</p>
       </div>
 
-      <form onSubmit={onSubmit} className="rounded-[1.75rem] bg-white p-6 shadow-card">
+      <form onSubmit={onSubmit} className="rounded-[1.75rem] bg-white p-6 shadow-card dark:bg-slate-900">
         <div className="grid gap-5 md:grid-cols-2">
           {user?.role === "superadmin" && (
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Institute Connection</label>
+              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Institute Connection</label>
               <select name="instituteId" value={formData.instituteId} onChange={onChange} className={inputClass} required>
                 <option value="">Select Institute</option>
                 {institutes.map((inst) => (
@@ -39,66 +157,22 @@ const AcademicGroupForm = ({ formData, onChange, onSubmit, submitting, errorMess
               </select>
             </div>
           )}
-          {instituteType === "school" ? (
-            <>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">School Level</label>
-                <select name="schoolLevel" value={formData.schoolLevel} onChange={onChange} className={inputClass}>
-                  <option value="">Select School Level</option>
-                  <option value="Pre-Primary">Pre-Primary</option>
-                  <option value="Primary">Primary</option>
-                  <option value="Middle">Middle</option>
-                  <option value="Secondary">Secondary</option>
-                  <option value="Higher Secondary">Higher Secondary</option>
-                </select>
+
+          {/* Render dynamic fields */}
+          {dynamicFields
+            .sort((a, b) => a.order - b.order)
+            .map((field) => (
+              <div key={field.fieldKey}>
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {field.label}
+                  {field.required && <span className="text-rose-500"> *</span>}
+                </label>
+                {renderDynamicField(field)}
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Class Name</label>
-                <input name="className" value={formData.className} onChange={onChange} className={inputClass} />
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Program Level</label>
-                <select name="programLevel" value={formData.programLevel} onChange={onChange} className={inputClass}>
-                  <option value="">Select Program Level</option>
-                  <option value="UG">UG</option>
-                  <option value="PG">PG</option>
-                  <option value="PhD">PhD</option>
-                  <option value="Diploma">Diploma</option>
-                  <option value="Certificate">Certificate</option>
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Department</label>
-                <input name="department" value={formData.department} onChange={onChange} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Course</label>
-                <input name="course" value={formData.course} onChange={onChange} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Semester</label>
-                <input name="semester" value={formData.semester} onChange={onChange} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Year</label>
-                <input name="year" value={formData.year} onChange={onChange} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Batch</label>
-                <input name="batch" value={formData.batch} onChange={onChange} className={inputClass} />
-              </div>
-            </>
-          )}
+            ))}
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Section</label>
-            <input name="section" value={formData.section} onChange={onChange} className={inputClass} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Status</label>
+            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
             <select name="status" value={formData.status} onChange={onChange} className={inputClass}>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -114,7 +188,7 @@ const AcademicGroupForm = ({ formData, onChange, onSubmit, submitting, errorMess
             style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
             className="px-6 py-3 text-sm font-semibold text-white"
           >
-            {submitting ? "Saving..." : "Save Academic Group"}
+            {submitting ? "Saving..." : `Save ${academicGroupLabel}`}
           </button>
         </div>
       </form>

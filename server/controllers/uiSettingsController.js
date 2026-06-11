@@ -2,6 +2,21 @@ import AuditLog from "../models/AuditLog.js";
 import UISettings from "../models/UISettings.js";
 import bcrypt from "bcryptjs";
 
+const defaultAcademicConfig = {
+  school: {
+    allowedSchoolLevels: ["Pre-Primary", "Primary", "Middle", "Secondary"],
+    maxClassNumber: 10,
+  },
+  college: {
+    allowedSchoolLevels: ["Higher Secondary"],
+    allowedProgramLevels: ["UG", "PG", "Diploma", "Certificate"],
+    maxClassNumber: 12,
+  },
+  university: {
+    allowedProgramLevels: ["UG", "PG", "PhD", "Diploma", "Certificate"],
+  },
+};
+
 const defaultGlobalSettings = {
   instituteId: null,
   appName: "Eduvanta ERP",
@@ -16,6 +31,7 @@ const defaultGlobalSettings = {
   captchaEnabled: true,
   privilegedRecoveryEnabled: false,
   privilegedRecoveryHint: "",
+  academicConfig: defaultAcademicConfig,
 };
 
 const sanitizeSettings = (settings) => {
@@ -60,6 +76,36 @@ const updateGlobalUISettings = async (req, res, next) => {
       privilegedRecoveryHint: req.body.privilegedRecoveryHint?.trim() || "",
       instituteId: null,
     };
+
+    if (req.body.academicConfig && typeof req.body.academicConfig === "object") {
+      const ac = req.body.academicConfig;
+      payload.academicConfig = {
+        school: {
+          allowedSchoolLevels: Array.isArray(ac.school?.allowedSchoolLevels)
+            ? ac.school.allowedSchoolLevels
+            : defaultAcademicConfig.school.allowedSchoolLevels,
+          maxClassNumber: typeof ac.school?.maxClassNumber === "number"
+            ? ac.school.maxClassNumber
+            : defaultAcademicConfig.school.maxClassNumber,
+        },
+        college: {
+          allowedSchoolLevels: Array.isArray(ac.college?.allowedSchoolLevels)
+            ? ac.college.allowedSchoolLevels
+            : defaultAcademicConfig.college.allowedSchoolLevels,
+          allowedProgramLevels: Array.isArray(ac.college?.allowedProgramLevels)
+            ? ac.college.allowedProgramLevels
+            : defaultAcademicConfig.college.allowedProgramLevels,
+          maxClassNumber: typeof ac.college?.maxClassNumber === "number"
+            ? ac.college.maxClassNumber
+            : defaultAcademicConfig.college.maxClassNumber,
+        },
+        university: {
+          allowedProgramLevels: Array.isArray(ac.university?.allowedProgramLevels)
+            ? ac.university.allowedProgramLevels
+            : defaultAcademicConfig.university.allowedProgramLevels,
+        },
+      };
+    }
 
     if (!["rounded", "pill", "square"].includes(payload.buttonStyle)) {
       res.status(400);

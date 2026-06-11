@@ -64,6 +64,38 @@ const uiSettingsSchema = new mongoose.Schema(
       default: "",
       select: false,
     },
+    academicConfig: {
+      school: {
+        allowedSchoolLevels: {
+          type: [String],
+          default: ["Pre-Primary", "Primary", "Middle", "Secondary"],
+        },
+        maxClassNumber: {
+          type: Number,
+          default: 10,
+        },
+      },
+      college: {
+        allowedSchoolLevels: {
+          type: [String],
+          default: ["Higher Secondary"],
+        },
+        allowedProgramLevels: {
+          type: [String],
+          default: ["UG", "PG", "Diploma", "Certificate"],
+        },
+        maxClassNumber: {
+          type: Number,
+          default: 12,
+        },
+      },
+      university: {
+        allowedProgramLevels: {
+          type: [String],
+          default: ["UG", "PG", "PhD", "Diploma", "Certificate"],
+        },
+      },
+    },
   },
   {
     timestamps: true,

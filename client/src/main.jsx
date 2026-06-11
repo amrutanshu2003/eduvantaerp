@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { UISettingsProvider } from "./context/UISettingsContext";
+import { LabelSettingsProvider } from "./context/LabelSettingsContext";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -11,7 +12,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <UISettingsProvider>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <LabelSettingsProvider>
+            <App />
+          </LabelSettingsProvider>
         </AuthProvider>
       </BrowserRouter>
     </UISettingsProvider>

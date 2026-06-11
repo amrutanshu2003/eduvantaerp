@@ -5,6 +5,7 @@ import AlertMessage from "../../components/AlertMessage";
 import LatestNoticesPanel from "../../components/LatestNoticesPanel";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
+import { useLabelSettings } from "../../context/LabelSettingsContext";
 import {
   getAcademicGroupLabel,
   getParentLabelPlural,
@@ -22,6 +23,7 @@ const StatCardSkeleton = () => (
 const Dashboard = () => {
   const { user } = useAuth();
   const { settings, getButtonRadius } = useUISettings();
+  const { isModuleEnabled } = useLabelSettings();
   const [stats, setStats] = useState(null);
   const [phase4Stats, setPhase4Stats] = useState(null);
   const [latestNotices, setLatestNotices] = useState([]);
@@ -119,41 +121,43 @@ const Dashboard = () => {
     "/admin/hostel-complaints",
   ];
 
-  const cards = [
-    { label: "Total Students", value: stats?.totalStudents ?? null },
-    { label: `Total ${getTeacherLabelPlural(user)}`, value: stats?.totalTeachers ?? null },
-    { label: `Total ${getParentLabelPlural(user)}`, value: stats?.totalParents ?? null },
-    { label: "Total Staff", value: stats?.totalStaff ?? null },
-    { label: `Total ${getAcademicGroupLabel(user)}`, value: stats?.totalAcademicGroups ?? null },
-    { label: "Active Students", value: stats?.activeStudents ?? null },
-    { label: "Active Staff", value: stats?.activeStaff ?? null },
-    { label: "Total Subjects", value: phase4Stats?.totalSubjects ?? null },
-    { label: "Total Exams", value: phase4Stats?.totalExams ?? null },
-    { label: "Today Attendance", value: phase4Stats?.todayAttendanceCount ?? null },
-    { label: "Pending Marks", value: phase4Stats?.pendingMarks ?? null },
-    { label: "Published Results", value: phase4Stats?.publishedResults ?? null },
-    { label: "Published Notices", value: phase4Stats?.publishedNotices ?? null },
-    { label: "Draft Notices", value: phase4Stats?.draftNotices ?? null },
-    { label: "Pending Fees", value: phase4Stats?.pendingFees ?? null },
-    { label: "Paid Fees", value: phase4Stats?.paidFees ?? null },
-    { label: "Active Timetables", value: phase4Stats?.activeTimetables ?? null },
-    { label: "Active Assignments", value: phase4Stats?.activeAssignments ?? null },
-    { label: "Total Books", value: phase4Stats?.totalBooks ?? null },
-    { label: "Available Books", value: phase4Stats?.availableBooks ?? null },
-    { label: "Issued Books", value: phase4Stats?.issuedBooks ?? null },
-    { label: "Overdue Books", value: phase4Stats?.overdueBooks ?? null },
-    { label: "Total Vehicles", value: phase4Stats?.totalVehicles ?? null },
-    { label: "Active Routes", value: phase4Stats?.activeRoutes ?? null },
-    { label: "Transport Students", value: phase4Stats?.transportStudents ?? null },
-    { label: "Vehicles In Maintenance", value: phase4Stats?.vehiclesInMaintenance ?? null },
-    { label: "Total Hostels", value: phase4Stats?.totalHostels ?? null },
-    { label: "Active Hostels", value: phase4Stats?.activeHostels ?? null },
-    { label: "Available Beds", value: phase4Stats?.availableBeds ?? null },
-    { label: "Beds In Maintenance", value: phase4Stats?.bedsInMaintenance ?? null },
-    { label: "Hostel Students", value: phase4Stats?.hostelStudents ?? null },
-    { label: "Pending Outpasses", value: phase4Stats?.pendingHostelOutpasses ?? null },
-    { label: "Open Hostel Complaints", value: phase4Stats?.openHostelComplaints ?? null },
+  const allCards = [
+    { label: "Total Students", value: stats?.totalStudents ?? null, module: "students" },
+    { label: `Total ${getTeacherLabelPlural(user)}`, value: stats?.totalTeachers ?? null, module: "teachers" },
+    { label: `Total ${getParentLabelPlural(user)}`, value: stats?.totalParents ?? null, module: "parents" },
+    { label: "Total Staff", value: stats?.totalStaff ?? null, module: "staff" },
+    { label: `Total ${getAcademicGroupLabel(user)}`, value: stats?.totalAcademicGroups ?? null, module: "academics" },
+    { label: "Active Students", value: stats?.activeStudents ?? null, module: "students" },
+    { label: "Active Staff", value: stats?.activeStaff ?? null, module: "staff" },
+    { label: "Total Subjects", value: phase4Stats?.totalSubjects ?? null, module: "subjects" },
+    { label: "Total Exams", value: phase4Stats?.totalExams ?? null, module: "exams" },
+    { label: "Today Attendance", value: phase4Stats?.todayAttendanceCount ?? null, module: "attendance" },
+    { label: "Pending Marks", value: phase4Stats?.pendingMarks ?? null, module: "marks" },
+    { label: "Published Results", value: phase4Stats?.publishedResults ?? null, module: "marks" },
+    { label: "Published Notices", value: phase4Stats?.publishedNotices ?? null, module: "notices" },
+    { label: "Draft Notices", value: phase4Stats?.draftNotices ?? null, module: "notices" },
+    { label: "Pending Fees", value: phase4Stats?.pendingFees ?? null, module: "fees" },
+    { label: "Paid Fees", value: phase4Stats?.paidFees ?? null, module: "fees" },
+    { label: "Active Timetables", value: phase4Stats?.activeTimetables ?? null, module: "timetable" },
+    { label: "Active Assignments", value: phase4Stats?.activeAssignments ?? null, module: "assignments" },
+    { label: "Total Books", value: phase4Stats?.totalBooks ?? null, module: "library" },
+    { label: "Available Books", value: phase4Stats?.availableBooks ?? null, module: "library" },
+    { label: "Issued Books", value: phase4Stats?.issuedBooks ?? null, module: "library" },
+    { label: "Overdue Books", value: phase4Stats?.overdueBooks ?? null, module: "library" },
+    { label: "Total Vehicles", value: phase4Stats?.totalVehicles ?? null, module: "transport" },
+    { label: "Active Routes", value: phase4Stats?.activeRoutes ?? null, module: "transport" },
+    { label: "Transport Students", value: phase4Stats?.transportStudents ?? null, module: "transport" },
+    { label: "Vehicles In Maintenance", value: phase4Stats?.vehiclesInMaintenance ?? null, module: "transport" },
+    { label: "Total Hostels", value: phase4Stats?.totalHostels ?? null, module: "hostel" },
+    { label: "Active Hostels", value: phase4Stats?.activeHostels ?? null, module: "hostel" },
+    { label: "Available Beds", value: phase4Stats?.availableBeds ?? null, module: "hostel" },
+    { label: "Beds In Maintenance", value: phase4Stats?.bedsInMaintenance ?? null, module: "hostel" },
+    { label: "Hostel Students", value: phase4Stats?.hostelStudents ?? null, module: "hostel" },
+    { label: "Pending Outpasses", value: phase4Stats?.pendingHostelOutpasses ?? null, module: "hostel" },
+    { label: "Open Hostel Complaints", value: phase4Stats?.openHostelComplaints ?? null, module: "hostel" },
   ];
+
+  const cards = allCards.filter(card => !card.module || isModuleEnabled(card.module));
 
   return (
     <section className="space-y-6">
@@ -181,16 +185,36 @@ const Dashboard = () => {
           Manage your institute operations seamlessly with {settings.appName}. Access integrated modules for academics, student records, fees, timetables, assignments, library, transport, and hostel management.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/admin/students" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Manage Students</Link>
-          <Link to="/admin/academic-groups" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage {getAcademicGroupLabel(user)}</Link>
-          <Link to="/admin/notices" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Notices</Link>
-          <Link to="/admin/fees" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Fees</Link>
-          <Link to="/admin/timetables" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Timetables</Link>
-          <Link to="/admin/assignments" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">View Assignments</Link>
-          <Link to="/admin/library/books" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Library</Link>
-          <Link to="/admin/transport/vehicles" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Transport</Link>
-          <Link to="/admin/hostels" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Hostels</Link>
-          <Link to="/admin/hostel-outpasses" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Review Outpasses</Link>
+          {isModuleEnabled("students") && (
+            <Link to="/admin/students" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Manage Students</Link>
+          )}
+          {isModuleEnabled("academics") && (
+            <Link to="/admin/academic-groups" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage {getAcademicGroupLabel(user)}</Link>
+          )}
+          {isModuleEnabled("notices") && (
+            <Link to="/admin/notices" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Notices</Link>
+          )}
+          {isModuleEnabled("fees") && (
+            <Link to="/admin/fees" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Fees</Link>
+          )}
+          {isModuleEnabled("timetable") && (
+            <Link to="/admin/timetables" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Timetables</Link>
+          )}
+          {isModuleEnabled("assignments") && (
+            <Link to="/admin/assignments" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">View Assignments</Link>
+          )}
+          {isModuleEnabled("library") && (
+            <Link to="/admin/library/books" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Library</Link>
+          )}
+          {isModuleEnabled("transport") && (
+            <Link to="/admin/transport/vehicles" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Transport</Link>
+          )}
+          {isModuleEnabled("hostel") && (
+            <Link to="/admin/hostels" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Hostels</Link>
+          )}
+          {isModuleEnabled("hostel") && (
+            <Link to="/admin/hostel-outpasses" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Review Outpasses</Link>
+          )}
         </div>
       </div>
 

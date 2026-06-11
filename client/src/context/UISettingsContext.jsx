@@ -17,6 +17,20 @@ const defaultSettings = {
   captchaEnabled: true,
   privilegedRecoveryEnabled: false,
   privilegedRecoveryHint: "",
+  academicConfig: {
+    school: {
+      allowedSchoolLevels: ["Pre-Primary", "Primary", "Middle", "Secondary"],
+      maxClassNumber: 10,
+    },
+    college: {
+      allowedSchoolLevels: ["Higher Secondary"],
+      allowedProgramLevels: ["UG", "PG", "Diploma", "Certificate"],
+      maxClassNumber: 12,
+    },
+    university: {
+      allowedProgramLevels: ["UG", "PG", "PhD", "Diploma", "Certificate"],
+    },
+  },
 };
 
 const getBootstrappedThemeMode = () => {
@@ -143,8 +157,8 @@ export const UISettingsProvider = ({ children }) => {
   useEffect(() => {
     const fetchGlobalSettings = async () => {
       try {
-        const { data } = await api.get("/ui-settings/global");
-        setSettings({ ...defaultSettings, ...data.settings });
+        const { data } = await api.get("/settings/public");
+        setSettings({ ...defaultSettings, ...data });
       } catch (error) {
         setSettings(defaultSettings);
       } finally {

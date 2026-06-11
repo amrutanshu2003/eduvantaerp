@@ -5,7 +5,9 @@ import morgan from "morgan";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import academicGroupRoutes from "./routes/academicGroupRoutes.js";
+import academicSettingsRoutes from "./routes/academicSettingsRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import settingsRoutes from "./routes/settingsRoutes.js";
 import assignmentRoutes from "./routes/assignmentRoutes.js";
 import attendanceRoutes from "./routes/attendanceRoutes.js";
 import bulkImportRoutes from "./routes/bulkImportRoutes.js";
@@ -110,6 +112,8 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/academic-groups", academicGroupRoutes);
+app.use("/api/academic-settings", academicSettingsRoutes);
+app.use("/api/settings", settingsRoutes);
 app.use("/api/bulk-import", bulkImportRoutes);
 app.use("/api/subjects", subjectRoutes);
 app.use("/api/attendance", attendanceRoutes);

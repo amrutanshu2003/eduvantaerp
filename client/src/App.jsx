@@ -9,6 +9,7 @@ import Unauthorized from "./pages/Unauthorized";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AcademicGroupDetails from "./pages/admin/AcademicGroupDetails";
 import AcademicGroups from "./pages/admin/AcademicGroups";
+import AcademicSettings from "./pages/admin/AcademicSettings";
 import AssignSubjectTeacher from "./pages/admin/AssignSubjectTeacher";
 import Attendance from "./pages/admin/Attendance";
 import AttendanceReports from "./pages/admin/AttendanceReports";
@@ -191,6 +192,7 @@ const App = () => {
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/bulk-import" element={<BulkImport />} />
+            <Route path="/admin/academic-settings" element={<AcademicSettings />} />
             <Route path="/admin/academic-groups" element={<AcademicGroups />} />
             <Route path="/admin/academic-groups/create" element={<CreateAcademicGroup />} />
             <Route path="/admin/academic-groups/:id" element={<AcademicGroupDetails />} />
