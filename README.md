@@ -1,6 +1,6 @@
 # Eduvanta ERP
 
-Eduvanta ERP is a MERN-based SaaS foundation for schools and colleges.
+Eduvanta ERP is a SaaS-style MERN Stack Institution ERP for schools, colleges and universities, featuring role-based dashboards, secure authentication, institute management, academic workflows, fees, hostel, transport, library and full ERP customization.
 
 ## Security Notice
 
@@ -323,21 +323,12 @@ This starts:
 
 ## Initial Setup
 
-**Security Note**: For production deployments, never use default credentials. Always create custom credentials with strong passwords.
-
-### Creating a Superadmin
-
-Run the seed script to create the initial superadmin user:
+Run the seed script locally to create the first superadmin. Change the default password immediately after first login. Never use default credentials in production.
 
 ```bash
 cd server
 npm run seed
 ```
-
-After running the seed script:
-1. Login with the created superadmin credentials
-2. **Immediately change the default password** in your profile settings
-3. Create institutes and institute admin users as needed
 
 ### Login Flow
 
