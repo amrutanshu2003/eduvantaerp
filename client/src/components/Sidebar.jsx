@@ -460,16 +460,19 @@ const Sidebar = () => {
                         className={({ isActive }) =>
                           `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
                             isActive
-                              ? "text-white shadow-sm border-l-4"
+                              ? isDark ? "text-white shadow-sm border-l-4" : "shadow-sm border-l-4"
                               : isDark
                                 ? "text-slate-300 hover:bg-white/10 hover:text-white border-l-4 border-l-transparent"
                                 : "text-slate-700 hover:bg-white hover:text-slate-950 border-l-4 border-l-transparent"
                           }`
                         }
                         style={({ isActive }) => (isActive ? {
-                          backgroundColor: settings.primaryColor,
+                          backgroundColor: isDark ? settings.primaryColor : `color-mix(in srgb, ${settings.primaryColor} 10%, transparent)`,
+                          color: isDark ? "#ffffff" : settings.primaryColor,
                           borderLeftColor: "#14b8a6", // Teal left border
-                          boxShadow: `0 4px 14px 0 ${settings.primaryColor}40`, // Soft glow
+                          boxShadow: isDark
+                            ? `0 4px 14px 0 ${settings.primaryColor}40`
+                            : "0 4px 12px 0 rgba(20, 184, 166, 0.08)", // Soft glow
                         } : undefined)}
                       >
                         <Icon size={16} />

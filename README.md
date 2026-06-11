@@ -1016,9 +1016,10 @@ npm run dev
 ## Demo UI Polish Completed
 
 The Eduvanta ERP UI has been successfully polished for presentation and demo readiness. Key enhancements include:
-- Smooth theme toggle animations (500ms radial sweep using customized primary color glow, fully respecting screen refresh and reduced motion preferences).
+- Telegram-style circular theme transition polished (600ms viewport-fixed reveal animation with 45% class switch threshold and double-click protection).
+- Light mode contrast improved (clean white cards, clean borders, high-readability muted labels, and prominent soft-teal active highlights).
+- SaaS-style footer added (3-column layout on desktop, stacked on mobile, consistent spacing, and subtle top border).
 - Unified sidebar navigation incorporating accordion expand/collapse transitions, clean grouping, and consistent icon scaling.
-- Improved dashboard stat card contrast, font weight readability, and sub-pixel alignment adjustments for text/icons on hover.
 - Highly responsive navbar header with consistent layout height, hiding or collapsing search bar and selectors on smaller viewports.
 - Enhanced "Create Institute" primary CTA button with plus icons and hover scaling states.
 - Clean EmptyState templates configured globally to display informative descriptions and context-specific CTAs.

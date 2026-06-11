@@ -12,13 +12,13 @@
   --ui-secondary-color: #f59e0b;
   --ui-sidebar-color: #0f172a;
   --ui-button-radius: 1rem;
-  --theme-page-bg: #f4f8fc;
-  --theme-app-bg: radial-gradient(circle at top, rgba(20, 184, 166, 0.12), transparent 38%), linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%);
-  --theme-surface: rgba(255, 255, 255, 0.88);
+  --theme-page-bg: #f8fafc;
+  --theme-app-bg: #f8fafc;
+  --theme-surface: #ffffff;
   --theme-surface-strong: #ffffff;
   --theme-surface-muted: #f8fafc;
   --theme-surface-subtle: #f1f5f9;
-  --theme-border: #dbe4f0;
+  --theme-border: #e2e8f0;
   --theme-border-strong: #cbd5e1;
   --theme-text: #0f172a;
   --theme-text-soft: #334155;
@@ -26,7 +26,7 @@
   --theme-text-faint: #94a3b8;
   --theme-input-bg: #ffffff;
   --theme-input-text: #0f172a;
-  --theme-input-border: #dbe4f0;
+  --theme-input-border: #e2e8f0;
   --theme-table-head: #f8fafc;
   --theme-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
   --theme-overlay: rgba(15, 23, 42, 0.55);
@@ -48,7 +48,7 @@
   --theme-text-soft: #cad7ea;
   --theme-text-muted: #9eb0c9;
   --theme-text-faint: #7487a3;
-  --theme-input-bg: #0a1423;
+  --theme-input-bg: #111c2d;
   --theme-input-text: #eef6ff;
   --theme-input-border: #243349;
   --theme-table-head: #131f31;

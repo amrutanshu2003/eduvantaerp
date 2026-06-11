@@ -450,7 +450,7 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
         >
           <span
-            className="flex items-center justify-center transition-transform duration-700 ease-in-out"
+            className="flex items-center justify-center transition-transform duration-600 ease-in-out"
             style={{
               transform: themeReveal ? "rotate(180deg) scale(0.7)" : "rotate(0deg) scale(1)",
             }}

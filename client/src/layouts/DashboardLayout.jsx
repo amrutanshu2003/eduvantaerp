@@ -58,12 +58,12 @@ const DashboardLayout = () => {
 
     themeSwitchRef.current = setTimeout(() => {
       toggleTheme();
-    }, 325);
+    }, 270);
 
     cleanupRef.current = setTimeout(() => {
       setThemeReveal(null);
       document.documentElement.classList.remove("theme-transition-active");
-    }, 700);
+    }, 600);
   };
 
   if (loading) {
@@ -86,7 +86,7 @@ const DashboardLayout = () => {
             pointerEvents: "none",
             background: themeReveal.nextTheme === "dark" ? "#020617" : "#f8fafc",
             clipPath: `circle(${themeReveal.radius}px at ${themeReveal.x}px ${themeReveal.y}px)`,
-            transition: "clip-path 700ms cubic-bezier(0.4, 0, 0.2, 1)",
+            transition: "clip-path 600ms cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         />
       ) : null}
@@ -102,14 +102,14 @@ const DashboardLayout = () => {
             <Outlet />
           </div>
         </main>
-        <footer className="reveal-soft reveal-delay-2 border-t border-slate-200/60 dark:border-slate-800/60 py-4 px-6 md:px-8 text-xs text-slate-500 dark:text-slate-400 flex flex-col md:flex-row items-center justify-between gap-3 bg-white/40 dark:bg-slate-950/10 backdrop-blur-sm">
+        <footer className="reveal-soft reveal-delay-2 border-t border-slate-200/60 dark:border-slate-800/60 py-4 px-6 md:px-8 text-xs text-slate-500 dark:text-slate-400 grid grid-cols-1 md:grid-cols-3 items-center gap-3 bg-white/40 dark:bg-slate-950/10 backdrop-blur-sm">
           <div className="text-center md:text-left font-medium">
             © 2026 Eduvanta ERP
           </div>
-          <div className="text-center text-slate-400 dark:text-slate-500">
+          <div className="text-center text-slate-500 dark:text-slate-400 font-normal">
             {settings.footerText || "Smart ERP for Schools, Colleges & Universities"}
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
+          <div className="flex items-center justify-center md:justify-end gap-2.5">
             <span className="font-semibold text-slate-400 dark:text-slate-500">v1.0.0</span>
             <span className="text-slate-300 dark:text-slate-700">•</span>
             <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-medium">Privacy</a>

@@ -260,12 +260,12 @@ const Login = () => {
 
     themeSwitchRef.current = setTimeout(() => {
       toggleTheme();
-    }, 325);
+    }, 270);
 
     cleanupRef.current = setTimeout(() => {
       setThemeReveal(null);
       document.documentElement.classList.remove("theme-transition-active");
-    }, 700);
+    }, 600);
   };
 
   const handleSubmit = async (event) => {
@@ -397,7 +397,7 @@ const Login = () => {
             pointerEvents: "none",
             background: themeReveal.nextTheme === "dark" ? "#020617" : "#f8fafc",
             clipPath: `circle(${themeReveal.radius}px at ${themeReveal.x}px ${themeReveal.y}px)`,
-            transition: "clip-path 700ms cubic-bezier(0.4, 0, 0.2, 1)",
+            transition: "clip-path 600ms cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         />
       ) : null}
@@ -501,7 +501,7 @@ const Login = () => {
                 title={isDark ? "Switch to light mode" : "Switch to dark mode"}
               >
                 <span
-                  className="flex items-center justify-center transition-transform duration-700 ease-in-out"
+                  className="flex items-center justify-center transition-transform duration-600 ease-in-out"
                   style={{
                     transform: themeReveal ? "rotate(180deg) scale(0.7)" : "rotate(0deg) scale(1)",
                   }}
