@@ -6,6 +6,7 @@ import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import { useUISettings } from "../../context/UISettingsContext";
+import { FiHome, FiCheckSquare, FiBookOpen, FiLayers, FiUsers, FiClock, FiPlus } from "react-icons/fi";
 
 const filterDefaults = {
   search: "",
@@ -14,17 +15,35 @@ const filterDefaults = {
   plan: "all",
 };
 
+const getIcon = (label) => {
+  const l = label.toLowerCase();
+  if (l.includes("total institutes")) return FiHome;
+  if (l.includes("active")) return FiCheckSquare;
+  if (l.includes("school")) return FiBookOpen;
+  if (l.includes("college")) return FiLayers;
+  if (l.includes("university")) return FiBookOpen;
+  if (l.includes("admin")) return FiUsers;
+  if (l.includes("trial") || l.includes("expired")) return FiClock;
+  return FiHome;
+};
+
 // Colorful stat card (matches dashboard style)
-const StatCard = ({ label, value, detail, color, to }) => (
-  <Link
-    to={to}
-    className={`${color} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
-  >
-    <p className="text-sm uppercase tracking-[0.25em] text-white/80">{label}</p>
-    <h3 className="mt-4 text-4xl font-semibold text-white">{value}</h3>
-    <p className="mt-3 text-sm text-white/70">{detail}</p>
-  </Link>
-);
+const StatCard = ({ label, value, detail, color, to }) => {
+  const Icon = getIcon(label);
+  return (
+    <Link
+      to={to}
+      className={`${color} rounded-[1.75rem] p-6 shadow-card transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden`}
+    >
+      <div className="absolute right-5 top-5 text-white/25 text-3xl">
+        <Icon />
+      </div>
+      <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/90">{label}</p>
+      <h3 className="mt-4 text-4xl font-bold tracking-tight text-white">{value}</h3>
+      <p className="mt-3 text-sm font-medium text-white/90">{detail}</p>
+    </Link>
+  );
+};
 
 const StatCardSkeleton = () => (
   <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card">
@@ -141,9 +160,10 @@ const Institutes = () => {
           <Link
             to="/super-admin/institutes/create"
             style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-            className="px-5 py-3 text-sm font-semibold text-white"
+            className="flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white transition-all duration-300 hover:scale-[1.02] hover:brightness-110 hover:shadow-lg hover:shadow-teal-500/10 active:scale-95"
           >
-            Create Institute
+            <FiPlus className="h-5 w-5" />
+            <span>Create Institute</span>
           </Link>
         }
       />
@@ -208,7 +228,12 @@ const Institutes = () => {
       </form>
 
       {!loading && institutes.length === 0 ? (
-        <EmptyState title="No institutes found" description="Create your first institute or adjust the filters." />
+        <EmptyState
+          title="No institutes found"
+          description="No institutes found. Create your first institute to get started."
+          actionText="Create Institute"
+          actionLink="/super-admin/institutes/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">

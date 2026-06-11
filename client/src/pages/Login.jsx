@@ -147,7 +147,7 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [captchaText, setCaptchaText] = useState(() => createCaptchaText());
   const [captchaInput, setCaptchaInput] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -211,49 +211,61 @@ const Login = () => {
     };
   }, []);
 
+  const themeSwitchRef = useRef(null);
+  const cleanupRef = useRef(null);
+
   useEffect(() => {
-    if (!themeReveal) {
-      return undefined;
-    }
-
-    const cleanupTimer = window.setTimeout(() => {
-      setThemeReveal(null);
-    }, themeReveal.duration);
-
-    return () => window.clearTimeout(cleanupTimer);
-  }, [themeReveal]);
+    return () => {
+      if (themeSwitchRef.current) clearTimeout(themeSwitchRef.current);
+      if (cleanupRef.current) clearTimeout(cleanupRef.current);
+    };
+  }, []);
 
   const handleThemeToggle = () => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
 
     if (prefersReducedMotion) {
       toggleTheme();
       return;
     }
 
+    if (themeSwitchRef.current) clearTimeout(themeSwitchRef.current);
+    if (cleanupRef.current) clearTimeout(cleanupRef.current);
+
     const rect = themeToggleRef.current?.getBoundingClientRect();
-    const cardRect = loginCardRef.current?.getBoundingClientRect();
-    const originX = rect && cardRect ? rect.left - cardRect.left + rect.width / 2 : 40;
-    const originY = rect && cardRect ? rect.top - cardRect.top + rect.height / 2 : 40;
+    const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+
     const maxRadius = Math.hypot(
-      Math.max(originX, (cardRect?.width || 0) - originX),
-      Math.max(originY, (cardRect?.height || 0) - originY)
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
     );
 
+    document.documentElement.classList.add("theme-transition-active");
+
     setThemeReveal({
-      x: originX,
-      y: originY,
-      startRadius: isDark ? maxRadius : 0,
-      endRadius: isDark ? 0 : maxRadius,
-      duration: isDark ? 700 : 760,
-      direction: isDark ? "collapse" : "expand",
-      overlayTheme: isDark ? "dark" : "dark",
-      nextTheme: isDark ? "light" : "dark",
+      visible: true,
+      x,
+      y,
+      radius: 0,
+      nextTheme,
     });
 
-    window.setTimeout(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setThemeReveal((prev) => (prev ? { ...prev, radius: maxRadius } : null));
+      });
+    });
+
+    themeSwitchRef.current = setTimeout(() => {
       toggleTheme();
-    }, isDark ? 30 : 300);
+    }, 325);
+
+    cleanupRef.current = setTimeout(() => {
+      setThemeReveal(null);
+      document.documentElement.classList.remove("theme-transition-active");
+    }, 700);
   };
 
   const handleSubmit = async (event) => {
@@ -356,54 +368,6 @@ const Login = () => {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
           }
-          @keyframes login-theme-expand {
-            0% {
-              clip-path: circle(var(--theme-start-radius) at var(--theme-origin-x) var(--theme-origin-y));
-              opacity: 0.24;
-              transform: scale(0.88);
-              filter: saturate(1.12);
-            }
-            55% {
-              opacity: 0.92;
-              transform: scale(1.02);
-              filter: saturate(1.04);
-            }
-            100% {
-              clip-path: circle(var(--theme-end-radius) at var(--theme-origin-x) var(--theme-origin-y));
-              opacity: 1;
-              transform: scale(1);
-              filter: saturate(1);
-            }
-          }
-          @keyframes login-theme-collapse {
-            0% {
-              clip-path: circle(var(--theme-start-radius) at var(--theme-origin-x) var(--theme-origin-y));
-              opacity: 1;
-              transform: scale(1);
-              filter: saturate(1);
-            }
-            38% {
-              opacity: 0.96;
-              transform: scale(0.985);
-              filter: saturate(1.04);
-            }
-            100% {
-              clip-path: circle(var(--theme-end-radius) at var(--theme-origin-x) var(--theme-origin-y));
-              opacity: 0.16;
-              transform: scale(0.64);
-              filter: saturate(1.12);
-            }
-          }
-          @keyframes login-theme-icon-bloom {
-            0% { transform: scale(1) rotate(0deg); }
-            35% { transform: scale(0.88) rotate(-10deg); }
-            100% { transform: scale(1.08) rotate(10deg); }
-          }
-          @keyframes login-theme-icon-dock {
-            0% { transform: scale(1) rotate(0deg); }
-            40% { transform: scale(1.08) rotate(8deg); }
-            100% { transform: scale(0.86) rotate(-10deg); }
-          }
           input:-webkit-autofill,
           input:-webkit-autofill:hover,
           input:-webkit-autofill:focus,
@@ -423,6 +387,20 @@ const Login = () => {
           }
         `}
       </style>
+      {themeReveal && themeReveal.visible ? (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 99999,
+            pointerEvents: "none",
+            background: themeReveal.nextTheme === "dark" ? "#020617" : "#f8fafc",
+            clipPath: `circle(${themeReveal.radius}px at ${themeReveal.x}px ${themeReveal.y}px)`,
+            transition: "clip-path 700ms cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
+        />
+      ) : null}
       <div
         className="absolute inset-0"
         style={{
@@ -435,25 +413,6 @@ const Login = () => {
         ref={loginCardRef}
         className="login-theme-surface relative grid w-full max-w-6xl overflow-hidden rounded-[2rem] bg-white shadow-card transition-colors duration-500 ease-in-out lg:grid-cols-[1.05fr_0.95fr]"
       >
-        {themeReveal ? (
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 z-30"
-            style={{
-              background:
-                themeReveal.overlayTheme === "dark"
-                  ? "radial-gradient(circle at top, rgba(20,184,166,0.16), transparent 34%), linear-gradient(180deg, #08111f 0%, #0b1324 100%)"
-                  : "radial-gradient(circle at top, rgba(20,184,166,0.12), transparent 38%), linear-gradient(180deg, #f8fafc 0%, #eef4ff 100%)",
-              "--theme-origin-x": `${themeReveal.x}px`,
-              "--theme-origin-y": `${themeReveal.y}px`,
-              "--theme-start-radius": `${themeReveal.startRadius}px`,
-              "--theme-end-radius": `${themeReveal.endRadius}px`,
-              clipPath: `circle(${themeReveal.startRadius}px at ${themeReveal.x}px ${themeReveal.y}px)`,
-              animation: `${themeReveal.direction === "expand" ? "login-theme-expand" : "login-theme-collapse"} ${themeReveal.duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-              transformOrigin: `${themeReveal.x}px ${themeReveal.y}px`,
-            }}
-          />
-        ) : null}
 
         <div
           className="login-theme-surface reveal-fade-up relative overflow-hidden px-6 py-7 text-white transition-colors duration-500 ease-in-out sm:px-8 sm:py-8 lg:px-10"
@@ -526,7 +485,8 @@ const Login = () => {
                 ref={themeToggleRef}
                 type="button"
                 onClick={handleThemeToggle}
-                className="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border transition-all duration-500 ease-in-out hover:scale-105 hover:rotate-6"
+                disabled={Boolean(themeReveal)}
+                className="inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border transition-all duration-500 ease-in-out hover:scale-105 hover:rotate-6 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: isDark
                     ? "color-mix(in srgb, var(--theme-surface-strong) 88%, transparent)"
@@ -541,14 +501,10 @@ const Login = () => {
                 title={isDark ? "Switch to light mode" : "Switch to dark mode"}
               >
                 <span
-                  className="flex items-center justify-center"
-                  style={
-                    themeReveal
-                      ? {
-                          animation: `${themeReveal.direction === "expand" ? "login-theme-icon-bloom" : "login-theme-icon-dock"} ${themeReveal.duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-                        }
-                      : undefined
-                  }
+                  className="flex items-center justify-center transition-transform duration-700 ease-in-out"
+                  style={{
+                    transform: themeReveal ? "rotate(180deg) scale(0.7)" : "rotate(0deg) scale(1)",
+                  }}
                 >
                   {isDark ? (
                     <FiMoon className="h-5 w-5 text-slate-200" />

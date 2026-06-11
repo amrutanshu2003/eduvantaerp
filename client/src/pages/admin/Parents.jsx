@@ -60,7 +60,12 @@ const Parents = () => {
       <PageHeader eyebrow="Admin" title={pluralLabel} description={`Manage ${pluralLabel.toLowerCase()} linked to students in this institute.`} actions={<div className="flex flex-wrap gap-3"><Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Bulk Import</Link><Link to="/admin/parents/create" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Create {singularLabel}</Link></div>} />
       <AlertMessage tone={messageTone} message={message} />
       {parents.length === 0 ? (
-        <EmptyState title={`No ${pluralLabel.toLowerCase()} yet`} description={`Create the first ${singularLabel.toLowerCase()} record for this institute.`} />
+        <EmptyState
+          title={`No ${pluralLabel.toLowerCase()} yet`}
+          description={`Create the first ${singularLabel.toLowerCase()} record for this institute to link children.`}
+          actionText={`Create ${singularLabel}`}
+          actionLink="/admin/parents/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">

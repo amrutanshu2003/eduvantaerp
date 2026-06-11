@@ -121,7 +121,12 @@ const Notices = () => {
       <AlertMessage tone="error" message={errorMessage} />
 
       {filteredNotices.length === 0 ? (
-        <EmptyState title="No notices found" description="Create or adjust filters to see institute notices." />
+        <EmptyState
+          title="No notices found"
+          description="Create school announcements and notices or adjust filters to view current alerts."
+          actionText="Create Notice"
+          actionLink="/admin/notices/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">

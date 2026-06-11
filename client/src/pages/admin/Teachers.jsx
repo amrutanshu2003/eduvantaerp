@@ -84,7 +84,12 @@ const Teachers = () => {
       <AlertMessage tone={messageTone} message={message} />
 
       {teachers.length === 0 ? (
-        <EmptyState title={`No ${pluralLabel.toLowerCase()} yet`} description={`Create the first ${singularLabel.toLowerCase()} for this institute.`} />
+        <EmptyState
+          title={`No ${pluralLabel.toLowerCase()} yet`}
+          description={`Register the first ${singularLabel.toLowerCase()} to manage subject allocations.`}
+          actionText={`Create ${singularLabel}`}
+          actionLink="/admin/teachers/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">

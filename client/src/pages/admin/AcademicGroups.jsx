@@ -140,7 +140,9 @@ const AcademicGroups = () => {
       {groups.length === 0 ? (
         <EmptyState
           title={`No ${academicGroupLabel.toLowerCase()}s yet`}
-          description="Create the first academic group for this institute."
+          description={`Create the first ${academicGroupLabel.toLowerCase()} to organize students and classes.`}
+          actionText={`Create ${academicGroupLabel}`}
+          actionLink="/admin/academic-groups/create"
         />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card dark:bg-slate-900">

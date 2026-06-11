@@ -119,7 +119,12 @@ const Fees = () => {
       <AlertMessage tone="error" message={errorMessage} />
 
       {filteredFees.length === 0 ? (
-        <EmptyState title="No fees found" description="Create fees or adjust filters to view student dues." />
+        <EmptyState
+          title="No fees found"
+          description="Create student fee schedules or adjust filters to view student dues."
+          actionText="Create Fee"
+          actionLink="/admin/fees/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">

@@ -70,7 +70,12 @@ const Subjects = () => {
       />
       <AlertMessage tone="error" message={errorMessage} />
       {subjects.length === 0 ? (
-        <EmptyState title="No subjects yet" description="Create the first subject for this institute." />
+        <EmptyState
+          title="No subjects yet"
+          description="Create the first subject for this institute to map with classes and assign teachers."
+          actionText="Create Subject"
+          actionLink="/admin/subjects/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">

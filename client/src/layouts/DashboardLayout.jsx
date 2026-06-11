@@ -9,50 +9,61 @@ const DashboardLayout = () => {
   const shellRef = useRef(null);
   const { settings, loading, resolvedTheme, toggleTheme } = useUISettings();
   const [themeReveal, setThemeReveal] = useState(null);
+  const themeSwitchRef = useRef(null);
+  const cleanupRef = useRef(null);
 
   useEffect(() => {
-    if (!themeReveal) {
-      return undefined;
-    }
-
-    const cleanupTimer = window.setTimeout(() => {
-      setThemeReveal(null);
-    }, themeReveal.duration);
-
-    return () => window.clearTimeout(cleanupTimer);
-  }, [themeReveal]);
+    return () => {
+      if (themeSwitchRef.current) clearTimeout(themeSwitchRef.current);
+      if (cleanupRef.current) clearTimeout(cleanupRef.current);
+    };
+  }, []);
 
   const handleThemeToggle = (originElement) => {
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
 
     if (prefersReducedMotion) {
       toggleTheme();
       return;
     }
 
-    const isDark = resolvedTheme === "dark";
+    if (themeSwitchRef.current) clearTimeout(themeSwitchRef.current);
+    if (cleanupRef.current) clearTimeout(cleanupRef.current);
+
     const rect = originElement?.getBoundingClientRect();
-    const shellRect = shellRef.current?.getBoundingClientRect();
-    const originX = rect && shellRect ? rect.left - shellRect.left + rect.width / 2 : 40;
-    const originY = rect && shellRect ? rect.top - shellRect.top + rect.height / 2 : 40;
+    const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+
     const maxRadius = Math.hypot(
-      Math.max(originX, (shellRect?.width || 0) - originX),
-      Math.max(originY, (shellRect?.height || 0) - originY)
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
     );
 
+    document.documentElement.classList.add("theme-transition-active");
+
     setThemeReveal({
-      x: originX,
-      y: originY,
-      startRadius: isDark ? maxRadius : 0,
-      endRadius: isDark ? 0 : maxRadius,
-      duration: isDark ? 700 : 760,
-      direction: isDark ? "collapse" : "expand",
-      overlayTheme: "dark",
+      visible: true,
+      x,
+      y,
+      radius: 0,
+      nextTheme,
     });
 
-    window.setTimeout(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setThemeReveal((prev) => (prev ? { ...prev, radius: maxRadius } : null));
+      });
+    });
+
+    themeSwitchRef.current = setTimeout(() => {
       toggleTheme();
-    }, isDark ? 30 : 300);
+    }, 325);
+
+    cleanupRef.current = setTimeout(() => {
+      setThemeReveal(null);
+      document.documentElement.classList.remove("theme-transition-active");
+    }, 700);
   };
 
   if (loading) {
@@ -65,72 +76,17 @@ const DashboardLayout = () => {
       className="min-h-screen md:flex md:h-screen md:overflow-hidden"
       style={{ background: "var(--theme-app-bg)" }}
     >
-      <style>
-        {`
-          @keyframes login-theme-expand {
-            0% {
-              clip-path: circle(var(--theme-start-radius) at var(--theme-origin-x) var(--theme-origin-y));
-              opacity: 0.24;
-              transform: scale(0.88);
-              filter: saturate(1.12);
-            }
-            55% {
-              opacity: 0.92;
-              transform: scale(1.02);
-              filter: saturate(1.04);
-            }
-            100% {
-              clip-path: circle(var(--theme-end-radius) at var(--theme-origin-x) var(--theme-origin-y));
-              opacity: 1;
-              transform: scale(1);
-              filter: saturate(1);
-            }
-          }
-          @keyframes login-theme-collapse {
-            0% {
-              clip-path: circle(var(--theme-start-radius) at var(--theme-origin-x) var(--theme-origin-y));
-              opacity: 1;
-              transform: scale(1);
-              filter: saturate(1);
-            }
-            38% {
-              opacity: 0.96;
-              transform: scale(0.985);
-              filter: saturate(1.04);
-            }
-            100% {
-              clip-path: circle(var(--theme-end-radius) at var(--theme-origin-x) var(--theme-origin-y));
-              opacity: 0.16;
-              transform: scale(0.64);
-              filter: saturate(1.12);
-            }
-          }
-          @keyframes login-theme-icon-bloom {
-            0% { transform: scale(1) rotate(0deg); }
-            35% { transform: scale(0.88) rotate(-10deg); }
-            100% { transform: scale(1.08) rotate(10deg); }
-          }
-          @keyframes login-theme-icon-dock {
-            0% { transform: scale(1) rotate(0deg); }
-            40% { transform: scale(1.08) rotate(8deg); }
-            100% { transform: scale(0.86) rotate(-10deg); }
-          }
-        `}
-      </style>
-      {themeReveal ? (
+      {themeReveal && themeReveal.visible ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 z-30"
           style={{
-            background:
-              "radial-gradient(circle at top, rgba(20,184,166,0.16), transparent 34%), linear-gradient(180deg, #08111f 0%, #0b1324 100%)",
-            "--theme-origin-x": `${themeReveal.x}px`,
-            "--theme-origin-y": `${themeReveal.y}px`,
-            "--theme-start-radius": `${themeReveal.startRadius}px`,
-            "--theme-end-radius": `${themeReveal.endRadius}px`,
-            clipPath: `circle(${themeReveal.startRadius}px at ${themeReveal.x}px ${themeReveal.y}px)`,
-            animation: `${themeReveal.direction === "expand" ? "login-theme-expand" : "login-theme-collapse"} ${themeReveal.duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-            transformOrigin: `${themeReveal.x}px ${themeReveal.y}px`,
+            position: "fixed",
+            inset: 0,
+            zIndex: 99999,
+            pointerEvents: "none",
+            background: themeReveal.nextTheme === "dark" ? "#020617" : "#f8fafc",
+            clipPath: `circle(${themeReveal.radius}px at ${themeReveal.x}px ${themeReveal.y}px)`,
+            transition: "clip-path 700ms cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         />
       ) : null}
@@ -141,12 +97,28 @@ const DashboardLayout = () => {
         <div className="reveal-fade-up reveal-delay-1">
           <Navbar onThemeToggle={handleThemeToggle} themeReveal={themeReveal} />
         </div>
-        <main className="p-6 md:min-h-0 md:flex-1 md:overflow-y-auto md:p-8">
+        <main className="p-6 pb-16 md:min-h-0 md:flex-1 md:overflow-y-auto md:p-8 md:pb-16">
           <div className="page-reveal">
             <Outlet />
           </div>
         </main>
-        <footer className="reveal-soft reveal-delay-2 px-6 pb-8 text-sm text-slate-500 md:px-8">{settings.footerText}</footer>
+        <footer className="reveal-soft reveal-delay-2 border-t border-slate-200/60 dark:border-slate-800/60 py-4 px-6 md:px-8 text-xs text-slate-500 dark:text-slate-400 flex flex-col md:flex-row items-center justify-between gap-3 bg-white/40 dark:bg-slate-950/10 backdrop-blur-sm">
+          <div className="text-center md:text-left font-medium">
+            © 2026 Eduvanta ERP
+          </div>
+          <div className="text-center text-slate-400 dark:text-slate-500">
+            {settings.footerText || "Smart ERP for Schools, Colleges & Universities"}
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <span className="font-semibold text-slate-400 dark:text-slate-500">v1.0.0</span>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-medium">Privacy</a>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-medium">Terms</a>
+            <span className="text-slate-300 dark:text-slate-700">•</span>
+            <a href="#" className="hover:text-slate-800 dark:hover:text-slate-200 transition-colors font-medium">Support</a>
+          </div>
+        </footer>
       </div>
     </div>
   );

@@ -330,6 +330,15 @@ cd server
 npm run seed
 ```
 
+### Seeding Demo Data
+
+To seed the database with pre-configured demo data including 1 school, 1 college, admins, teachers, students, parents, staff, academic groups, notices, and fees:
+
+```bash
+cd server
+npm run seed:demo
+```
+
 ### Login Flow
 
 1. Open `http://localhost:5173/login`
@@ -979,6 +988,19 @@ npm start
 12. Login as admin or hostel warden and review `/admin/hostel-complaints` or `/staff/hostel-complaints`, assign staff, and update complaint status.
 13. Login as hostel security and verify `/staff/hostel-outpasses` and `/staff/hostel-complaints` are visible but management actions remain restricted.
 
+## Demo Data Seeding
+
+To populate the database with comprehensive demo records for testing school, college, and university flows, run the following command in the server folder:
+
+```bash
+cd server
+npm run seed:demo
+```
+
+This seeds:
+- 3 Institutes (Sunrise Public School `SPS`, Eduvanta Degree College `EDC`, Eduvanta University `EDU`)
+- 3 Admins, 5 Teachers, 20 Students, 10 Parents, 5 Staff members, 5 Subjects, 5 Notices, 5 Fees, 3 Timetable records, 3 Library books, 2 Transport routes, and 1 Hostel with rooms and beds.
+
 Optional individual commands:
 
 ```bash
@@ -990,3 +1012,13 @@ npm run dev
 cd client
 npm run dev
 ```
+
+## Demo UI Polish Completed
+
+The Eduvanta ERP UI has been successfully polished for presentation and demo readiness. Key enhancements include:
+- Smooth theme toggle animations (500ms radial sweep using customized primary color glow, fully respecting screen refresh and reduced motion preferences).
+- Unified sidebar navigation incorporating accordion expand/collapse transitions, clean grouping, and consistent icon scaling.
+- Improved dashboard stat card contrast, font weight readability, and sub-pixel alignment adjustments for text/icons on hover.
+- Highly responsive navbar header with consistent layout height, hiding or collapsing search bar and selectors on smaller viewports.
+- Enhanced "Create Institute" primary CTA button with plus icons and hover scaling states.
+- Clean EmptyState templates configured globally to display informative descriptions and context-specific CTAs.

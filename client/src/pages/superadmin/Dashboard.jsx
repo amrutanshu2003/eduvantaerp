@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import { useUISettings } from "../../context/UISettingsContext";
+import { FiHome, FiCheckSquare, FiBookOpen, FiLayers, FiUsers, FiClock } from "react-icons/fi";
 
 const StatCardSkeleton = () => (
   <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card">
@@ -27,6 +28,18 @@ const STATIC_LABELS = [
   "Total Institutes", "Active Institutes", "School Count",
   "College Count", "University Count", "Total Admins", "Trial / Expired",
 ];
+
+const getIcon = (label) => {
+  const l = label.toLowerCase();
+  if (l.includes("total institutes")) return FiHome;
+  if (l.includes("active")) return FiCheckSquare;
+  if (l.includes("school")) return FiBookOpen;
+  if (l.includes("college")) return FiLayers;
+  if (l.includes("university")) return FiBookOpen;
+  if (l.includes("admin")) return FiUsers;
+  if (l.includes("trial") || l.includes("expired")) return FiClock;
+  return FiHome;
+};
 
 const Dashboard = () => {
   const { settings, getButtonRadius } = useUISettings();
@@ -65,17 +78,23 @@ const Dashboard = () => {
           ? STATIC_LABELS.map((label, i) => (
               <StatCardSkeleton key={label} />
             ))
-          : stats.map((item, index) => (
-              <Link
-                key={item.label}
-                to={CARD_ROUTES[index]}
-                className={`${CARD_COLORS[index % CARD_COLORS.length]} rounded-[1.75rem] p-6 shadow-card transition hover:opacity-90 hover:scale-105`}
-              >
-                <p className="text-sm uppercase tracking-[0.25em] text-white/80">{item.label}</p>
-                <h3 className="mt-4 text-4xl font-semibold text-white">{item.value}</h3>
-                <p className="mt-3 text-sm text-white/70">{item.detail}</p>
-              </Link>
-            ))}
+          : stats.map((item, index) => {
+              const Icon = getIcon(item.label);
+              return (
+                <Link
+                  key={item.label}
+                  to={CARD_ROUTES[index]}
+                  className={`${CARD_COLORS[index % CARD_COLORS.length]} rounded-[1.75rem] p-6 shadow-card transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden`}
+                >
+                  <div className="absolute right-5 top-5 text-white/25 text-3xl">
+                    <Icon />
+                  </div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/90">{item.label}</p>
+                  <h3 className="mt-4 text-4xl font-bold tracking-tight text-white">{item.value}</h3>
+                  <p className="mt-3 text-sm font-medium text-white/90">{item.detail}</p>
+                </Link>
+              );
+            })}
       </div>
 
       <div className="rounded-[1.75rem] bg-white p-6 shadow-card">

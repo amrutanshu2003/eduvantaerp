@@ -158,7 +158,12 @@ const Admins = () => {
       </form>
 
       {admins.length === 0 ? (
-        <EmptyState title="No admins found" description="Create your first institute admin user or adjust search filters." />
+        <EmptyState
+          title="No admins found"
+          description="Create your first institute admin user or adjust search filters."
+          actionText="Create Admin"
+          actionLink="/super-admin/admins/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">

@@ -320,25 +320,23 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
     }
 
     toggleTheme();
-  };
-
-  return (
-    <header className="relative z-[200] flex flex-col gap-4 border-b border-slate-200 bg-white/90 px-6 py-4 backdrop-blur md:flex-row md:items-center md:justify-between">
-      <div>
-        <p className="text-sm font-medium uppercase tracking-[0.25em]" style={{ color: settings.primaryColor }}>
+  };  return (
+    <header className="relative z-[200] flex h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-6 backdrop-blur">
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] truncate" style={{ color: settings.primaryColor }}>
           {settings.appName}
         </p>
-        <h1 className="text-2xl font-semibold text-ink">Welcome back, {user?.name}</h1>
+        <h1 className="hidden sm:block text-lg font-bold text-ink truncate mt-0.5">Welcome, {user?.name}</h1>
       </div>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
+      <div className="flex items-center gap-3">
         {user?.role === "superadmin" && institutes.length > 0 && (
-          <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Managing:</span>
+          <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-500 flex-shrink-0">
+            <span className="hidden md:inline text-xs font-semibold uppercase tracking-wider text-slate-400">Managing:</span>
             <select
               value={activeInstId}
               onChange={handleInstituteChange}
-              className="bg-transparent text-sm font-semibold text-slate-700 outline-none border-none cursor-pointer"
+              className="bg-transparent text-sm font-semibold text-slate-700 outline-none border-none cursor-pointer max-w-[120px] sm:max-w-[200px] truncate"
             >
               {institutes.map((inst) => (
                 <option key={inst._id} value={inst._id}>
@@ -349,7 +347,7 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
           </label>
         )}
 
-        <div ref={searchContainerRef} className="relative">
+        <div ref={searchContainerRef} className="hidden sm:block relative">
           <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-slate-500 transition-all focus-within:border-slate-400 focus-within:bg-white shadow-sm">
             <FiSearch />
             <input
@@ -365,7 +363,6 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
               className="w-full bg-transparent text-sm outline-none md:w-56"
             />
           </label>
-
         </div>
 
         {/* Dropdown rendered via Portal directly on body - escapes ALL stacking contexts from transforms/animations */}
@@ -437,29 +434,26 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
 
         <button
           type="button"
-          className="flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-90 flex-shrink-0"
+          title="Notifications"
         >
-          <FiBell />
-          Notifications
+          <FiBell className="h-4 w-4" />
         </button>
 
         <button
           ref={themeToggleRef}
           type="button"
           onClick={handleThemeToggleClick}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-90"
+          disabled={Boolean(themeReveal)}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           title={isDark ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
         >
           <span
-            className="flex items-center justify-center"
-            style={
-              themeReveal
-                ? {
-                    animation: `${themeReveal.direction === "expand" ? "login-theme-icon-bloom" : "login-theme-icon-dock"} ${themeReveal.duration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-                  }
-                : undefined
-            }
+            className="flex items-center justify-center transition-transform duration-700 ease-in-out"
+            style={{
+              transform: themeReveal ? "rotate(180deg) scale(0.7)" : "rotate(0deg) scale(1)",
+            }}
           >
             {isDark ? (
               <FiSun className="h-4 w-4 text-amber-500" />
@@ -473,10 +467,10 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
           type="button"
           onClick={handleLogout}
           style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white transition hover:opacity-90"
+          className="flex h-9 w-9 sm:w-auto items-center justify-center gap-2 sm:px-4 text-sm font-medium text-white transition hover:opacity-90 flex-shrink-0"
         >
-          <FiLogOut />
-          Logout
+          <FiLogOut className="h-4 w-4" />
+          <span className="hidden sm:inline">Logout</span>
         </button>
       </div>
     </header>

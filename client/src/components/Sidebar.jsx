@@ -1,4 +1,5 @@
-import { FiBookOpen, FiCalendar, FiCheckSquare, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPlusSquare, FiSettings, FiShield, FiTrash2, FiTruck, FiUser, FiUsers, FiPackage } from "react-icons/fi";
+import { useState } from "react";
+import { FiBookOpen, FiCalendar, FiCheckSquare, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPlusSquare, FiSettings, FiShield, FiTrash2, FiTruck, FiUser, FiUsers, FiPackage, FiChevronDown, FiChevronRight } from "react-icons/fi";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
@@ -56,6 +57,75 @@ const defaultMenuItems = [
   { label: "Settings", icon: FiLayers, suffix: "dashboard" },
 ];
 
+const getGroupForLabel = (label) => {
+  const l = label.toLowerCase();
+  
+  if (l === "dashboard" || l === "my profile") {
+    return "core";
+  }
+  if (
+    l === "institutes" || 
+    l === "create institute" || 
+    l === "institute settings" || 
+    l === "bulk-import" || 
+    l === "bulk import"
+  ) {
+    return "institute";
+  }
+  if (
+    l.includes("academic") || 
+    l.includes("subject") || 
+    l.includes("exam") || 
+    l.includes("mark") || 
+    l.includes("result") || 
+    l.includes("timetable") || 
+    l.includes("assignment")
+  ) {
+    return "academics";
+  }
+  if (
+    l === "admins" || 
+    l.includes("teacher") || 
+    l.includes("faculty") || 
+    l.includes("student") || 
+    l.includes("parent") || 
+    l.includes("guardian") || 
+    l.includes("staff") || 
+    l.includes("attendance") || 
+    l.includes("fee")
+  ) {
+    if (l === "my students") return "services";
+    return "operations";
+  }
+  if (
+    l.includes("library") || 
+    l.includes("book") || 
+    l.includes("transport") || 
+    l.includes("vehicle") || 
+    l.includes("route") || 
+    l.includes("allocation") || 
+    l.includes("hostel") || 
+    l.includes("room") || 
+    l.includes("bed") || 
+    l.includes("outpass") || 
+    l.includes("complaint") || 
+    l.includes("driver")
+  ) {
+    return "services";
+  }
+  if (
+    l === "global settings" || 
+    l === "global ui settings" || 
+    l === "audit log settings" || 
+    l === "recycle bin" || 
+    l.includes("notice")
+  ) {
+    return "system";
+  }
+  
+  return "core";
+};
+
 const Sidebar = () => {
   const { user } = useAuth();
   const { settings, resolvedTheme, getButtonRadius } = useUISettings();
@@ -74,6 +144,39 @@ const Sidebar = () => {
   const canManageHostelModule = canManageHostel(user);
   const isHostelSecurity = isHostelSecurityUser(user);
   const basePath = user?.role === "superadmin" ? "/super-admin" : `/${user?.role}`;
+
+  const [collapsedGroups, setCollapsedGroups] = useState({
+    core: true,
+    institute: true,
+    academics: true,
+    operations: true,
+    services: true,
+    system: true,
+  });
+
+  const toggleGroup = (groupId) => {
+    setCollapsedGroups((prev) => {
+      const isOpening = prev[groupId];
+      if (isOpening) {
+        // Collapse all groups, then expand the chosen one
+        return {
+          core: true,
+          institute: true,
+          academics: true,
+          operations: true,
+          services: true,
+          system: true,
+          [groupId]: false,
+        };
+      } else {
+        // Collapse the clicked group
+        return {
+          ...prev,
+          [groupId]: true,
+        };
+      }
+    });
+  };
 
   // Helper functions to get plural labels
   const getAcademicGroupLabel = () => {
@@ -286,6 +389,32 @@ const Sidebar = () => {
           ]
         : defaultMenuItems.map((item) => ({ ...item, path: `${basePath}/${item.suffix}` }));
 
+  // Group items
+  const groupedItems = {
+    core: [],
+    institute: [],
+    academics: [],
+    operations: [],
+    services: [],
+    system: [],
+  };
+
+  menuItems.forEach((item) => {
+    const group = getGroupForLabel(item.label);
+    groupedItems[group].push(item);
+  });
+
+  const groupsConfig = [
+    { id: "core", name: "Core", icon: FiHome },
+    { id: "institute", name: "Institute", icon: FiLayers },
+    { id: "academics", name: "Academics", icon: FiBookOpen },
+    { id: "operations", name: "Operations", icon: FiUsers },
+    { id: "services", name: "Services", icon: FiTruck },
+    { id: "system", name: "System", icon: FiSettings },
+  ];
+
+  const groupsToShow = groupsConfig.filter((g) => groupedItems[g.id].length > 0);
+
   return (
     <aside
       className={`flex w-full flex-col px-5 py-6 md:h-screen md:w-72 md:flex-shrink-0 md:overflow-hidden ${
@@ -300,26 +429,58 @@ const Sidebar = () => {
           <p className={`mt-2 text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>{roleLabels[user?.role] || "ERP User"}</p>
         </div>
 
-        <nav className="mt-8 min-h-0 flex-1 space-y-2 overflow-y-auto no-scrollbar pr-1">
-          {menuItems.map(({ label, icon: Icon, path }) => (
-            <NavLink
-              key={path}
-              to={path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                  isActive
-                    ? "text-white"
-                    : isDark
-                      ? "text-slate-300 hover:bg-white/10 hover:text-white"
-                      : "text-slate-700 hover:bg-white hover:text-slate-950"
-                }`
-              }
-              style={({ isActive }) => (isActive ? { backgroundColor: settings.primaryColor } : undefined)}
-            >
-              <Icon />
-              {label}
-            </NavLink>
-          ))}
+        <nav className="mt-8 min-h-0 flex-1 space-y-6 overflow-y-auto no-scrollbar scroll-smooth pr-1">
+          {groupsToShow.map((group) => {
+            const groupItems = groupedItems[group.id];
+            const isCollapsed = collapsedGroups[group.id];
+            const GroupIcon = group.icon;
+
+            return (
+              <div key={group.id} className="space-y-2">
+                <button
+                  onClick={() => toggleGroup(group.id)}
+                  type="button"
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors rounded-xl ${
+                    isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-950 hover:bg-slate-100/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <GroupIcon size={16} />
+                    <span>{group.name}</span>
+                  </div>
+                  {isCollapsed ? <FiChevronRight size={16} /> : <FiChevronDown size={16} />}
+                </button>
+
+                {!isCollapsed && (
+                  <div className="space-y-1 pl-1 transition-all duration-300">
+                    {groupItems.map(({ label, icon: Icon, path }) => (
+                      <NavLink
+                        key={path}
+                        to={path}
+                        className={({ isActive }) =>
+                          `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
+                            isActive
+                              ? "text-white shadow-sm border-l-4"
+                              : isDark
+                                ? "text-slate-300 hover:bg-white/10 hover:text-white border-l-4 border-l-transparent"
+                                : "text-slate-700 hover:bg-white hover:text-slate-950 border-l-4 border-l-transparent"
+                          }`
+                        }
+                        style={({ isActive }) => (isActive ? {
+                          backgroundColor: settings.primaryColor,
+                          borderLeftColor: "#14b8a6", // Teal left border
+                          boxShadow: `0 4px 14px 0 ${settings.primaryColor}40`, // Soft glow
+                        } : undefined)}
+                      >
+                        <Icon size={16} />
+                        <span className="truncate">{label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
       </div>
     </aside>

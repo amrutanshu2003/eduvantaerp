@@ -97,7 +97,12 @@ const Timetables = () => {
       </div>
       <AlertMessage tone="error" message={errorMessage} />
       {filteredTimetables.length === 0 ? (
-        <EmptyState title="No timetables found" description="Create a timetable or adjust filters to see records." />
+        <EmptyState
+          title="No timetables found"
+          description="Create class timetables and schedules or adjust filters to view records."
+          actionText="Create Timetable"
+          actionLink="/admin/timetables/create"
+        />
       ) : (
         <div className="grid gap-4">
           {filteredTimetables.map((timetable) => (

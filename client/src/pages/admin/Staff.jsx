@@ -55,7 +55,12 @@ const Staff = () => {
       <PageHeader eyebrow="Admin" title="Staff" description="Manage institute staff accounts and permissions." actions={<div className="flex flex-wrap gap-3"><Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Bulk Import</Link><Link to="/admin/staff/create" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Create Staff</Link></div>} />
       <AlertMessage tone={messageTone} message={message} />
       {staffMembers.length === 0 ? (
-        <EmptyState title="No staff yet" description="Create the first staff record for this institute." />
+        <EmptyState
+          title="No staff yet"
+          description="Create the first staff record for this institute to manage roles and operations."
+          actionText="Create Staff"
+          actionLink="/admin/staff/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">

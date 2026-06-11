@@ -157,8 +157,8 @@ export const UISettingsProvider = ({ children }) => {
   useEffect(() => {
     const fetchGlobalSettings = async () => {
       try {
-        const { data } = await api.get("/settings/public");
-        setSettings({ ...defaultSettings, ...data });
+        const { data } = await api.get("/ui-settings/global");
+        setSettings({ ...defaultSettings, ...data.settings });
       } catch (error) {
         setSettings(defaultSettings);
       } finally {

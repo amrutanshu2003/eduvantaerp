@@ -78,8 +78,51 @@ const InstituteForm = ({ title, description, formData, onChange, onSubmit, submi
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Logo URL</label>
-            <input name="logo" value={formData.logo} onChange={onChange} className={inputClassName} />
+            <label className="mb-2 block text-sm font-medium text-slate-700">Logo</label>
+            <div className="flex items-center gap-4">
+              {formData.logo ? (
+                <img
+                  src={formData.logo}
+                  alt="Logo Preview"
+                  className="h-16 w-16 rounded-2xl object-cover ring-1 ring-slate-200"
+                />
+              ) : (
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 font-semibold text-xs border border-dashed border-slate-300">
+                  No Logo
+                </div>
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const url = URL.createObjectURL(file);
+                      onChange({ target: { name: "logo", value: url } });
+                    }
+                  }}
+                  className="hidden"
+                  id="logo-upload-input"
+                />
+                <label
+                  htmlFor="logo-upload-input"
+                  className="inline-block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Upload Image
+                </label>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs text-slate-400 whitespace-nowrap">Or URL:</span>
+                  <input
+                    name="logo"
+                    placeholder="https://example.com/logo.png"
+                    value={formData.logo && !formData.logo.startsWith("blob:") ? formData.logo : ""}
+                    onChange={onChange}
+                    className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs outline-none focus:border-slate-400"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="md:col-span-2">

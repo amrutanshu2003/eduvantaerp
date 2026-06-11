@@ -9,9 +9,29 @@ const CreateInstitute = () => {
   const [formData, setFormData] = useState(instituteFormDefaults);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isCodeManuallyEdited, setIsCodeManuallyEdited] = useState(false);
 
   const handleChange = (event) => {
-    setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
+    const { name, value } = event.target;
+
+    if (name === "instituteCode") {
+      setIsCodeManuallyEdited(true);
+      setFormData((current) => ({ ...current, [name]: value }));
+    } else if (name === "name") {
+      setFormData((current) => {
+        const nextData = { ...current, [name]: value };
+        if (!isCodeManuallyEdited) {
+          // Auto-suggest code: uppercase alphanumeric, max 10 chars
+          nextData.instituteCode = value
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, "")
+            .slice(0, 10);
+        }
+        return nextData;
+      });
+    } else {
+      setFormData((current) => ({ ...current, [name]: value }));
+    }
   };
 
   const handleSubmit = async (event) => {

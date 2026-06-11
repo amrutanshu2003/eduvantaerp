@@ -85,7 +85,12 @@ const Students = () => {
         <button type="submit" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Search</button>
       </form>
       {students.length === 0 ? (
-        <EmptyState title="No students yet" description="Create the first student account for this institute." />
+        <EmptyState
+          title="No students yet"
+          description="Register the first student to manage their academic journey."
+          actionText="Create Student"
+          actionLink="/admin/students/create"
+        />
       ) : (
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
           <div className="overflow-x-auto">
