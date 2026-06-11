@@ -100,14 +100,12 @@ input {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    transparent 38%,
-    rgba(255, 255, 255, 0.42) 50%,
-    transparent 62%,
-    transparent 100%
-  );
+  background: linear-gradient(105deg,
+      transparent 0%,
+      transparent 38%,
+      rgba(255, 255, 255, 0.42) 50%,
+      transparent 62%,
+      transparent 100%);
   transform: translateX(-130%);
   animation: skeleton-surface-shimmer 1.8s ease-in-out infinite;
   pointer-events: none;
@@ -205,42 +203,42 @@ input {
   animation-delay: 320ms;
 }
 
-.reveal-stagger > * {
+.reveal-stagger>* {
   opacity: 1;
   animation: reveal-soft 0.58s ease both;
 }
 
-.reveal-stagger > *:nth-child(1) {
+.reveal-stagger>*:nth-child(1) {
   animation-delay: 70ms;
 }
 
-.reveal-stagger > *:nth-child(2) {
+.reveal-stagger>*:nth-child(2) {
   animation-delay: 130ms;
 }
 
-.reveal-stagger > *:nth-child(3) {
+.reveal-stagger>*:nth-child(3) {
   animation-delay: 190ms;
 }
 
-.reveal-stagger > *:nth-child(4) {
+.reveal-stagger>*:nth-child(4) {
   animation-delay: 250ms;
 }
 
-.reveal-stagger > *:nth-child(5) {
+.reveal-stagger>*:nth-child(5) {
   animation-delay: 310ms;
 }
 
-.reveal-stagger > *:nth-child(6) {
+.reveal-stagger>*:nth-child(6) {
   animation-delay: 370ms;
 }
 
-.page-reveal > * {
+.page-reveal>* {
   opacity: 0;
   animation: reveal-fade-up 0.68s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-delay: 70ms;
 }
 
-.page-reveal > * > *:is(.rounded-\[1\.75rem\], .rounded-\[2rem\], .shadow-card, .bg-white, table, form) {
+.page-reveal>*>*:is(.rounded-\[1\.75rem\], .rounded-\[2rem\], .shadow-card, .bg-white, table, form) {
   animation: reveal-soft 0.54s ease both;
 }
 
@@ -249,26 +247,25 @@ input {
   width: max-content;
   line-height: 1;
   border-radius: 0;
-  background-image: linear-gradient(
-    to bottom,
-    var(--theme-surface-strong) 0,
-    var(--theme-surface-strong) 48%,
-    var(--theme-input-bg) 48%,
-    var(--theme-input-bg) 100%
-  );
+  background-image: linear-gradient(to bottom,
+      var(--theme-surface-strong) 0,
+      var(--theme-surface-strong) 48%,
+      var(--theme-input-bg) 48%,
+      var(--theme-input-bg) 100%);
   background-repeat: no-repeat;
   max-width: calc(100% - 5rem);
 }
 
-.peer:placeholder-shown ~ .floating-label {
+.peer:placeholder-shown~.floating-label {
   background-image: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .reveal-fade-up,
   .reveal-soft,
-  .reveal-stagger > *,
-  .page-reveal > * {
+  .reveal-stagger>*,
+  .page-reveal>* {
     opacity: 1 !important;
     animation: none !important;
     transform: none !important;
@@ -280,10 +277,13 @@ input {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 /* ==========================================
@@ -305,14 +305,12 @@ input {
 }
 
 :root.theme-dark .skeleton-surface::after {
-  background: linear-gradient(
-    105deg,
-    transparent 0%,
-    transparent 36%,
-    rgba(148, 163, 184, 0.16) 50%,
-    transparent 64%,
-    transparent 100%
-  );
+  background: linear-gradient(105deg,
+      transparent 0%,
+      transparent 36%,
+      rgba(148, 163, 184, 0.16) 50%,
+      transparent 64%,
+      transparent 100%);
 }
 
 body,
@@ -472,12 +470,15 @@ table th {
 :root.theme-dark .bg-emerald-50 {
   background-color: rgba(16, 185, 129, 0.16) !important;
 }
+
 :root.theme-dark .bg-rose-50 {
   background-color: rgba(244, 63, 94, 0.16) !important;
 }
+
 :root.theme-dark .bg-amber-50 {
   background-color: rgba(245, 158, 11, 0.16) !important;
 }
+
 :root.theme-dark .bg-blue-50 {
   background-color: rgba(59, 130, 246, 0.16) !important;
 }
@@ -554,8 +555,162 @@ table th {
 .theme-transition-active ::before,
 .theme-transition-active ::after {
   transition: color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-              background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+/* Disable normal CSS transitions during View Transition to prevent flicker */
+html.theme-transitioning,
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition: none !important;
+}
+
+/* Prevent layout shifts during View Transition */
+html.theme-transitioning body,
+html.theme-transitioning html {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Ensure body background is stable during transition */
+html.theme-transitioning body {
+  background: var(--theme-page-bg) !important;
+}
+
+/* Disable document element transitions during theme transition */
+html.theme-transitioning {
+  transition: none !important;
+}
+
+/* Telegram-style Circular Wave Theme Reveal Overlay */
+.telegram-theme-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  animation: telegram-wave-reveal 650ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: clip-path;
+  filter: blur(0.8px);
+  /* Subtle softness on the edge */
+}
+
+@keyframes telegram-wave-reveal {
+  0% {
+    clip-path: circle(0px at var(--ripple-x) var(--ripple-y));
+  }
+
+  100% {
+    clip-path: circle(var(--ripple-radius) at var(--ripple-x) var(--ripple-y));
+  }
+}
+
+/* Icon transition inside Theme Toggle button */
+.theme-toggle-icon-spin {
+  display: inline-flex;
+}
+
+.theme-toggle-animating {
+  animation: icon-spin-reveal 650ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes icon-spin-reveal {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(90deg) scale(0.9);
+  }
+
+  100% {
+    transform: rotate(180deg) scale(1);
+  }
+}
+
+/* View Transition API Overrides */
+html {
+  view-transition-name: root;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  background: var(--theme-page-bg);
+}
+
+::view-transition-new(root) {
+  background: var(--theme-page-bg);
+}
+
+html.theme-transition-to-dark::view-transition-new(root) {
+  z-index: 2;
+}
+
+html.theme-transition-to-dark::view-transition-old(root) {
+  z-index: 1;
+}
+
+html.theme-transition-to-light::view-transition-old(root) {
+  z-index: 2;
+}
+
+html.theme-transition-to-light::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* ==========================================
+   ATTENDANCE MATRIX CELL - PREMIUM ERP STYLE
+   ========================================== */
+.attendance-matrix-cell {
+  height: 35px;
+  width: 35px;
+  padding: 0.25rem 0.5rem;
+  /* px-2 py-1 */
+  border-radius: 0.5rem;
+  /* rounded-lg */
+  font-size: 0.75rem;
+  /* text-xs */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px solid;
+  transition: all 150ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.attendance-matrix-cell:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Dense mode for many subjects - smaller cells */
+.attendance-matrix-cell-dense {
+  height: 32px;
+  width: 32px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.6875rem;
+  /* text-[11px] */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px solid;
+  transition: all 150ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.attendance-matrix-cell-dense:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

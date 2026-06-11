@@ -50,6 +50,12 @@ const attendanceSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    attendanceCount: {
+      type: Number,
+      default: 1,
+      min: 1,
+      max: 8,
+    },
     markedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -81,6 +87,59 @@ const attendanceSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
+    },
+    editHistory: {
+      type: [
+        {
+          editedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+          },
+          editedAt: {
+            type: Date,
+            default: Date.now,
+          },
+          reason: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          oldRecords: {
+            type: [attendanceRecordSchema],
+            default: [],
+          },
+          newRecords: {
+            type: [attendanceRecordSchema],
+            default: [],
+          },
+          oldAttendanceCount: {
+            type: Number,
+            default: 1,
+          },
+          newAttendanceCount: {
+            type: Number,
+            default: 1,
+          },
+          oldStartTime: {
+            type: String,
+            default: "",
+          },
+          newStartTime: {
+            type: String,
+            default: "",
+          },
+          oldEndTime: {
+            type: String,
+            default: "",
+          },
+          newEndTime: {
+            type: String,
+            default: "",
+          },
+        },
+      ],
+      default: [],
     },
   },
   {

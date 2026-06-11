@@ -2,6 +2,7 @@ import express from "express";
 import {
   createAttendance,
   deleteAttendance,
+  editAttendanceByAdmin,
   getAcademicGroupAttendanceReport,
   getAttendance,
   getAttendanceById,
@@ -26,6 +27,7 @@ router.get("/", allowRoles("admin", "superadmin", "teacher"), getAttendance);
 router.get("/:id", allowRoles("admin", "superadmin", "teacher"), getAttendanceById);
 router.post("/", allowRoles("admin", "superadmin", "teacher"), createAttendance);
 router.put("/:id", allowRoles("admin", "superadmin", "teacher"), updateAttendance);
+router.put("/:id/edit", allowRoles("admin", "superadmin"), editAttendanceByAdmin);
 router.delete("/:id", allowRoles("admin", "superadmin"), deleteAttendance);
 
 export default router;

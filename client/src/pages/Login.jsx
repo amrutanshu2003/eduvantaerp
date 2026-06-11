@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { FiMoon, FiSun } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 import LoginSkeleton from "../components/LoginSkeleton";
@@ -242,30 +243,92 @@ const Login = () => {
       Math.max(y, window.innerHeight - y)
     );
 
-    document.documentElement.classList.add("theme-transition-active");
+    // Add transition classes BEFORE startViewTransition to prevent flicker
+    const transitionClass = nextTheme === "dark" ? "theme-transition-to-dark" : "theme-transition-to-light";
+    document.documentElement.classList.add(transitionClass);
+    document.documentElement.classList.add("theme-transitioning");
 
-    setThemeReveal({
-      visible: true,
-      x,
-      y,
-      radius: 0,
-      nextTheme,
-    });
+    // Force body background to current theme color to prevent flicker
+    const currentBg = resolvedTheme === "dark" ? "#07111f" : "#f8fafc";
+    document.body.style.background = currentBg;
+    document.documentElement.style.background = currentBg;
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setThemeReveal((prev) => (prev ? { ...prev, radius: maxRadius } : null));
+    if (document.startViewTransition) {
+      setThemeReveal({
+        visible: false,
+        x,
+        y,
+        radius: maxRadius,
+        nextTheme,
       });
-    });
 
-    themeSwitchRef.current = setTimeout(() => {
-      toggleTheme();
-    }, 270);
+      const transition = document.startViewTransition(() => {
+        flushSync(() => {
+          toggleTheme();
+        });
+      });
 
-    cleanupRef.current = setTimeout(() => {
-      setThemeReveal(null);
-      document.documentElement.classList.remove("theme-transition-active");
-    }, 600);
+      transition.ready.then(() => {
+        const openClipPath = [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${maxRadius}px at ${x}px ${y}px)`,
+        ];
+
+        const closeClipPath = [
+          `circle(${maxRadius}px at ${x}px ${y}px)`,
+          `circle(0px at ${x}px ${y}px)`,
+        ];
+
+        document.documentElement.animate(
+          {
+            clipPath: nextTheme === "dark" ? openClipPath : closeClipPath,
+          },
+          {
+            duration: 550,
+            easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+            pseudoElement:
+              nextTheme === "dark"
+                ? "::view-transition-new(root)"
+                : "::view-transition-old(root)",
+          }
+        );
+      });
+
+      transition.finished.finally(() => {
+        setThemeReveal(null);
+        // Remove transition classes after animation completes
+        document.documentElement.classList.remove(transitionClass);
+        document.documentElement.classList.remove("theme-transitioning");
+        // Remove inline background styles
+        document.body.style.background = "";
+        document.documentElement.style.background = "";
+      });
+    } else {
+      document.documentElement.classList.add("theme-transition-active");
+
+      setThemeReveal({
+        visible: true,
+        x,
+        y,
+        radius: maxRadius,
+        nextTheme,
+      });
+
+      // Switch theme class at 45% of 650ms (~290ms)
+      themeSwitchRef.current = setTimeout(() => {
+        toggleTheme();
+      }, 290);
+
+      // Clean up animation state at 650ms
+      cleanupRef.current = setTimeout(() => {
+        setThemeReveal(null);
+        document.documentElement.classList.remove("theme-transition-active");
+        document.documentElement.classList.remove(transitionClass);
+        document.documentElement.classList.remove("theme-transitioning");
+        document.body.style.background = "";
+        document.documentElement.style.background = "";
+      }, 650);
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -316,9 +379,9 @@ const Login = () => {
       const allowedBasePaths = roleBasePathMap[user.role] || [];
       const redirectPath =
         requestedPath &&
-        requestedPath !== "/login" &&
-        requestedPath !== "/unauthorized" &&
-        allowedBasePaths.some((basePath) => requestedPath.startsWith(basePath))
+          requestedPath !== "/login" &&
+          requestedPath !== "/unauthorized" &&
+          allowedBasePaths.some((basePath) => requestedPath.startsWith(basePath))
           ? requestedPath
           : fallbackPath;
       refreshCaptcha();
@@ -327,7 +390,7 @@ const Login = () => {
       setShakeKey((current) => current + 1);
       setError(
         requestError.response?.data?.message ||
-          "Unable to sign in."
+        "Unable to sign in."
       );
       refreshCaptcha();
     } finally {
@@ -344,14 +407,14 @@ const Login = () => {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-4 sm:px-6 sm:py-5"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-950 px-4 py-4 sm:px-6 sm:py-5 transition-colors duration-500 ease-in-out"
       style={
         settings.loginBackground
           ? {
-              backgroundImage: `linear-gradient(rgba(2,6,23,0.82), rgba(2,6,23,0.82)), url(${settings.loginBackground})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }
+            backgroundImage: `linear-gradient(rgba(2,6,23,0.82), rgba(2,6,23,0.82)), url(${settings.loginBackground})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }
           : undefined
       }
     >
@@ -390,14 +453,12 @@ const Login = () => {
       {themeReveal && themeReveal.visible ? (
         <div
           aria-hidden="true"
+          className="telegram-theme-overlay"
           style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 99999,
-            pointerEvents: "none",
             background: themeReveal.nextTheme === "dark" ? "#020617" : "#f8fafc",
-            clipPath: `circle(${themeReveal.radius}px at ${themeReveal.x}px ${themeReveal.y}px)`,
-            transition: "clip-path 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+            "--ripple-x": `${themeReveal.x}px`,
+            "--ripple-y": `${themeReveal.y}px`,
+            "--ripple-radius": `${themeReveal.radius}px`,
           }}
         />
       ) : null}
@@ -501,10 +562,7 @@ const Login = () => {
                 title={isDark ? "Switch to light mode" : "Switch to dark mode"}
               >
                 <span
-                  className="flex items-center justify-center transition-transform duration-600 ease-in-out"
-                  style={{
-                    transform: themeReveal ? "rotate(180deg) scale(0.7)" : "rotate(0deg) scale(1)",
-                  }}
+                  className={`theme-toggle-icon-spin flex items-center justify-center ${themeReveal ? "theme-toggle-animating" : ""}`}
                 >
                   {isDark ? (
                     <FiMoon className="h-5 w-5 text-slate-200" />
@@ -549,9 +607,8 @@ const Login = () => {
                       onPointerDown={markLoginInteracted}
                       onFocus={markLoginInteracted}
                       onChange={handleChange}
-                      className={`peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition ${
-                        fieldErrors.email ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
-                      }`}
+                      className={`peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 text-base leading-6 outline-none transition ${fieldErrors.email ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
+                        }`}
                       placeholder=" "
                       autoComplete="username"
                       autoCapitalize="none"
@@ -560,11 +617,10 @@ const Login = () => {
                     />
                     <label
                       htmlFor="username"
-                      className={`pointer-events-none absolute left-14 z-10 px-1 text-sm font-medium transition-all duration-200 -top-2.5 translate-y-0 ${
-                        fieldErrors.email
+                      className={`pointer-events-none absolute left-14 z-10 px-1 text-sm font-medium transition-all duration-200 -top-2.5 translate-y-0 ${fieldErrors.email
                           ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
                           : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
-                      } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-focus:-top-2.5 peer-focus:translate-y-0 peer-focus:text-sm`}
+                        } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-focus:-top-2.5 peer-focus:translate-y-0 peer-focus:text-sm`}
                       style={{ backgroundColor: loginPanelSurfaceColor }}
                     >
                       {fieldErrors.email || "Username"}
@@ -592,20 +648,18 @@ const Login = () => {
                       onPointerDown={markLoginInteracted}
                       onFocus={markLoginInteracted}
                       onChange={handleChange}
-                      className={`login-password-input peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 pr-14 text-base leading-6 outline-none transition ${
-                        fieldErrors.password ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
-                      }`}
+                      className={`login-password-input peer h-14 w-full rounded-2xl border px-4 pb-3 pt-5 pl-16 pr-14 text-base leading-6 outline-none transition ${fieldErrors.password ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
+                        }`}
                       placeholder=" "
                       autoComplete="current-password"
                       required
                     />
                     <label
                       htmlFor="password"
-                      className={`pointer-events-none absolute left-14 z-10 px-1 text-sm font-medium transition-all duration-200 -top-2.5 translate-y-0 ${
-                        fieldErrors.password
+                      className={`pointer-events-none absolute left-14 z-10 px-1 text-sm font-medium transition-all duration-200 -top-2.5 translate-y-0 ${fieldErrors.password
                           ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
                           : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
-                      } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-focus:-top-2.5 peer-focus:translate-y-0 peer-focus:text-sm`}
+                        } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base peer-focus:-top-2.5 peer-focus:translate-y-0 peer-focus:text-sm`}
                       style={{ backgroundColor: loginPanelSurfaceColor }}
                     >
                       {fieldErrors.password || "Enter your password"}
@@ -613,9 +667,8 @@ const Login = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword((current) => !current)}
-                      className={`absolute inset-y-0 right-0 flex h-14 w-14 items-center justify-center transition ${
-                        fieldErrors.password ? "text-red-400 hover:text-red-500" : "text-slate-500 hover:text-slate-700"
-                      }`}
+                      className={`absolute inset-y-0 right-0 flex h-14 w-14 items-center justify-center transition ${fieldErrors.password ? "text-red-400 hover:text-red-500" : "text-slate-500 hover:text-slate-700"
+                        }`}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                       aria-pressed={showPassword}
                     >
@@ -706,9 +759,8 @@ const Login = () => {
                               setError("");
                             }
                           }}
-                          className={`peer h-11 w-full rounded-xl border bg-transparent px-4 pb-2 pt-4 pl-11 text-sm uppercase tracking-[0.24em] outline-none transition ${
-                            captchaError ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
-                          }`}
+                          className={`peer h-11 w-full rounded-xl border bg-transparent px-4 pb-2 pt-4 pl-11 text-sm uppercase tracking-[0.24em] outline-none transition ${captchaError ? "border-red-400 focus:border-red-500" : "border-slate-200 focus:border-brand-600"
+                            }`}
                           placeholder=" "
                           autoComplete="off"
                           spellCheck="false"
@@ -717,11 +769,10 @@ const Login = () => {
                         />
                         <label
                           htmlFor="captcha"
-                          className={`pointer-events-none absolute left-10 z-10 px-1 text-xs font-medium transition-all duration-200 -top-2 translate-y-0 ${
-                            captchaError
+                          className={`pointer-events-none absolute left-10 z-10 px-1 text-xs font-medium transition-all duration-200 -top-2 translate-y-0 ${captchaError
                               ? "text-red-500 peer-placeholder-shown:text-red-400 peer-focus:text-red-500"
                               : "text-brand-700 peer-placeholder-shown:text-slate-400 peer-focus:text-brand-700"
-                          } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
+                            } peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-sm peer-focus:-top-2 peer-focus:translate-y-0 peer-focus:text-xs`}
                           style={{ backgroundColor: loginPanelSurfaceColor }}
                         >
                           {captchaError || "Enter captcha"}

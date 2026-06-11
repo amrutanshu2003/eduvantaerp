@@ -67,6 +67,7 @@ Eduvanta ERP is a SaaS-style MERN Stack Institution ERP for schools, colleges an
 
 - Subject Management with teacher assignment
 - Attendance Management for admin, teacher, student, and parent views
+- **Admin/Super Admin Attendance Edit** - Edit submitted attendance with mandatory reason and audit log tracking
 - Exam Management for academic groups
 - Marks and Result Management with grade calculation
 - Teacher attendance and marks upload workflow
@@ -470,6 +471,7 @@ Phase 4 Routes:
 - `GET /api/attendance`
 - `GET /api/attendance/:id`
 - `PUT /api/attendance/:id`
+- `PUT /api/attendance/:id/edit` (Admin/Super Admin only - edit submitted attendance with mandatory reason)
 - `DELETE /api/attendance/:id`
 - `GET /api/attendance/reports/academic-group/:academicGroupId`
 - `GET /api/attendance/reports/student/:studentId`
@@ -675,6 +677,7 @@ Phase 7B Routes:
 - `/admin/subjects/:id/edit`
 - `/admin/subjects/:id/assign-teacher`
 - `/admin/attendance`
+- `/admin/attendance/:id/edit` (Admin/Super Admin - edit submitted attendance)
 - `/admin/attendance/reports`
 - `/admin/attendance/students/:studentId`
 - `/admin/exams`

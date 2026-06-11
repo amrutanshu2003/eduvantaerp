@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Outlet } from "react-router-dom";
 import AppShellSkeleton from "../components/AppShellSkeleton";
 import Navbar from "../components/Navbar";
@@ -40,30 +41,92 @@ const DashboardLayout = () => {
       Math.max(y, window.innerHeight - y)
     );
 
-    document.documentElement.classList.add("theme-transition-active");
+    // Add transition classes BEFORE startViewTransition to prevent flicker
+    const transitionClass = nextTheme === "dark" ? "theme-transition-to-dark" : "theme-transition-to-light";
+    document.documentElement.classList.add(transitionClass);
+    document.documentElement.classList.add("theme-transitioning");
 
-    setThemeReveal({
-      visible: true,
-      x,
-      y,
-      radius: 0,
-      nextTheme,
-    });
+    // Force body background to current theme color to prevent flicker
+    const currentBg = resolvedTheme === "dark" ? "#07111f" : "#f8fafc";
+    document.body.style.background = currentBg;
+    document.documentElement.style.background = currentBg;
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setThemeReveal((prev) => (prev ? { ...prev, radius: maxRadius } : null));
+    if (document.startViewTransition) {
+      setThemeReveal({
+        visible: false,
+        x,
+        y,
+        radius: maxRadius,
+        nextTheme,
       });
-    });
 
-    themeSwitchRef.current = setTimeout(() => {
-      toggleTheme();
-    }, 270);
+      const transition = document.startViewTransition(() => {
+        flushSync(() => {
+          toggleTheme();
+        });
+      });
 
-    cleanupRef.current = setTimeout(() => {
-      setThemeReveal(null);
-      document.documentElement.classList.remove("theme-transition-active");
-    }, 600);
+      transition.ready.then(() => {
+        const openClipPath = [
+          `circle(0px at ${x}px ${y}px)`,
+          `circle(${maxRadius}px at ${x}px ${y}px)`,
+        ];
+
+        const closeClipPath = [
+          `circle(${maxRadius}px at ${x}px ${y}px)`,
+          `circle(0px at ${x}px ${y}px)`,
+        ];
+
+        document.documentElement.animate(
+          {
+            clipPath: nextTheme === "dark" ? openClipPath : closeClipPath,
+          },
+          {
+            duration: 550,
+            easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+            pseudoElement:
+              nextTheme === "dark"
+                ? "::view-transition-new(root)"
+                : "::view-transition-old(root)",
+          }
+        );
+      });
+
+      transition.finished.finally(() => {
+        setThemeReveal(null);
+        // Remove transition classes after animation completes
+        document.documentElement.classList.remove(transitionClass);
+        document.documentElement.classList.remove("theme-transitioning");
+        // Remove inline background styles
+        document.body.style.background = "";
+        document.documentElement.style.background = "";
+      });
+    } else {
+      document.documentElement.classList.add("theme-transition-active");
+
+      setThemeReveal({
+        visible: true,
+        x,
+        y,
+        radius: maxRadius,
+        nextTheme,
+      });
+
+      // Switch theme at ~45% of the 650ms animation duration (around 290ms)
+      themeSwitchRef.current = setTimeout(() => {
+        toggleTheme();
+      }, 290);
+
+      // Remove overlay exactly at animation end (650ms)
+      cleanupRef.current = setTimeout(() => {
+        setThemeReveal(null);
+        document.documentElement.classList.remove("theme-transition-active");
+        document.documentElement.classList.remove(transitionClass);
+        document.documentElement.classList.remove("theme-transitioning");
+        document.body.style.background = "";
+        document.documentElement.style.background = "";
+      }, 650);
+    }
   };
 
   if (loading) {
@@ -79,14 +142,12 @@ const DashboardLayout = () => {
       {themeReveal && themeReveal.visible ? (
         <div
           aria-hidden="true"
+          className="telegram-theme-overlay"
           style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 99999,
-            pointerEvents: "none",
-            background: themeReveal.nextTheme === "dark" ? "#020617" : "#f8fafc",
-            clipPath: `circle(${themeReveal.radius}px at ${themeReveal.x}px ${themeReveal.y}px)`,
-            transition: "clip-path 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+            background: themeReveal.nextTheme === "dark" ? "#07111f" : "#f8fafc",
+            "--ripple-x": `${themeReveal.x}px`,
+            "--ripple-y": `${themeReveal.y}px`,
+            "--ripple-radius": `${themeReveal.radius}px`,
           }}
         />
       ) : null}
@@ -97,7 +158,7 @@ const DashboardLayout = () => {
         <div className="reveal-fade-up reveal-delay-1">
           <Navbar onThemeToggle={handleThemeToggle} themeReveal={themeReveal} />
         </div>
-        <main className="p-6 pb-16 md:min-h-0 md:flex-1 md:overflow-y-auto md:p-8 md:pb-16">
+        <main className="p-6 pb-24 md:min-h-0 md:flex-1 md:overflow-y-auto md:p-8 md:pb-24">
           <div className="page-reveal">
             <Outlet />
           </div>

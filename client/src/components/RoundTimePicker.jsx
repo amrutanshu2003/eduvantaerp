@@ -204,8 +204,8 @@ const RoundTimePicker = ({ value = "09:00 AM", onChange }) => {
 
       {/* Popover / Modal overlay */}
       {isOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="flex w-full max-w-sm flex-col items-center rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="flex w-full max-w-sm flex-col items-center rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl my-auto">
             
             {/* Header Display */}
             <div className="mb-6 flex items-center gap-3 rounded-2xl bg-slate-50 p-4 w-full justify-center">

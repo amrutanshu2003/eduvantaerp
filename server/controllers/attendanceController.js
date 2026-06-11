@@ -31,6 +31,7 @@ const sanitizeAttendance = (attendance) => ({
   date: attendance.date,
   startTime: attendance.startTime,
   endTime: attendance.endTime,
+  attendanceCount: attendance.attendanceCount || 1,
   markedBy: attendance.markedBy,
   records: attendance.records,
   status: attendance.status,
@@ -74,6 +75,12 @@ const validateAttendancePayload = async (req, payload, attendanceId = null) => {
     }
   }
 
+  if (payload.attendanceCount !== undefined) {
+    if (typeof payload.attendanceCount !== "number" || payload.attendanceCount < 1 || payload.attendanceCount > 8) {
+      return "Number of attendance must be between 1 and 8";
+    }
+  }
+
   if (!Array.isArray(payload.records) || payload.records.length === 0) {
     return "Attendance records are required";
   }
@@ -96,11 +103,13 @@ const validateAttendancePayload = async (req, payload, attendanceId = null) => {
     academicGroupId: payload.academicGroupId,
     subjectId: payload.subjectId || null,
     date: startOfDay(payload.date),
+    startTime: payload.startTime || "",
+    endTime: payload.endTime || "",
     isDeleted: false,
   });
 
   if (duplicateAttendance) {
-    return "Attendance already exists for this academic group, subject, and date";
+    return "Attendance already exists for this academic group, subject, date, and time slot";
   }
 
   return null;
@@ -288,10 +297,11 @@ const summarizeAttendance = (attendanceList, studentId) => {
   attendanceList.forEach((entry) => {
     const record = entry.records.find((item) => String(item.studentId?._id || item.studentId) === String(studentId));
     if (!record) return;
-    summary[record.status] += 1;
-    summary.total += 1;
+    const attendanceCount = entry.attendanceCount || 1;
+    summary[record.status] += attendanceCount;
+    summary.total += attendanceCount;
   });
-  summary.percentage = summary.total ? Number((((summary.present + summary.late) / summary.total) * 100).toFixed(2)) : 0;
+  summary.percentage = summary.total ? Number(((summary.present / summary.total) * 100).toFixed(2)) : 0;
   return summary;
 };
 
@@ -327,6 +337,7 @@ const getAcademicGroupAttendanceReport = async (req, res, next) => {
     const studentSummary = {};
 
     attendanceList.forEach((entry) => {
+      const attendanceCount = entry.attendanceCount || 1;
       entry.records.forEach((record) => {
         const key = String(record.studentId?._id || record.studentId);
         if (!studentSummary[key]) {
@@ -339,14 +350,14 @@ const getAcademicGroupAttendanceReport = async (req, res, next) => {
             total: 0,
           };
         }
-        studentSummary[key][record.status] += 1;
-        studentSummary[key].total += 1;
+        studentSummary[key][record.status] += attendanceCount;
+        studentSummary[key].total += attendanceCount;
       });
     });
 
     const summary = Object.values(studentSummary).map((item) => ({
       ...item,
-      percentage: item.total ? Number((((item.present + item.late) / item.total) * 100).toFixed(2)) : 0,
+      percentage: item.total ? Number(((item.present / item.total) * 100).toFixed(2)) : 0,
     }));
 
     res.json({ attendance: attendanceList.map(sanitizeAttendance), summary });
@@ -431,6 +442,116 @@ const getChildAttendance = async (req, res, next) => {
   }
 };
 
+const editAttendanceByAdmin = async (req, res, next) => {
+  try {
+    const { editReason, records, attendanceCount, startTime, endTime } = req.body;
+
+    if (!editReason || editReason.trim() === "") {
+      res.status(400);
+      throw new Error("Edit reason is required for attendance modification.");
+    }
+
+    const attendance = await Attendance.findOne({ _id: req.params.id, isDeleted: false });
+    if (!attendance) {
+      res.status(404);
+      throw new Error("Attendance record not found");
+    }
+
+    if (!ensureInstituteScope(req, attendance.instituteId)) {
+      res.status(403);
+      throw new Error("Access denied for this attendance record");
+    }
+
+    if (req.user?.role === "teacher") {
+      res.status(403);
+      throw new Error("Teacher cannot edit submitted attendance");
+    }
+
+    const instituteId = getScopedInstituteId(req, true);
+
+    if (attendanceCount !== undefined) {
+      if (typeof attendanceCount !== "number" || attendanceCount < 1 || attendanceCount > 8) {
+        res.status(400);
+        throw new Error("Number of attendance must be between 1 and 8");
+      }
+    }
+
+    if (startTime && endTime && startTime >= endTime) {
+      res.status(400);
+      throw new Error("End time must be greater than start time");
+    }
+
+    if (records && Array.isArray(records)) {
+      const studentIds = records.map((record) => record.studentId);
+      const students = await Student.find({
+        _id: { $in: studentIds },
+        instituteId,
+        academicGroupId: attendance.academicGroupId,
+        isDeleted: false,
+      });
+
+      if (students.length !== studentIds.length) {
+        res.status(400);
+        throw new Error("One or more students are invalid for this academic group");
+      }
+    }
+
+    const oldValues = {
+      records: attendance.records,
+      attendanceCount: attendance.attendanceCount || 1,
+      startTime: attendance.startTime || "",
+      endTime: attendance.endTime || "",
+    };
+
+    if (records) attendance.records = records;
+    if (attendanceCount !== undefined) attendance.attendanceCount = attendanceCount;
+    if (startTime !== undefined) attendance.startTime = startTime;
+    if (endTime !== undefined) attendance.endTime = endTime;
+
+    attendance.updatedBy = req.user._id;
+
+    const editEntry = {
+      editedBy: req.user._id,
+      editedAt: new Date(),
+      reason: editReason.trim(),
+      oldRecords: oldValues.records,
+      newRecords: attendance.records,
+      oldAttendanceCount: oldValues.attendanceCount,
+      newAttendanceCount: attendance.attendanceCount,
+      oldStartTime: oldValues.startTime,
+      newStartTime: attendance.startTime,
+      oldEndTime: oldValues.endTime,
+      newEndTime: attendance.endTime,
+    };
+
+    attendance.editHistory.push(editEntry);
+    await attendance.save();
+
+    await createAuditLog({
+      req,
+      instituteId: attendance.instituteId,
+      action: "attendance_updated",
+      entity: "Attendance",
+      entityId: attendance._id,
+      message: `Attendance updated by ${req.user.role}. Reason: ${editReason.trim()}`,
+      metadata: {
+        editReason: editReason.trim(),
+        oldValue: oldValues,
+        newValue: {
+          records: attendance.records,
+          attendanceCount: attendance.attendanceCount,
+          startTime: attendance.startTime,
+          endTime: attendance.endTime,
+        },
+      },
+    });
+
+    res.json({ message: "Attendance updated successfully", attendance: sanitizeAttendance(attendance) });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export {
   createAttendance,
   getAttendance,
@@ -441,4 +562,5 @@ export {
   getStudentAttendanceReport,
   getMyAttendance,
   getChildAttendance,
+  editAttendanceByAdmin,
 };

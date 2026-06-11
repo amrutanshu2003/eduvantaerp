@@ -41,6 +41,7 @@ import EditStudent from "./pages/admin/EditStudent";
 import EditSubject from "./pages/admin/EditSubject";
 import EditTeacher from "./pages/admin/EditTeacher";
 import EditTimetable from "./pages/admin/EditTimetable";
+import EditAttendance from "./pages/admin/EditAttendance";
 import FeeDetails from "./pages/admin/FeeDetails";
 import FeePayment from "./pages/admin/FeePayment";
 import Fees from "./pages/admin/Fees";
@@ -222,6 +223,7 @@ const App = () => {
             <Route path="/admin/subjects/:id/edit" element={<EditSubject />} />
             <Route path="/admin/subjects/:id/assign-teacher" element={<AssignSubjectTeacher />} />
             <Route path="/admin/attendance" element={<Attendance />} />
+            <Route path="/admin/attendance/:id/edit" element={<EditAttendance />} />
             <Route path="/admin/attendance/reports" element={<AttendanceReports />} />
             <Route path="/admin/attendance/students/:studentId" element={<StudentAttendanceReport />} />
             <Route path="/admin/exams" element={<Exams />} />

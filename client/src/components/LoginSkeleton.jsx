@@ -73,7 +73,7 @@ const LoginSkeleton = ({ message = "Loading login experience..." }) => {
               <SkeletonButton className="w-full" />
             </div>
 
-            <p className="mt-6 text-sm text-slate-500">{message}</p>
+
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import express from "express";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
+import "./models/User.js";
 import authRoutes from "./routes/authRoutes.js";
 import academicGroupRoutes from "./routes/academicGroupRoutes.js";
 import academicSettingsRoutes from "./routes/academicSettingsRoutes.js";
