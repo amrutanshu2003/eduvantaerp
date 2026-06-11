@@ -291,15 +291,28 @@ This starts:
 - backend on `http://localhost:5000`
 - frontend on `http://localhost:5173`
 
-## Default Superadmin Login
+## Initial Setup
 
-- Email: `superadmin@eduvanta.com`
-- Password: `SuperAdmin@123`
+**Security Note**: For production deployments, never use default credentials. Always create custom credentials with strong passwords.
 
-Login flow:
+### Creating a Superadmin
+
+Run the seed script to create the initial superadmin user:
+
+```bash
+cd server
+npm run seed
+```
+
+After running the seed script:
+1. Login with the created superadmin credentials
+2. **Immediately change the default password** in your profile settings
+3. Create institutes and institute admin users as needed
+
+### Login Flow
 
 1. Open `http://localhost:5173/login`
-2. Login with the default superadmin
+2. Login with your superadmin credentials
 3. Open `Super Admin -> Institutes`
 4. Create an institute
 5. Open the institute details page
