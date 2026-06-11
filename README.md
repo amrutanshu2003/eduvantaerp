@@ -2,6 +2,36 @@
 
 Eduvanta ERP is a MERN-based SaaS foundation for schools and colleges.
 
+## Security Notice
+
+**Important**: This project is designed for development and demonstration purposes. For production deployments, ensure you:
+
+1. **Never commit sensitive data**:
+   - `.env` files containing database URIs, JWT secrets, or API keys
+   - Backup folders containing user data or audit logs
+   - Any files with credentials or secrets
+
+2. **Secure your environment**:
+   - Use strong, unique passwords for all accounts
+   - Change default credentials immediately after first login
+   - Use environment variables for all sensitive configuration
+   - Enable HTTPS in production
+   - Implement rate limiting and authentication throttling
+   - Regularly update dependencies for security patches
+
+3. **Database security**:
+   - Use strong database passwords
+   - Enable MongoDB authentication and authorization
+   - Use network whitelisting for database access
+   - Enable database backups with encryption
+
+4. **Application security**:
+   - Review and audit the code before production use
+   - Implement proper input validation and sanitization
+   - Use parameterized queries to prevent SQL/NoSQL injection
+   - Enable CORS only for trusted domains
+   - Implement proper session management
+
 ## Phase 1 Features
 
 - Express + MongoDB backend setup
