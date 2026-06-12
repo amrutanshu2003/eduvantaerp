@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiBell, FiLogOut, FiSearch, FiSun, FiMoon, FiCheck, FiTrash2 } from "react-icons/fi";
+import { FiBell, FiCheck, FiLogOut, FiMenu, FiMoon, FiSearch, FiSun, FiTrash2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
@@ -13,7 +13,7 @@ import {
   deleteNotification,
 } from "../api/notifications";
 
-const Navbar = ({ onThemeToggle, themeReveal }) => {
+const Navbar = ({ onThemeToggle, themeReveal, onSidebarToggle }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { settings, getButtonRadius, resolvedTheme, toggleTheme } = useUISettings();
@@ -457,9 +457,19 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
     }
 
     toggleTheme();
-  };  return (
-    <header className="relative z-[200] flex h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-6 backdrop-blur">
-      <div className="min-w-0">
+  };
+
+  return (
+    <header className="relative z-[200] flex h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 md:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={onSidebarToggle}
+          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 md:hidden"
+          aria-label="Open sidebar"
+        >
+          <FiMenu className="h-5 w-5" />
+        </button>
         <p className="text-xs font-semibold uppercase tracking-[0.25em] truncate" style={{ color: settings.primaryColor }}>
           {settings.appName}
         </p>

@@ -18,6 +18,7 @@ const defaultSettings = {
   buttonStyle: "rounded",
   themeMode: "system",
   footerText: "Smart ERP for Schools, Colleges & Universities",
+  showFooter: true,
   captchaEnabled: true,
   privilegedRecoveryEnabled: false,
   privilegedRecoveryHint: "",

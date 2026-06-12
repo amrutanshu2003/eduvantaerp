@@ -29,6 +29,7 @@ const defaultGlobalSettings = {
   buttonStyle: "rounded",
   themeMode: "system",
   footerText: "Smart ERP for Schools, Colleges & Universities",
+  showFooter: true,
   captchaEnabled: true,
   privilegedRecoveryEnabled: false,
   privilegedRecoveryHint: "",
@@ -71,6 +72,7 @@ const updateGlobalUISettings = async (req, res, next) => {
       buttonStyle: req.body.buttonStyle || defaultGlobalSettings.buttonStyle,
       themeMode: req.body.themeMode || defaultGlobalSettings.themeMode,
       footerText: req.body.footerText?.trim() || defaultGlobalSettings.footerText,
+      showFooter: typeof req.body.showFooter === "boolean" ? req.body.showFooter : defaultGlobalSettings.showFooter,
       captchaEnabled: typeof req.body.captchaEnabled === "boolean" ? req.body.captchaEnabled : defaultGlobalSettings.captchaEnabled,
       customSidebarItems: Array.isArray(req.body.customSidebarItems)
         ? req.body.customSidebarItems

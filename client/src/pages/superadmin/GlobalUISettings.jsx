@@ -826,6 +826,30 @@ const GlobalUISettings = () => {
                 className={`${inputClassName} resize-none`}
               />
             </div>
+            <div className="rounded-[1.5rem] border border-slate-200 p-4 md:col-span-2">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Show Footer</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Turn this off if you want to hide the ERP footer across dashboard pages.
+                  </p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    name="showFooter"
+                    checked={Boolean(formData.showFooter)}
+                    onChange={handleToggleChange}
+                    className="peer sr-only"
+                  />
+                  <span
+                    className="h-7 w-14 rounded-full transition-colors duration-200"
+                    style={{ backgroundColor: formData.showFooter ? formData.primaryColor : "#cbd5e1" }}
+                  />
+                  <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${formData.showFooter ? "translate-x-7" : "translate-x-0"}`} />
+                </label>
+              </div>
+            </div>
           </div>
 
           {/* Academic Group Configuration */}

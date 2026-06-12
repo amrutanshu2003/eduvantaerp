@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { FiBookOpen, FiCalendar, FiCheckSquare, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPlusSquare, FiSettings, FiShield, FiTrash2, FiTruck, FiUser, FiUsers, FiPackage, FiChevronDown, FiChevronRight } from "react-icons/fi";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { FiBook, FiBookOpen, FiCalendar, FiCheckSquare, FiChevronDown, FiChevronRight, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPackage, FiPlusSquare, FiSettings, FiShield, FiTrash2, FiTruck, FiUser, FiUsers } from "react-icons/fi";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
 import { useLabelSettings } from "../context/LabelSettingsContext";
@@ -66,6 +66,12 @@ const defaultCollapsedGroups = {
   operations: true,
   services: true,
   system: true,
+};
+
+const defaultCollapsedServiceGroups = {
+  transport: true,
+  hostel: true,
+  library: true,
 };
 
 const getGroupForLabel = (label) => {
@@ -140,9 +146,122 @@ const getGroupForLabel = (label) => {
 
 const getGroupForItem = (item) => item.group || getGroupForLabel(item.label);
 
+const serviceGroupConfig = [
+  {
+    id: "transport",
+    label: "Transport",
+    icon: FiTruck,
+    matcher: (item) => item.path?.includes("/transport"),
+  },
+  {
+    id: "hostel",
+    label: "Hostel",
+    icon: FiHome,
+    matcher: (item) => item.path?.includes("/hostel") || item.path?.includes("/hostels"),
+  },
+  {
+    id: "library",
+    label: "Library",
+    icon: FiBook,
+    matcher: (item) => item.path?.includes("/library"),
+  },
+];
+
+const getServiceGroupForItem = (item) => serviceGroupConfig.find((group) => group.matcher(item))?.id || null;
+
+const getServiceItemLabel = (item, serviceGroupId) => {
+  const label = item.label || "";
+
+  if (serviceGroupId === "transport") {
+    return label
+      .replace(/^child transport$/i, "Overview")
+      .replace(/^transport$/i, "Overview")
+      .replace(/^my route$/i, "My Route")
+      .replace(/^my students$/i, "My Students")
+      .replace(/^transport\s+/i, "");
+  }
+
+  if (serviceGroupId === "hostel") {
+    return label
+      .replace(/^child hostel$/i, "Overview")
+      .replace(/^my hostel$/i, "Overview")
+      .replace(/^hostels view$/i, "Overview")
+      .replace(/^hostels$/i, "Hostels")
+      .replace(/^hostel\s+/i, "");
+  }
+
+  if (serviceGroupId === "library") {
+    return label
+      .replace(/^child library$/i, "Overview")
+      .replace(/^my library$/i, "Overview")
+      .replace(/^library$/i, "Overview")
+      .replace(/^library books$/i, "Books")
+      .replace(/^book issues$/i, "Issues")
+      .replace(/^overdue books$/i, "Overdue");
+  }
+
+  return label;
+};
+
+const getServiceItemIcon = (item, serviceGroupId) => {
+  const label = getServiceItemLabel(item, serviceGroupId).toLowerCase();
+
+  if (serviceGroupId === "transport") {
+    if (label.includes("vehicle")) return FiTruck;
+    if (label.includes("route")) return FiMap;
+    if (label.includes("allocation")) return FiUsers;
+    if (label.includes("student")) return FiUsers;
+    return FiTruck;
+  }
+
+  if (serviceGroupId === "hostel") {
+    if (label.includes("room")) return FiLayers;
+    if (label.includes("bed")) return FiPackage;
+    if (label.includes("allocation")) return FiUsers;
+    if (label.includes("outpass")) return FiFileText;
+    if (label.includes("complaint")) return FiShield;
+    return FiHome;
+  }
+
+  if (serviceGroupId === "library") {
+    if (label.includes("book")) return FiBookOpen;
+    if (label.includes("issue")) return FiFileText;
+    if (label.includes("overdue")) return FiCalendar;
+    return FiBook;
+  }
+
+  return FiFileText;
+};
+
+const matchesPath = (pathname, itemPath) => pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+
+const isServiceItemActive = (pathname, item) => {
+  if (!item?.path) {
+    return false;
+  }
+
+  if (matchesPath(pathname, item.path)) {
+    return true;
+  }
+
+  if (item.path.endsWith("/hostel-rooms")) {
+    return /\/hostels\/[^/]+\/rooms(\/|$)/.test(pathname);
+  }
+
+  if (item.path.endsWith("/hostel-beds")) {
+    return /\/hostel-rooms\/[^/]+\/beds(\/|$)/.test(pathname);
+  }
+
+  if (item.path.includes("/library/issues")) {
+    return /\/library\/students\/[^/]+\/history(\/|$)/.test(pathname);
+  }
+
+  return false;
+};
+
 const Sidebar = () => {
   const { user } = useAuth();
-  const { settings, resolvedTheme, getButtonRadius } = useUISettings();
+  const { settings, resolvedTheme } = useUISettings();
   const { getLabel, isModuleEnabled } = useLabelSettings();
   const isDark = resolvedTheme === "dark";
   const sidebarStyle = isDark
@@ -161,8 +280,10 @@ const Sidebar = () => {
   const customSidebarItems = (settings.customSidebarItems || []).map(normalizeCustomSidebarItem);
 
   const storageKey = `sidebar_collapsed_${user?._id || user?.role || "default"}`;
+  const serviceStorageKey = `sidebar_service_collapsed_${user?._id || user?.role || "default"}`;
   const isInitialMount = useRef(true);
   const lastLoadedKeyRef = useRef(storageKey);
+  const lastLoadedServiceKeyRef = useRef(serviceStorageKey);
 
   const [collapsedGroups, setCollapsedGroups] = useState(() => {
     try {
@@ -174,6 +295,17 @@ const Sidebar = () => {
       console.error(e);
     }
     return defaultCollapsedGroups;
+  });
+  const [collapsedServiceGroups, setCollapsedServiceGroups] = useState(() => {
+    try {
+      const saved = localStorage.getItem(serviceStorageKey);
+      if (saved) {
+        return { ...defaultCollapsedServiceGroups, ...JSON.parse(saved) };
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return defaultCollapsedServiceGroups;
   });
 
   // Load state when key changes (login/logout/refresh)
@@ -192,6 +324,20 @@ const Sidebar = () => {
     }
   }, [storageKey]);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(serviceStorageKey);
+      if (saved) {
+        setCollapsedServiceGroups({ ...defaultCollapsedServiceGroups, ...JSON.parse(saved) });
+      } else {
+        setCollapsedServiceGroups(defaultCollapsedServiceGroups);
+      }
+      lastLoadedServiceKeyRef.current = serviceStorageKey;
+    } catch (e) {
+      console.error(e);
+    }
+  }, [serviceStorageKey]);
+
   // Save state when collapsedGroups changes, but only if synced with current storageKey
   useEffect(() => {
     if (storageKey === lastLoadedKeyRef.current) {
@@ -202,6 +348,16 @@ const Sidebar = () => {
       }
     }
   }, [collapsedGroups, storageKey]);
+
+  useEffect(() => {
+    if (serviceStorageKey === lastLoadedServiceKeyRef.current) {
+      try {
+        localStorage.setItem(serviceStorageKey, JSON.stringify(collapsedServiceGroups));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [collapsedServiceGroups, serviceStorageKey]);
 
   const toggleGroup = (groupId) => {
     setCollapsedGroups((prev) => {
@@ -220,6 +376,13 @@ const Sidebar = () => {
         };
       }
     });
+  };
+
+  const toggleServiceGroup = (serviceGroupId) => {
+    setCollapsedServiceGroups((prev) => ({
+      ...prev,
+      [serviceGroupId]: !prev[serviceGroupId],
+    }));
   };
 
   // Helper functions to get plural labels
@@ -463,7 +626,6 @@ const Sidebar = () => {
                 : defaultMenuItems.map((item) => ({ ...item, path: `${basePath}/${item.suffix}` }));
 
   const location = useLocation();
-  const navigate = useNavigate();
 
   // Save current path to localStorage whenever route changes
   useEffect(() => {
@@ -514,6 +676,16 @@ const Sidebar = () => {
           };
         }
       });
+
+      if (activeGroup === "services") {
+        const activeServiceGroup = getServiceGroupForItem(activeItem);
+        if (activeServiceGroup) {
+          setCollapsedServiceGroups((prev) => ({
+            ...prev,
+            [activeServiceGroup]: false,
+          }));
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
@@ -534,6 +706,11 @@ const Sidebar = () => {
     groupedItems[group].push(item);
   });
 
+  const serviceItemsByGroup = serviceGroupConfig.reduce((acc, group) => {
+    acc[group.id] = groupedItems.services.filter((item) => getServiceGroupForItem(item) === group.id);
+    return acc;
+  }, {});
+
   const groupsConfig = [
     { id: "core", name: "Core", icon: FiHome },
     { id: "institute", name: "Institute", icon: FiLayers },
@@ -548,7 +725,7 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`flex w-full flex-col px-5 py-6 md:h-screen md:w-72 md:flex-shrink-0 md:overflow-hidden ${isDark ? "text-white" : "text-slate-900"
+      className={`flex w-full flex-col overflow-x-hidden px-5 py-6 md:h-screen md:w-72 md:flex-shrink-0 md:overflow-hidden ${isDark ? "text-white" : "text-slate-900"
         }`}
       style={sidebarStyle}
     >
@@ -559,14 +736,14 @@ const Sidebar = () => {
           <p className={`mt-2 text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>{roleLabels[user?.role] || "ERP User"}</p>
         </div>
 
-        <nav className="mt-8 min-h-0 flex-1 space-y-6 overflow-y-auto no-scrollbar scroll-smooth pr-1">
+        <nav className="mt-7 min-h-0 flex-1 space-y-4 overflow-y-auto no-scrollbar scroll-smooth pr-1">
           {groupsToShow.map((group) => {
             const groupItems = groupedItems[group.id];
             const isCollapsed = collapsedGroups[group.id];
             const GroupIcon = group.icon;
 
             return (
-              <div key={group.id} className="space-y-2">
+              <div key={group.id} className="space-y-1.5">
                 <button
                   onClick={() => toggleGroup(group.id)}
                   type="button"
@@ -582,31 +759,128 @@ const Sidebar = () => {
 
                 {!isCollapsed && (
                   <div className="space-y-1 pl-1 transition-all duration-300">
-                    {groupItems.map(({ label, icon: Icon, path }) => (
-                      <NavLink
-                        key={path}
-                        to={path}
-                        className={({ isActive }) =>
-                          `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${isActive
-                            ? isDark ? "text-white shadow-sm border-l-4" : "shadow-sm border-l-4"
-                            : isDark
-                              ? "text-slate-300 hover:bg-white/10 hover:text-white border-l-4 border-l-transparent"
-                              : "text-slate-700 hover:bg-white hover:text-slate-950 border-l-4 border-l-transparent"
-                          }`
+                    {group.id === "services"
+                      ? serviceGroupConfig.map((serviceGroup) => {
+                        const serviceItems = serviceItemsByGroup[serviceGroup.id] || [];
+                        if (serviceItems.length === 0) {
+                          return null;
                         }
-                        style={({ isActive }) => (isActive ? {
-                          backgroundColor: isDark ? settings.primaryColor : `color-mix(in srgb, ${settings.primaryColor} 10%, transparent)`,
-                          color: isDark ? "#ffffff" : settings.primaryColor,
-                          borderLeftColor: "#14b8a6", // Teal left border
-                          boxShadow: isDark
-                            ? `0 4px 14px 0 ${settings.primaryColor}40`
-                            : "0 4px 12px 0 rgba(20, 184, 166, 0.08)", // Soft glow
-                        } : undefined)}
-                      >
-                        <Icon size={16} />
-                        <span className="truncate">{label}</span>
-                      </NavLink>
-                    ))}
+
+                        const ServiceIcon = serviceGroup.icon;
+                        const serviceGroupActive = serviceItems.some((item) => isServiceItemActive(location.pathname, item));
+                        const hasNestedItems = serviceItems.length > 1;
+                        const isServiceCollapsed = collapsedServiceGroups[serviceGroup.id];
+
+                        if (!hasNestedItems) {
+                          const onlyItem = serviceItems[0];
+                          return (
+                            <NavLink
+                              key={serviceGroup.id}
+                              to={onlyItem.path}
+                              className={() =>
+                                `flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                                  serviceGroupActive
+                                    ? isDark ? "text-white shadow-sm border-l-4" : "shadow-sm border-l-4"
+                                    : isDark
+                                      ? "text-slate-300 hover:bg-white/10 hover:text-white border-l-4 border-l-transparent"
+                                      : "text-slate-700 hover:bg-white hover:text-slate-950 border-l-4 border-l-transparent"
+                                }`
+                              }
+                              style={() => (serviceGroupActive ? {
+                                backgroundColor: isDark ? settings.primaryColor : `color-mix(in srgb, ${settings.primaryColor} 10%, transparent)`,
+                                color: isDark ? "#ffffff" : settings.primaryColor,
+                                borderLeftColor: "#14b8a6",
+                                boxShadow: isDark
+                                  ? `0 4px 14px 0 ${settings.primaryColor}40`
+                                  : "0 4px 12px 0 rgba(20, 184, 166, 0.08)",
+                              } : undefined)}
+                            >
+                              <ServiceIcon size={16} />
+                              <span className="truncate">{serviceGroup.label}</span>
+                            </NavLink>
+                          );
+                        }
+
+                        return (
+                          <div key={serviceGroup.id} className="space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => toggleServiceGroup(serviceGroup.id)}
+                              className={`flex w-full items-center justify-between rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                                serviceGroupActive
+                                  ? isDark ? "bg-white/10 text-white" : "bg-white text-slate-950 shadow-sm"
+                                  : isDark
+                                    ? "text-slate-300 hover:bg-white/5 hover:text-white"
+                                    : "text-slate-700 hover:bg-white hover:text-slate-950"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <ServiceIcon size={16} />
+                                <span className="truncate">{serviceGroup.label}</span>
+                              </div>
+                              {isServiceCollapsed ? <FiChevronRight size={15} /> : <FiChevronDown size={15} />}
+                            </button>
+
+                            {!isServiceCollapsed ? (
+                              <div className="space-y-1 pl-5">
+                                {serviceItems.map((item) => {
+                                  const itemActive = isServiceItemActive(location.pathname, item);
+                                  const ItemIcon = getServiceItemIcon(item, serviceGroup.id);
+                                  return (
+                                    <NavLink
+                                      key={item.path}
+                                      to={item.path}
+                                      className={() =>
+                                        `flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-medium transition ${
+                                          itemActive
+                                            ? isDark ? "bg-white/10 text-white" : "bg-white text-slate-950 shadow-sm"
+                                            : isDark
+                                              ? "text-slate-400 hover:bg-white/5 hover:text-white"
+                                              : "text-slate-600 hover:bg-white hover:text-slate-900"
+                                        }`
+                                      }
+                                      style={() => (itemActive ? { color: isDark ? "#ffffff" : settings.primaryColor } : undefined)}
+                                    >
+                                      <ItemIcon
+                                        size={14}
+                                        className="shrink-0"
+                                        style={{ color: itemActive ? settings.primaryColor : isDark ? "#94a3b8" : "#64748b" }}
+                                      />
+                                      <span className="truncate">{getServiceItemLabel(item, serviceGroup.id)}</span>
+                                    </NavLink>
+                                  );
+                                })}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })
+                      : groupItems.map(({ label, icon: Icon, path }) => (
+                        <NavLink
+                          key={path}
+                          to={path}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-medium transition ${
+                              isActive
+                                ? isDark ? "text-white shadow-sm border-l-4" : "shadow-sm border-l-4"
+                                : isDark
+                                  ? "text-slate-300 hover:bg-white/10 hover:text-white border-l-4 border-l-transparent"
+                                  : "text-slate-700 hover:bg-white hover:text-slate-950 border-l-4 border-l-transparent"
+                            }`
+                          }
+                          style={({ isActive }) => (isActive ? {
+                            backgroundColor: isDark ? settings.primaryColor : `color-mix(in srgb, ${settings.primaryColor} 10%, transparent)`,
+                            color: isDark ? "#ffffff" : settings.primaryColor,
+                            borderLeftColor: "#14b8a6",
+                            boxShadow: isDark
+                              ? `0 4px 14px 0 ${settings.primaryColor}40`
+                              : "0 4px 12px 0 rgba(20, 184, 166, 0.08)",
+                          } : undefined)}
+                        >
+                          <Icon size={16} />
+                          <span className="truncate">{label}</span>
+                        </NavLink>
+                      ))}
                   </div>
                 )}
               </div>
