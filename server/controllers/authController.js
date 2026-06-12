@@ -223,9 +223,9 @@ const changePassword = async (req, res, next) => {
       throw new Error("Current password and new password are required");
     }
 
-    if (newPassword.trim().length < 6) {
+    if (newPassword.trim().length < 8) {
       res.status(400);
-      throw new Error("New password must be at least 6 characters");
+      throw new Error("New password must be at least 8 characters");
     }
 
     const modelMap = {
@@ -431,10 +431,10 @@ const recoverPrivilegedAccountPassword = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const { name, email, phone } = req.body;
-    if (!name || !email) {
+    const { name, phone = "", profilePhoto = "" } = req.body;
+    if (!name?.trim()) {
       res.status(400);
-      throw new Error("Name and email are required");
+      throw new Error("Name is required");
     }
 
     const modelMap = {
@@ -446,7 +446,6 @@ const updateProfile = async (req, res, next) => {
       superadmin: SuperAdmin,
     };
 
-    const models = [Student, Teacher, Parent, StaffMember, Admin, SuperAdmin];
     const Model = modelMap[req.user.role];
     const user = await Model.findById(req.user._id);
     if (!user) {
@@ -454,34 +453,25 @@ const updateProfile = async (req, res, next) => {
       throw new Error("User not found");
     }
 
-    // Check for email uniqueness across all collections
-    if (email.toLowerCase().trim() !== user.email.toLowerCase().trim()) {
-      const emailToCheck = email.toLowerCase().trim();
-      const duplicates = await Promise.all(
-        models.map((M) => M.findOne({ email: emailToCheck, ...notDeletedFilter }))
-      );
-      if (duplicates.some((dup) => dup)) {
-        res.status(400);
-        throw new Error("Email is already taken by another account");
-      }
-    }
-
     // Check for phone uniqueness across all collections
     if (phone && phone.trim() !== user.phone) {
+      const models = [Student, Teacher, Parent, StaffMember, Admin, SuperAdmin];
       const phoneToCheck = phone.trim();
       const duplicates = await Promise.all(
         models.map((M) => M.findOne({ phone: phoneToCheck, ...notDeletedFilter }))
       );
-      if (duplicates.some((dup) => dup)) {
+      if (duplicates.some((dup) => dup && String(dup._id) !== String(user._id))) {
         res.status(400);
         throw new Error("Phone number is already taken by another account");
       }
     }
 
     user.name = name.trim();
-    user.email = email.toLowerCase().trim();
     if (phone !== undefined) {
       user.phone = phone.trim();
+    }
+    if (profilePhoto !== undefined) {
+      user.profilePhoto = String(profilePhoto || "").trim();
     }
 
     await user.save();

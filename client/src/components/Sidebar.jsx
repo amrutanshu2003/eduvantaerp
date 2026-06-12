@@ -58,6 +58,16 @@ const defaultMenuItems = [
   { label: "Settings", icon: FiLayers, suffix: "dashboard" },
 ];
 
+const defaultCollapsedGroups = {
+  core: true,
+  institute: true,
+  academicSetup: true,
+  academics: true,
+  operations: true,
+  services: true,
+  system: true,
+};
+
 const getGroupForLabel = (label) => {
   const l = label.toLowerCase();
 
@@ -115,6 +125,7 @@ const getGroupForLabel = (label) => {
     return "services";
   }
   if (
+    l === "settings" ||
     l === "global settings" ||
     l === "global ui settings" ||
     l === "audit log settings" ||
@@ -126,6 +137,8 @@ const getGroupForLabel = (label) => {
 
   return "core";
 };
+
+const getGroupForItem = (item) => item.group || getGroupForLabel(item.label);
 
 const Sidebar = () => {
   const { user } = useAuth();
@@ -155,19 +168,12 @@ const Sidebar = () => {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        return JSON.parse(saved);
+        return { ...defaultCollapsedGroups, ...JSON.parse(saved) };
       }
     } catch (e) {
       console.error(e);
     }
-    return {
-      core: true,
-      institute: true,
-      academics: true,
-      operations: true,
-      services: true,
-      system: true,
-    };
+    return defaultCollapsedGroups;
   });
 
   // Load state when key changes (login/logout/refresh)
@@ -175,16 +181,9 @@ const Sidebar = () => {
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        setCollapsedGroups(JSON.parse(saved));
+        setCollapsedGroups({ ...defaultCollapsedGroups, ...JSON.parse(saved) });
       } else {
-        setCollapsedGroups({
-          core: true,
-          institute: true,
-          academics: true,
-          operations: true,
-          services: true,
-          system: true,
-        });
+        setCollapsedGroups(defaultCollapsedGroups);
       }
       lastLoadedKeyRef.current = storageKey;
       isInitialMount.current = true; // reset mount tracker for path auto-expand
@@ -210,12 +209,7 @@ const Sidebar = () => {
       if (isOpening) {
         // Collapse all other groups, expand the clicked one
         return {
-          core: true,
-          institute: true,
-          academics: true,
-          operations: true,
-          services: true,
-          system: true,
+          ...defaultCollapsedGroups,
           [groupId]: false,
         };
       } else {
@@ -229,10 +223,7 @@ const Sidebar = () => {
   };
 
   // Helper functions to get plural labels
-  const getAcademicGroupLabel = () => {
-    const label = getLabel("academicGroupLabel");
-    return label + (label.endsWith("s") ? "" : "s");
-  };
+  const getSidebarAcademicGroupLabel = () => "Academic Groups";
 
   const getTeacherLabelPlural = () => {
     const label = getLabel("teacherLabel");
@@ -252,10 +243,10 @@ const Sidebar = () => {
   const superAdminItems = [
     { label: "Dashboard", icon: FiHome, path: "/super-admin/dashboard" },
     { label: "Admin Dashboard", icon: FiHome, path: "/admin/dashboard" },
-    { label: "My Profile", icon: FiUser, path: "/super-admin/settings" },
+    { label: "My Profile", icon: FiUser, path: "/super-admin/profile" },
     { label: "Institutes", icon: FiUsers, path: "/super-admin/institutes" },
     { label: "Create Institute", icon: FiPlusSquare, path: "/super-admin/institutes/create" },
-    { label: "Global Settings", icon: FiSettings, path: "/super-admin/settings" },
+    { label: "Global Settings", icon: FiSettings, path: "/super-admin/settings", group: "system" },
     { label: "Global UI Settings", icon: FiSettings, path: "/super-admin/ui-settings" },
     { label: "Audit Log Settings", icon: FiTrash2, path: "/super-admin/audit-log-settings" },
     { label: "Recycle Bin", icon: FiPackage, path: "/super-admin/recycle-bin" },
@@ -272,7 +263,8 @@ const Sidebar = () => {
     }
     let newItem = { ...item };
     if (newItem.label === "Academic Groups") {
-      newItem.label = getAcademicGroupLabel();
+      newItem.label = getSidebarAcademicGroupLabel();
+      newItem.group = "academicSetup";
     } else if (newItem.label === "Teachers") {
       newItem.label = getTeacherLabelPlural();
       adminItemsForSuper.push({ label: "Admins", icon: FiShield, path: "/super-admin/admins" });
@@ -280,6 +272,7 @@ const Sidebar = () => {
       newItem.label = getParentLabelPlural();
     } else if (newItem.label === "Subjects") {
       newItem.label = getSubjectLabelPlural();
+      newItem.group = "academicSetup";
     }
     adminItemsForSuper.push(newItem);
   });
@@ -301,12 +294,12 @@ const Sidebar = () => {
           { label: "My Profile", icon: FiUser, path: "/admin/profile" },
           { label: "Institute Settings", icon: FiSettings, path: "/admin/settings" },
           { label: "Bulk Import", icon: FiPlusSquare, path: "/admin/bulk-import" },
-          { label: getAcademicGroupLabel(), icon: FiBookOpen, path: "/admin/academic-groups" },
+          { label: getSidebarAcademicGroupLabel(), icon: FiBookOpen, path: "/admin/academic-groups", group: "academicSetup" },
           ...(isModuleEnabled("teachers") ? [{ label: getTeacherLabelPlural(), icon: FiUser, path: "/admin/teachers" }] : []),
           ...(isModuleEnabled("students") ? [{ label: getLabel("studentLabel") + "s", icon: FiUsers, path: "/admin/students" }] : []),
           ...(isModuleEnabled("parents") ? [{ label: getParentLabelPlural(), icon: FiShield, path: "/admin/parents" }] : []),
           ...(isModuleEnabled("staff") ? [{ label: getLabel("staffLabel") + "s", icon: FiLayers, path: "/admin/staff" }] : []),
-          ...(isModuleEnabled("subjects") ? [{ label: getSubjectLabelPlural(), icon: FiBookOpen, path: "/admin/subjects" }] : []),
+          ...(isModuleEnabled("subjects") ? [{ label: getSubjectLabelPlural(), icon: FiBookOpen, path: "/admin/subjects", group: "academicSetup" }] : []),
           ...(isModuleEnabled("attendance") ? [
             { label: getLabel("attendanceLabel"), icon: FiCheckSquare, path: "/admin/attendance" },
             { label: "Attendance Reports", icon: FiFileText, path: "/admin/attendance/reports" },
@@ -504,7 +497,7 @@ const Sidebar = () => {
       .sort((a, b) => b.path.length - a.path.length)[0];
 
     if (activeItem) {
-      const activeGroup = getGroupForLabel(activeItem.label);
+      const activeGroup = getGroupForItem(activeItem);
       setCollapsedGroups((prev) => {
         if (prev[activeGroup] === false) return prev;
         if (activeGroup === "core") {
@@ -516,12 +509,7 @@ const Sidebar = () => {
         } else {
           // Navigating to other modules expands the target group and collapses all others
           return {
-            core: true,
-            institute: true,
-            academics: true,
-            operations: true,
-            services: true,
-            system: true,
+            ...defaultCollapsedGroups,
             [activeGroup]: false,
           };
         }
@@ -534,6 +522,7 @@ const Sidebar = () => {
   const groupedItems = {
     core: [],
     institute: [],
+    academicSetup: [],
     academics: [],
     operations: [],
     services: [],
@@ -541,13 +530,14 @@ const Sidebar = () => {
   };
 
   menuItems.forEach((item) => {
-    const group = getGroupForLabel(item.label);
+    const group = getGroupForItem(item);
     groupedItems[group].push(item);
   });
 
   const groupsConfig = [
     { id: "core", name: "Core", icon: FiHome },
     { id: "institute", name: "Institute", icon: FiLayers },
+    { id: "academicSetup", name: "Academic Setup", icon: FiBookOpen },
     { id: "academics", name: "Academics", icon: FiBookOpen },
     { id: "operations", name: "Operations", icon: FiUsers },
     { id: "services", name: "Services", icon: FiTruck },

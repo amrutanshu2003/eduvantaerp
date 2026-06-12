@@ -1,29 +1,309 @@
+import {
+  FiBookOpen,
+  FiCheckCircle,
+  FiClipboard,
+  FiHash,
+  FiLayers,
+  FiPenTool,
+  FiShield,
+  FiTarget,
+  FiUser,
+} from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
 import { useUISettings } from "../../context/UISettingsContext";
 
-const inputClass = "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none";
+const inputClass =
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500";
+
+const sectionCardClass = "rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900";
+const softPanelClass = "rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60";
+const statCardClass =
+  "rounded-[1.25rem] border border-white/40 bg-white/70 p-4 backdrop-blur dark:border-white/10 dark:bg-slate-950/35";
+
+const subjectTypeMeta = {
+  core: "Foundation subject required for the academic group.",
+  elective: "Optional subject offered as a choice to learners.",
+  practical: "Hands-on subject focused on guided practice.",
+  lab: "Lab-driven subject for experiments and applied learning.",
+  project: "Project-based subject tied to outcomes and submissions.",
+  research: "Advanced subject suited for investigation and reports.",
+};
+
+const subjectTypeTone = {
+  core: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  elective: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+  practical: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+  lab: "bg-cyan-100 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300",
+  project: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  research: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+};
+
+const getInitials = (value = "") =>
+  value
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() || "")
+    .join("") || "SB";
+
+const renderField = ({ label, icon: Icon, children }) => (
+  <div>
+    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center text-slate-400">
+        <Icon size={17} />
+      </span>
+      {children}
+    </div>
+  </div>
+);
+
+const getGroupLabel = (group) => group?.className || [group?.department, group?.course, group?.section].filter(Boolean).join(" - ") || "Academic Group";
+
+const getTeacherLabel = (teacherId, teachers) => teachers.find((teacher) => teacher._id === teacherId)?.name || "Unassigned";
 
 const SubjectForm = ({ title, description, formData, groups, teachers, onChange, onSubmit, submitting, errorMessage }) => {
   const { settings, getButtonRadius } = useUISettings();
+  const activeGroup = groups.find((group) => group._id === formData.academicGroupId);
+  const selectedGroupLabel = getGroupLabel(activeGroup);
+  const selectedTeacherLabel = getTeacherLabel(formData.teacherId, teachers);
+  const readiness = formData.subjectName && formData.subjectCode && formData.academicGroupId;
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <h1 className="text-3xl font-semibold text-ink">{title}</h1>
-        <p className="mt-3 text-sm text-slate-600">{description}</p>
-      </div>
-      <form onSubmit={onSubmit} className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <div className="grid gap-5 md:grid-cols-2">
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Subject Name</label><input name="subjectName" value={formData.subjectName} onChange={onChange} className={inputClass} required /></div>
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Subject Code</label><input name="subjectCode" value={formData.subjectCode} onChange={onChange} className={inputClass} required /></div>
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Academic Group</label><select name="academicGroupId" value={formData.academicGroupId} onChange={onChange} className={inputClass} required><option value="">Select Academic Group</option>{groups.map((group) => <option key={group._id} value={group._id}>{group.className || `${group.department} - ${group.course}`}</option>)}</select></div>
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Teacher</label><select name="teacherId" value={formData.teacherId} onChange={onChange} className={inputClass}><option value="">Unassigned</option>{teachers.map((teacher) => <option key={teacher._id} value={teacher._id}>{teacher.name}</option>)}</select></div>
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Subject Type</label><select name="subjectType" value={formData.subjectType} onChange={onChange} className={inputClass}><option value="core">Core</option><option value="elective">Elective</option><option value="practical">Practical</option><option value="lab">Lab</option><option value="project">Project</option><option value="research">Research</option></select></div>
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Status</label><select name="status" value={formData.status} onChange={onChange} className={inputClass}><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Total Marks</label><input name="totalMarks" type="number" value={formData.totalMarks} onChange={onChange} className={inputClass} /></div>
-          <div><label className="mb-2 block text-sm font-medium text-slate-700">Passing Marks</label><input name="passingMarks" type="number" value={formData.passingMarks} onChange={onChange} className={inputClass} /></div>
+      <div
+        className={`${sectionCardClass} overflow-hidden`}
+        style={{
+          backgroundImage: `radial-gradient(circle at top right, ${settings.primaryColor}16, transparent 34%), radial-gradient(circle at bottom left, ${settings.secondaryColor}14, transparent 30%)`,
+        }}
+      >
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-teal-700 dark:text-emerald-300">Academic Setup</p>
+            <h1 className="mt-3 text-4xl font-semibold text-ink dark:text-white">{title}</h1>
+            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{description}</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "Type", value: formData.subjectType || "core", icon: FiLayers },
+              { label: "Status", value: formData.status || "active", icon: FiCheckCircle },
+              { label: "Teacher", value: formData.teacherId ? "Assigned" : "Open", icon: FiUser },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className={statCardClass}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
+                    <Icon className="text-slate-400" size={15} />
+                  </div>
+                  <p className="mt-3 text-base font-semibold capitalize text-ink dark:text-white">{item.value}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="mt-6 space-y-4"><AlertMessage tone="error" message={errorMessage} /><button type="submit" disabled={submitting} style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-6 py-3 text-sm font-semibold text-white">{submitting ? "Saving..." : "Save Subject"}</button></div>
+      </div>
+
+      <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
+        <div className="space-y-6">
+          <div className={sectionCardClass}>
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold text-ink dark:text-white">Core Details</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Define the subject identity, code, and academic group mapping.</p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {renderField({
+                label: "Subject Name",
+                icon: FiBookOpen,
+                children: <input name="subjectName" value={formData.subjectName} onChange={onChange} className={`${inputClass} pl-12`} required />,
+              })}
+
+              {renderField({
+                label: "Subject Code",
+                icon: FiHash,
+                children: <input name="subjectCode" value={formData.subjectCode} onChange={onChange} className={`${inputClass} pl-12 uppercase`} required />,
+              })}
+
+              {renderField({
+                label: "Academic Group",
+                icon: FiLayers,
+                children: (
+                  <select name="academicGroupId" value={formData.academicGroupId} onChange={onChange} className={`${inputClass} pl-12`} required>
+                    <option value="">Select Academic Group</option>
+                    {groups.map((group) => (
+                      <option key={group._id} value={group._id}>
+                        {getGroupLabel(group)}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              })}
+
+              {renderField({
+                label: "Teacher",
+                icon: FiUser,
+                children: (
+                  <select name="teacherId" value={formData.teacherId} onChange={onChange} className={`${inputClass} pl-12`}>
+                    <option value="">Unassigned</option>
+                    {teachers.map((teacher) => (
+                      <option key={teacher._id} value={teacher._id}>
+                        {teacher.name}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              })}
+            </div>
+          </div>
+
+          <div className={sectionCardClass}>
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold text-ink dark:text-white">Assessment & Status</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Control the subject format, activation state, and marks structure.</p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {renderField({
+                label: "Subject Type",
+                icon: FiClipboard,
+                children: (
+                  <select name="subjectType" value={formData.subjectType} onChange={onChange} className={`${inputClass} pl-12`}>
+                    <option value="core">Core</option>
+                    <option value="elective">Elective</option>
+                    <option value="practical">Practical</option>
+                    <option value="lab">Lab</option>
+                    <option value="project">Project</option>
+                    <option value="research">Research</option>
+                  </select>
+                ),
+              })}
+
+              {renderField({
+                label: "Status",
+                icon: FiShield,
+                children: (
+                  <select name="status" value={formData.status} onChange={onChange} className={`${inputClass} pl-12`}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                ),
+              })}
+
+              {renderField({
+                label: "Total Marks",
+                icon: FiTarget,
+                children: <input name="totalMarks" type="number" value={formData.totalMarks} onChange={onChange} className={`${inputClass} pl-12`} min="0" />,
+              })}
+
+              {renderField({
+                label: "Passing Marks",
+                icon: FiPenTool,
+                children: <input name="passingMarks" type="number" value={formData.passingMarks} onChange={onChange} className={`${inputClass} pl-12`} min="0" />,
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+          <div className={sectionCardClass}>
+            <h2 className="text-xl font-semibold text-ink dark:text-white">Live Preview</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Review the subject summary before saving it.</p>
+
+            <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/70">
+              <div
+                className="px-5 py-5"
+                style={{
+                  background: `linear-gradient(135deg, ${settings.primaryColor}22, ${settings.secondaryColor}12)`,
+                }}
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className="flex h-16 w-16 items-center justify-center rounded-3xl text-lg font-bold text-white"
+                    style={{ background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` }}
+                  >
+                    {getInitials(formData.subjectName)}
+                  </div>
+
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-300">Subject Preview</p>
+                    <h3 className="mt-2 truncate text-xl font-semibold text-ink dark:text-white">{formData.subjectName || "Subject Name"}</h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      {[formData.subjectCode || "CODE", formData.subjectType || "core"].join(" • ")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 p-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className={softPanelClass}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Academic Group</p>
+                    <p className="mt-2 text-sm font-medium text-ink dark:text-white">{selectedGroupLabel}</p>
+                  </div>
+                  <div className={softPanelClass}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Teacher</p>
+                    <p className="mt-2 text-sm font-medium text-ink dark:text-white">{selectedTeacherLabel}</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className={softPanelClass}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Marks</p>
+                    <p className="mt-2 text-sm font-medium text-ink dark:text-white">
+                      {formData.passingMarks || 0} / {formData.totalMarks || 0} passing
+                    </p>
+                  </div>
+                  <div className={softPanelClass}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Status</p>
+                    <p className="mt-2 text-sm font-medium capitalize text-ink dark:text-white">{formData.status || "active"}</p>
+                  </div>
+                </div>
+
+                <div className={softPanelClass}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Type Notes</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {subjectTypeMeta[formData.subjectType] || subjectTypeMeta.core}
+                  </p>
+                </div>
+
+                <div className={softPanelClass}>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${subjectTypeTone[formData.subjectType] || subjectTypeTone.core}`}>
+                      {formData.subjectType}
+                    </span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                      {formData.status}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                    {readiness
+                      ? "This subject is ready to be saved with its current academic mapping."
+                      : "Add subject name, code, and academic group to complete the essential setup."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={sectionCardClass}>
+            <h2 className="text-xl font-semibold text-ink dark:text-white">Save Subject</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Once details look right, save this subject to continue academic setup.</p>
+
+            <div className="mt-6 space-y-4">
+              <AlertMessage tone="error" message={errorMessage} />
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
+                className="w-full px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {submitting ? "Saving..." : "Save Subject"}
+              </button>
+            </div>
+          </div>
+        </div>
       </form>
     </section>
   );

@@ -203,7 +203,8 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
     superadmin: [
       { label: "Dashboard", path: "/super-admin/dashboard" },
       { label: "Admin Dashboard", path: "/admin/dashboard" },
-      { label: "My Profile / Settings", path: "/super-admin/settings" },
+      { label: "My Profile", path: "/super-admin/profile" },
+      { label: "Global Settings", path: "/super-admin/settings" },
       { label: "Institutes", path: "/super-admin/institutes" },
       { label: "Create Institute", path: "/super-admin/institutes/create" },
       { label: "Create Institute Admin", path: "/super-admin/institutes/create" },

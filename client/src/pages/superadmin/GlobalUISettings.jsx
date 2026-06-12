@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { FiPlus, FiTrash2, FiEdit2 } from "react-icons/fi";
+import { useEffect, useMemo, useState } from "react";
+import { FiEdit2, FiImage, FiMove, FiPlus, FiTrash2, FiUploadCloud } from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
 import PageHeader from "../../components/PageHeader";
 import IconPicker from "../../components/ui/IconPicker";
@@ -8,6 +8,110 @@ import { normalizeCustomSidebarItem, serializeCustomSidebarItem } from "../../ut
 
 const ALL_SCHOOL_LEVELS = ["Pre-Primary", "Primary", "Middle", "Secondary", "Higher Secondary"];
 const ALL_PROGRAM_LEVELS = ["UG", "PG", "PhD", "Diploma", "Certificate"];
+
+const readFileAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("Unable to read the selected image"));
+    reader.readAsDataURL(file);
+  });
+
+const loadImage = (src) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Unable to load the selected image"));
+    image.src = src;
+  });
+
+const canvasToDataUrl = (canvas, type, quality) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("Unable to optimize the selected image"));
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("Unable to encode the optimized image"));
+        reader.readAsDataURL(blob);
+      },
+      type,
+      quality
+    );
+  });
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+const sanitizeLetterMark = (value, maxLength = 2) =>
+  (value || "")
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "")
+    .slice(0, maxLength);
+
+const createLetterMarkDataUrl = ({ text, primaryColor, secondaryColor, shape = "rounded-square", fontScale = 0.5 }) => {
+  const safeText = sanitizeLetterMark(text, shape === "favicon" ? 1 : 2) || "E";
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+      <defs>
+        <linearGradient id="brandGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="${primaryColor}" />
+          <stop offset="100%" stop-color="${secondaryColor}" />
+        </linearGradient>
+      </defs>
+      <rect x="6" y="6" width="116" height="116" rx="${shape === "favicon" ? 28 : 34}" fill="url(#brandGradient)" />
+      <text
+        x="64"
+        y="64"
+        text-anchor="middle"
+        dominant-baseline="central"
+        font-family="Poppins, Segoe UI, Arial, sans-serif"
+        font-size="${safeText.length > 1 ? 48 : 64}"
+        font-weight="700"
+        fill="#ffffff"
+        letter-spacing="${safeText.length > 1 ? 1.5 : 0}"
+      >
+        ${safeText}
+      </text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
+const cropImageToDataUrl = async (src, cropState) => {
+  const image = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  const outputSize = cropState.kind === "favicon" ? 128 : 320;
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Crop canvas is not available");
+  }
+
+  const naturalWidth = image.naturalWidth || image.width;
+  const naturalHeight = image.naturalHeight || image.height;
+  const shortestSide = Math.min(naturalWidth, naturalHeight);
+  const cropSize = shortestSide / cropState.zoom;
+  const maxX = Math.max(0, naturalWidth - cropSize);
+  const maxY = Math.max(0, naturalHeight - cropSize);
+  const cropX = clamp((cropState.positionX / 100) * maxX, 0, maxX);
+  const cropY = clamp((cropState.positionY / 100) * maxY, 0, maxY);
+
+  context.clearRect(0, 0, outputSize, outputSize);
+  context.drawImage(image, cropX, cropY, cropSize, cropSize, 0, 0, outputSize, outputSize);
+
+  if (cropState.kind === "favicon") {
+    return canvasToDataUrl(canvas, "image/png");
+  }
+
+  return canvasToDataUrl(canvas, "image/webp", 0.82);
+};
 
 const GlobalUISettings = () => {
   const { settings, updateGlobalSettings, refreshSettings, getButtonRadius } = useUISettings();
@@ -22,6 +126,9 @@ const GlobalUISettings = () => {
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [editingIconIndex, setEditingIconIndex] = useState(null);
   const [newMenuItem, setNewMenuItem] = useState({ label: "", path: "", icon: null });
+  const [cropperState, setCropperState] = useState(null);
+  const [logoLetterInput, setLogoLetterInput] = useState("");
+  const [faviconLetterInput, setFaviconLetterInput] = useState("");
 
   useEffect(() => {
     setFormData({
@@ -34,12 +141,113 @@ const GlobalUISettings = () => {
     setClearRecoveryKey(false);
   }, [settings]);
 
+  useEffect(() => {
+    setLogoLetterInput("");
+    setFaviconLetterInput("");
+  }, [settings.logo, settings.favicon]);
+
   const handleChange = (event) => {
     setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
   };
 
   const handleToggleChange = (event) => {
     setFormData((current) => ({ ...current, [event.target.name]: event.target.checked }));
+  };
+
+  const handleImageUpload = async (event) => {
+    const { name, files } = event.target;
+    const file = files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessageTone("error");
+      setMessage("Please select a valid image file.");
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setCropperState({
+        field: name,
+        kind: name === "favicon" ? "favicon" : "logo",
+        source: dataUrl,
+        zoom: 1,
+        positionX: 50,
+        positionY: 50,
+        fileName: file.name,
+      });
+      setMessage("");
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.message || "Unable to load the selected image.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const cropPreviewStyle = useMemo(() => {
+    if (!cropperState?.source) {
+      return {};
+    }
+
+    const zoom = cropperState.zoom;
+    const translateX = (cropperState.positionX - 50) * 1.6;
+    const translateY = (cropperState.positionY - 50) * 1.6;
+
+    return {
+      backgroundImage: `url(${cropperState.source})`,
+      backgroundPosition: `${50 - translateX}% ${50 - translateY}%`,
+      backgroundSize: `${zoom * 100}% ${zoom * 100}%`,
+      backgroundRepeat: "no-repeat",
+    };
+  }, [cropperState]);
+
+  const closeCropper = () => {
+    setCropperState(null);
+  };
+
+  const applyCroppedImage = async () => {
+    if (!cropperState) {
+      return;
+    }
+
+    try {
+      const croppedDataUrl = await cropImageToDataUrl(cropperState.source, cropperState);
+      setFormData((current) => ({ ...current, [cropperState.field]: croppedDataUrl }));
+      setMessageTone("success");
+      setMessage(
+        `${cropperState.kind === "favicon" ? "Favicon" : "ERP icon"} cropped successfully. Save settings to apply the updated image.`
+      );
+      closeCropper();
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.message || "Unable to crop the selected image.");
+    }
+  };
+
+  const applyLetterMark = (field) => {
+    const rawValue = field === "favicon" ? faviconLetterInput : logoLetterInput;
+    const maxLength = field === "favicon" ? 1 : 2;
+    const cleanedValue = sanitizeLetterMark(rawValue, maxLength);
+
+    if (!cleanedValue) {
+      setMessageTone("error");
+      setMessage(`Please enter ${field === "favicon" ? "one" : "one or two"} English letter${field === "favicon" ? "" : "s"} first.`);
+      return;
+    }
+
+    const dataUrl = createLetterMarkDataUrl({
+      text: cleanedValue,
+      primaryColor: formData.primaryColor || "#0f766e",
+      secondaryColor: formData.secondaryColor || "#14b8a6",
+      shape: field === "favicon" ? "favicon" : "rounded-square",
+    });
+
+    setFormData((current) => ({ ...current, [field]: dataUrl }));
+    setMessageTone("success");
+    setMessage(`${field === "favicon" ? "Favicon" : "ERP icon"} letter mark applied. Save settings to use it across the ERP.`);
   };
 
   const handleAcademicCheckbox = (instituteType, field, value, checked) => {
@@ -305,6 +513,8 @@ const GlobalUISettings = () => {
   const schoolLevelsCount = (ac.school?.allowedSchoolLevels || []).length;
   const collegeLevelsCount = (ac.college?.allowedSchoolLevels || []).length + (ac.college?.allowedProgramLevels || []).length;
   const uniLevelsCount = (ac.university?.allowedProgramLevels || []).length;
+  const brandUploadCardClass =
+    "rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/70";
 
   return (
     <section className="space-y-6">
@@ -332,9 +542,165 @@ const GlobalUISettings = () => {
                 Change this once and every connected branding area like the login page, sidebar, navbar, admin dashboard, and browser tab title will use the new name.
               </p>
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Logo URL</label>
-              <input name="logo" value={formData.logo || ""} onChange={handleChange} className={inputClassName} />
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-sm font-medium text-slate-700">Brand Assets</label>
+              <div className="grid gap-4 xl:grid-cols-2">
+                <div className={brandUploadCardClass}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">ERP Icon / Logo</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        Upload any size image, crop it square, and use it across branding areas or keep a hosted image URL.
+                      </p>
+                    </div>
+                    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                      {formData.logo ? (
+                        <img src={formData.logo} alt="ERP icon preview" className="h-full w-full object-cover" />
+                      ) : (
+                        <FiImage className="text-slate-400" size={20} />
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <input
+                      id="global-ui-logo-upload"
+                      type="file"
+                      name="logo"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="global-ui-logo-upload"
+                      className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    >
+                      <FiUploadCloud size={15} />
+                      Upload ERP Icon
+                    </label>
+                    <span className="text-xs text-slate-400">Crop before apply</span>
+                    {formData.logo ? (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((current) => ({ ...current, logo: "" }))}
+                        className="rounded-2xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                      Letter Logo
+                    </label>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <input
+                        type="text"
+                        value={logoLetterInput}
+                        onChange={(event) => setLogoLetterInput(sanitizeLetterMark(event.target.value, 2))}
+                        placeholder="E or ER"
+                        className={inputClassName}
+                        maxLength={2}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => applyLetterMark("logo")}
+                        className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                      >
+                        Apply Letter Logo
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">Use one or two English letters for a clean monogram logo.</p>
+                  </div>
+                  <div className="mt-4">
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Logo URL</label>
+                    <input
+                      name="logo"
+                      value={formData.logo || ""}
+                      onChange={handleChange}
+                      className={inputClassName}
+                      placeholder="https://example.com/erp-icon.png"
+                    />
+                  </div>
+                </div>
+
+                <div className={brandUploadCardClass}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">Browser Favicon</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        Upload any large image, crop it square, and it will be optimized for the browser tab icon.
+                      </p>
+                    </div>
+                    <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                      {formData.favicon ? (
+                        <img src={formData.favicon} alt="Favicon preview" className="h-full w-full object-cover" />
+                      ) : (
+                        <FiImage className="text-slate-400" size={20} />
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <input
+                      id="global-ui-favicon-upload"
+                      type="file"
+                      name="favicon"
+                      accept="image/png,image/x-icon,image/svg+xml,image/jpeg,image/webp"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="global-ui-favicon-upload"
+                      className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    >
+                      <FiUploadCloud size={15} />
+                      Upload Favicon
+                    </label>
+                    <span className="text-xs text-slate-400">Large image supported</span>
+                    {formData.favicon ? (
+                      <button
+                        type="button"
+                        onClick={() => setFormData((current) => ({ ...current, favicon: "" }))}
+                        className="rounded-2xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-800">
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                      Letter Favicon
+                    </label>
+                    <div className="flex flex-col gap-3 sm:flex-row">
+                      <input
+                        type="text"
+                        value={faviconLetterInput}
+                        onChange={(event) => setFaviconLetterInput(sanitizeLetterMark(event.target.value, 1))}
+                        placeholder="E"
+                        className={inputClassName}
+                        maxLength={1}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => applyLetterMark("favicon")}
+                        className="rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                      >
+                        Apply Letter Favicon
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">Use a single bold English letter for the browser tab icon.</p>
+                  </div>
+                  <div className="mt-4">
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Favicon URL</label>
+                    <input
+                      name="favicon"
+                      value={formData.favicon || ""}
+                      onChange={handleChange}
+                      className={inputClassName}
+                      placeholder="https://example.com/favicon.ico"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Primary Color</label>
@@ -685,6 +1051,25 @@ const GlobalUISettings = () => {
             </div>
             <div className="space-y-4 p-6">
               <div className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+                <span>Brand assets</span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      formData.logo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {formData.logo ? "ERP icon ready" : "ERP icon pending"}
+                  </span>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      formData.favicon ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {formData.favicon ? "Favicon ready" : "Favicon pending"}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
                 <span>Captcha on login</span>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.captchaEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
                   {formData.captchaEnabled ? "Enabled" : "Disabled"}
@@ -753,6 +1138,142 @@ const GlobalUISettings = () => {
           onSelect={handleIconSelect}
           onClose={() => setIconPickerOpen(false)}
         />
+      )}
+
+      {cropperState && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-4xl rounded-[2rem] bg-white p-6 shadow-2xl dark:bg-slate-950">
+            <div className="flex flex-col gap-6 lg:flex-row">
+              <div className="lg:w-[380px]">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
+                  {cropperState.kind === "favicon" ? "Favicon Crop" : "ERP Icon Crop"}
+                </p>
+                <h3 className="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">
+                  Fit the image exactly how you want
+                </h3>
+                <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                  Any image size is supported. Move and zoom the crop area, then apply the square output for crisp branding.
+                </p>
+
+                <div className="mt-6 space-y-5 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Zoom</label>
+                    <input
+                      type="range"
+                      min="1"
+                      max="3.5"
+                      step="0.05"
+                      value={cropperState.zoom}
+                      onChange={(event) =>
+                        setCropperState((current) => ({ ...current, zoom: Number(event.target.value) }))
+                      }
+                      className="w-full accent-teal-600"
+                    />
+                    <p className="mt-2 text-xs text-slate-500">Zoom: {cropperState.zoom.toFixed(2)}x</p>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Horizontal Position</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={cropperState.positionX}
+                      onChange={(event) =>
+                        setCropperState((current) => ({ ...current, positionX: Number(event.target.value) }))
+                      }
+                      className="w-full accent-teal-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-200">Vertical Position</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={cropperState.positionY}
+                      onChange={(event) =>
+                        setCropperState((current) => ({ ...current, positionY: Number(event.target.value) }))
+                      }
+                      className="w-full accent-teal-600"
+                    />
+                  </div>
+
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
+                    <div className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200">
+                      <FiMove size={14} />
+                      Position guide
+                    </div>
+                    <p className="mt-2 leading-5">
+                      Best result ke liye subject ko square frame ke center me rakho. Favicon ke liye simple bold mark sabse clean dikhta hai.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex-1">
+                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5 dark:border-slate-800 dark:bg-slate-900">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Square Crop Preview</p>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{cropperState.fileName}</p>
+                    </div>
+                    <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-white dark:bg-white dark:text-slate-900">
+                      {cropperState.kind}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 flex flex-col gap-5 xl:flex-row xl:items-center">
+                    <div className="mx-auto w-full max-w-[360px]">
+                      <div className="relative aspect-square overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-200 shadow-inner dark:border-slate-700 dark:bg-slate-800">
+                        <div className="absolute inset-0" style={cropPreviewStyle} />
+                        <div className="pointer-events-none absolute inset-0 border-[10px] border-white/35" />
+                        <div className="pointer-events-none absolute inset-6 rounded-[1.35rem] border border-dashed border-white/80" />
+                      </div>
+                    </div>
+
+                    <div className="grid flex-1 gap-4 sm:grid-cols-2">
+                      <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Large Preview</p>
+                        <div className="mt-3 h-28 w-28 overflow-hidden rounded-[1.5rem] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                          <div className="h-full w-full" style={cropPreviewStyle} />
+                        </div>
+                      </div>
+                      <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Favicon Size</p>
+                        <div className="mt-3 flex h-28 w-28 items-center justify-center rounded-[1.5rem] border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
+                          <div className="h-14 w-14 overflow-hidden rounded-2xl ring-1 ring-slate-300 dark:ring-slate-600">
+                            <div className="h-full w-full" style={cropPreviewStyle} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeCropper}
+                    className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={applyCroppedImage}
+                    className="rounded-2xl bg-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-teal-500"
+                  >
+                    Apply Crop
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   );

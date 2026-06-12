@@ -98,6 +98,7 @@ import StaffProfile from "./pages/staff/Profile";
 import CreateInstitute from "./pages/superadmin/CreateInstitute";
 import CreateInstituteAdmin from "./pages/superadmin/CreateInstituteAdmin";
 import EditInstitute from "./pages/superadmin/EditInstitute";
+import GlobalSettings from "./pages/superadmin/GlobalSettings";
 import GlobalUISettings from "./pages/superadmin/GlobalUISettings";
 import InstituteDetails from "./pages/superadmin/InstituteDetails";
 import Institutes from "./pages/superadmin/Institutes";
@@ -186,7 +187,8 @@ const App = () => {
             <Route path="/super-admin/admins" element={<Admins />} />
             <Route path="/super-admin/admins/create" element={<CreateAdmin />} />
             <Route path="/super-admin/admins/:id/edit" element={<EditAdmin />} />
-            <Route path="/super-admin/settings" element={<Settings />} />
+            <Route path="/super-admin/profile" element={<Settings />} />
+            <Route path="/super-admin/settings" element={<GlobalSettings />} />
             <Route path="/super-admin/audit-log-settings" element={<AuditLogSettings />} />
             <Route path="/super-admin/notifications" element={<Notifications />} />
           </Route>

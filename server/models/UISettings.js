@@ -16,6 +16,10 @@ const uiSettingsSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    favicon: {
+      type: String,
+      default: "",
+    },
     primaryColor: {
       type: String,
       default: "#0f766e",

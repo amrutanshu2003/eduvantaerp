@@ -19,6 +19,7 @@ router.post("/secure-recovery", recoverPrivilegedAccountPassword);
 router.get("/me", protect, getProfile);
 router.put("/change-password", protect, changePassword);
 router.put("/update-profile", protect, updateProfile);
+router.patch("/change-password", protect, changePassword);
 router.put("/reset-managed-password", protect, allowRoles("admin", "superadmin"), resetManagedUserPassword);
 
 export default router;

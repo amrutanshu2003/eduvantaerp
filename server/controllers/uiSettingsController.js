@@ -21,6 +21,7 @@ const defaultGlobalSettings = {
   instituteId: null,
   appName: "Eduvanta ERP",
   logo: "",
+  favicon: "",
   primaryColor: "#0f766e",
   secondaryColor: "#f59e0b",
   sidebarColor: "#0f172a",
@@ -62,6 +63,7 @@ const updateGlobalUISettings = async (req, res, next) => {
     const payload = {
       appName: req.body.appName?.trim() || defaultGlobalSettings.appName,
       logo: req.body.logo?.trim() || "",
+      favicon: req.body.favicon?.trim() || "",
       primaryColor: req.body.primaryColor?.trim() || defaultGlobalSettings.primaryColor,
       secondaryColor: req.body.secondaryColor?.trim() || defaultGlobalSettings.secondaryColor,
       sidebarColor: req.body.sidebarColor?.trim() || defaultGlobalSettings.sidebarColor,

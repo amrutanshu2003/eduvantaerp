@@ -4,20 +4,7 @@ import api from "../../api/axios";
 import LoadingBlock from "../../components/LoadingBlock";
 import AcademicGroupForm from "./AcademicGroupForm";
 import { useAuth } from "../../context/AuthContext";
-
-const defaultForm = {
-  instituteId: "",
-  schoolLevel: "",
-  className: "",
-  programLevel: "",
-  department: "",
-  course: "",
-  semester: "",
-  year: "",
-  batch: "",
-  section: "",
-  status: "active",
-};
+import { buildAcademicGroupPayload, defaultForm, resetStructureFields, validateAcademicGroupForm } from "./academicGroupFormUtils";
 
 const CreateAcademicGroup = () => {
   const navigate = useNavigate();
@@ -27,6 +14,7 @@ const CreateAcademicGroup = () => {
   const [loading, setLoading] = useState(user?.role === "superadmin");
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     const fetchInstitutes = async () => {
@@ -36,7 +24,11 @@ const CreateAcademicGroup = () => {
         const activeInstitutes = data.institutes.filter((inst) => inst.status === "active");
         setInstitutes(activeInstitutes);
         if (activeInstitutes.length > 0) {
-          setFormData((curr) => ({ ...curr, instituteId: activeInstitutes[0]._id }));
+          setFormData((curr) => ({
+            ...curr,
+            instituteId: activeInstitutes[0]._id,
+            instituteType: activeInstitutes[0].instituteType || "",
+          }));
         }
       } catch (error) {
         setErrorMessage("Unable to load active institutes");
@@ -47,15 +39,48 @@ const CreateAcademicGroup = () => {
     fetchInstitutes();
   }, [user]);
 
-  const handleChange = (event) => setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const instituteType =
+    user?.role === "superadmin"
+      ? institutes.find((inst) => inst._id === formData.instituteId)?.instituteType || formData.instituteType || ""
+      : user?.institute?.instituteType || "school";
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFieldErrors((current) => ({ ...current, [name]: "" }));
+
+    if (name === "instituteId") {
+      const selectedInstitute = institutes.find((inst) => inst._id === value);
+      setFormData((current) => ({
+        ...resetStructureFields(current, selectedInstitute?.instituteType || ""),
+        instituteId: value,
+        status: current.status || "active",
+      }));
+      return;
+    }
+
+    setFormData((current) => ({ ...current, [name]: value }));
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setSubmitting(true);
     setErrorMessage("");
+    const nextFieldErrors = validateAcademicGroupForm({
+      formData,
+      instituteType,
+      requiresInstitute: user?.role === "superadmin",
+    });
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setErrorMessage("Please complete required academic structure fields.");
+      return;
+    }
+
+    setSubmitting(true);
 
     try {
-      const { data } = await api.post("/academic-groups", formData);
+      const payload = buildAcademicGroupPayload(formData, instituteType);
+      const { data } = await api.post("/academic-groups", payload);
       window.alert("Academic group created successfully");
       navigate(`/admin/academic-groups/${data.academicGroup._id}`);
     } catch (error) {
@@ -72,13 +97,15 @@ const CreateAcademicGroup = () => {
   return (
     <AcademicGroupForm
       title="Create Academic Group"
-      description="Add a new academic structure for this institute."
+      description="Configure class, semester, batch or program structure for the selected institute."
       formData={formData}
       onChange={handleChange}
       onSubmit={handleSubmit}
       submitting={submitting}
       errorMessage={errorMessage}
+      fieldErrors={fieldErrors}
       institutes={institutes}
+      instituteType={instituteType}
     />
   );
 };

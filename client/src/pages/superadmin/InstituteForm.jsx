@@ -1,152 +1,412 @@
+import {
+  FiArrowRight,
+  FiBookmark,
+  FiBriefcase,
+  FiCheckCircle,
+  FiCreditCard,
+  FiGlobe,
+  FiHash,
+  FiImage,
+  FiMail,
+  FiMapPin,
+  FiPhone,
+  FiShield,
+  FiUser,
+} from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
 import { useUISettings } from "../../context/UISettingsContext";
 
 const inputClassName =
-  "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400";
+  "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500";
+
+const sectionCardClass = "rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900";
+const softPanelClass = "rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60";
+const statCardClass =
+  "rounded-[1.25rem] border border-white/40 bg-white/70 p-4 backdrop-blur dark:border-white/10 dark:bg-slate-950/35";
+
+const instituteTypeMeta = {
+  school: {
+    label: "School",
+    description: "Best for K-12 campuses, day schools, and academic centers.",
+  },
+  college: {
+    label: "College",
+    description: "Designed for undergraduate and diploma-driven institutions.",
+  },
+  university: {
+    label: "University",
+    description: "Ideal for multi-program institutes with deeper administration.",
+  },
+};
+
+const planTone = {
+  free: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200",
+  basic: "bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300",
+  premium: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300",
+};
+
+const paymentTone = {
+  trial: "bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300",
+  paid: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+  unpaid: "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300",
+  expired: "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200",
+};
+
+const getInitials = (value = "") =>
+  value
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() || "")
+    .join("") || "IN";
+
+const renderField = ({ label, icon: Icon, children }) => (
+  <div>
+    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
+    <div className="relative">
+      <span className="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center text-slate-400">
+        <Icon size={17} />
+      </span>
+      {children}
+    </div>
+  </div>
+);
 
 const InstituteForm = ({ title, description, formData, onChange, onSubmit, submitting, errorMessage, submitLabel }) => {
   const { settings, getButtonRadius } = useUISettings();
+  const instituteMeta = instituteTypeMeta[formData.instituteType] || instituteTypeMeta.school;
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <h1 className="text-3xl font-semibold text-ink">{title}</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+      <div
+        className={`${sectionCardClass} overflow-hidden`}
+        style={{
+          backgroundImage: `radial-gradient(circle at top right, ${settings.primaryColor}16, transparent 34%), radial-gradient(circle at bottom left, ${settings.secondaryColor}14, transparent 30%)`,
+        }}
+      >
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-teal-700 dark:text-emerald-300">Institution Setup</p>
+            <h1 className="mt-3 text-4xl font-semibold text-ink dark:text-white">{title}</h1>
+            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{description}</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "Type", value: instituteMeta.label, icon: FiGlobe },
+              { label: "Plan", value: formData.plan || "free", icon: FiCreditCard },
+              { label: "Status", value: formData.status || "active", icon: FiCheckCircle },
+            ].map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className={statCardClass}>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
+                    <Icon className="text-slate-400" size={15} />
+                  </div>
+                  <p className="mt-3 text-base font-semibold capitalize text-ink dark:text-white">{item.value}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      <form onSubmit={onSubmit} className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <div className="grid gap-5 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Institute Name</label>
-            <input name="name" value={formData.name} onChange={onChange} className={inputClassName} required />
+      <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
+        <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+          <div className={sectionCardClass}>
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold text-ink dark:text-white">Core Identity</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Define the public-facing identity and leadership reference for this institute.</p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {renderField({
+                label: "Institute Name",
+                icon: FiBriefcase,
+                children: <input name="name" value={formData.name} onChange={onChange} className={`${inputClassName} pl-12`} required />,
+              })}
+
+              {renderField({
+                label: "Institute Code",
+                icon: FiHash,
+                children: <input name="instituteCode" value={formData.instituteCode} onChange={onChange} className={`${inputClassName} pl-12 uppercase`} required />,
+              })}
+
+              {renderField({
+                label: "Institute Type",
+                icon: FiGlobe,
+                children: (
+                  <select name="instituteType" value={formData.instituteType} onChange={onChange} className={`${inputClassName} pl-12`}>
+                    <option value="school">School</option>
+                    <option value="college">College</option>
+                    <option value="university">University</option>
+                  </select>
+                ),
+              })}
+
+              {renderField({
+                label: "Head Name",
+                icon: FiUser,
+                children: <input name="headName" value={formData.headName} onChange={onChange} className={`${inputClassName} pl-12`} required />,
+              })}
+            </div>
           </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Institute Code</label>
-            <input name="instituteCode" value={formData.instituteCode} onChange={onChange} className={inputClassName} required />
-          </div>
+          <div className={sectionCardClass}>
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold text-ink dark:text-white">Contact & Branding</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Add communication details, address, and institute logo for a polished setup.</p>
+            </div>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Institute Type</label>
-            <select name="instituteType" value={formData.instituteType} onChange={onChange} className={inputClassName}>
-              <option value="school">School</option>
-              <option value="college">College</option>
-              <option value="university">University</option>
-            </select>
-          </div>
+            <div className="grid gap-5 md:grid-cols-2">
+              {renderField({
+                label: "Email",
+                icon: FiMail,
+                children: <input name="email" type="email" value={formData.email} onChange={onChange} className={`${inputClassName} pl-12`} required />,
+              })}
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Head Name</label>
-            <input name="headName" value={formData.headName} onChange={onChange} className={inputClassName} required />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
-            <input name="email" type="email" value={formData.email} onChange={onChange} className={inputClassName} required />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Phone</label>
-            <input name="phone" maxLength={10} pattern="[0-9]{10}" title="Phone number must be exactly 10 digits" value={formData.phone} onChange={onChange} className={inputClassName} />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Plan</label>
-            <select name="plan" value={formData.plan} onChange={onChange} className={inputClassName}>
-              <option value="free">Free</option>
-              <option value="basic">Basic</option>
-              <option value="premium">Premium</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Payment Status</label>
-            <select name="paymentStatus" value={formData.paymentStatus} onChange={onChange} className={inputClassName}>
-              <option value="trial">Trial</option>
-              <option value="paid">Paid</option>
-              <option value="unpaid">Unpaid</option>
-              <option value="expired">Expired</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Status</label>
-            <select name="status" value={formData.status} onChange={onChange} className={inputClassName}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Logo</label>
-            <div className="flex items-center gap-4">
-              {formData.logo ? (
-                <img
-                  src={formData.logo}
-                  alt="Logo Preview"
-                  className="h-16 w-16 rounded-2xl object-cover ring-1 ring-slate-200"
-                />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 font-semibold text-xs border border-dashed border-slate-300">
-                  No Logo
-                </div>
-              )}
-              <div className="flex-1">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const url = URL.createObjectURL(file);
-                      onChange({ target: { name: "logo", value: url } });
-                    }
-                  }}
-                  className="hidden"
-                  id="logo-upload-input"
-                />
-                <label
-                  htmlFor="logo-upload-input"
-                  className="inline-block cursor-pointer rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
-                >
-                  Upload Image
-                </label>
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-xs text-slate-400 whitespace-nowrap">Or URL:</span>
+              {renderField({
+                label: "Phone",
+                icon: FiPhone,
+                children: (
                   <input
-                    name="logo"
-                    placeholder="https://example.com/logo.png"
-                    value={formData.logo && !formData.logo.startsWith("blob:") ? formData.logo : ""}
+                    name="phone"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
+                    title="Phone number must be exactly 10 digits"
+                    value={formData.phone}
                     onChange={onChange}
-                    className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs outline-none focus:border-slate-400"
+                    className={`${inputClassName} pl-12`}
+                  />
+                ),
+              })}
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Logo</label>
+                <div className={`${softPanelClass} flex flex-col gap-4 sm:flex-row sm:items-center`}>
+                  {formData.logo ? (
+                    <img
+                      src={formData.logo}
+                      alt="Logo Preview"
+                      className="h-20 w-20 rounded-3xl object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-slate-100 text-sm font-semibold text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
+                      {getInitials(formData.name)}
+                    </div>
+                  )}
+
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const url = URL.createObjectURL(file);
+                            onChange({ target: { name: "logo", value: url } });
+                          }
+                        }}
+                        className="hidden"
+                        id="logo-upload-input"
+                      />
+                      <label
+                        htmlFor="logo-upload-input"
+                        className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <FiImage size={14} />
+                        <span>Upload Logo</span>
+                      </label>
+                      <span className="text-xs text-slate-400">PNG, JPG or a public URL</span>
+                    </div>
+
+                    <div className="relative mt-3">
+                      <span className="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center text-slate-400">
+                        <FiImage size={16} />
+                      </span>
+                      <input
+                        name="logo"
+                        placeholder="https://example.com/logo.png"
+                        value={formData.logo && !formData.logo.startsWith("blob:") ? formData.logo : ""}
+                        onChange={onChange}
+                        className={`${inputClassName} pl-12`}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-0 top-0 flex h-12 w-12 items-center justify-center text-slate-400">
+                    <FiMapPin size={17} />
+                  </span>
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={onChange}
+                    rows="4"
+                    className={`${inputClassName} resize-none pl-12`}
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-slate-700">Address</label>
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={onChange}
-              rows="4"
-              className={`${inputClassName} resize-none`}
-            />
+          <div className={sectionCardClass}>
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold text-ink dark:text-white">Subscription & Status</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Control the commercial plan, payment standing, and operational status.</p>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-3">
+              {renderField({
+                label: "Plan",
+                icon: FiBookmark,
+                children: (
+                  <select name="plan" value={formData.plan} onChange={onChange} className={`${inputClassName} pl-12`}>
+                    <option value="free">Free</option>
+                    <option value="basic">Basic</option>
+                    <option value="premium">Premium</option>
+                  </select>
+                ),
+              })}
+
+              {renderField({
+                label: "Payment Status",
+                icon: FiCreditCard,
+                children: (
+                  <select name="paymentStatus" value={formData.paymentStatus} onChange={onChange} className={`${inputClassName} pl-12`}>
+                    <option value="trial">Trial</option>
+                    <option value="paid">Paid</option>
+                    <option value="unpaid">Unpaid</option>
+                    <option value="expired">Expired</option>
+                  </select>
+                ),
+              })}
+
+              {renderField({
+                label: "Status",
+                icon: FiShield,
+                children: (
+                  <select name="status" value={formData.status} onChange={onChange} className={`${inputClassName} pl-12`}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                ),
+              })}
+            </div>
           </div>
         </div>
 
-        <div className="mt-6 space-y-4">
-          <AlertMessage tone="error" message={errorMessage} />
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-            className="px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {submitting ? "Saving..." : submitLabel}
-          </button>
+        <div className="space-y-6">
+          <div className={sectionCardClass}>
+            <h2 className="text-xl font-semibold text-ink dark:text-white">Live Preview</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">A quick summary of how this institute setup currently looks.</p>
+
+            <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/70">
+              <div
+                className="px-5 py-5"
+                style={{
+                  background: `linear-gradient(135deg, ${settings.primaryColor}22, ${settings.secondaryColor}12)`,
+                }}
+              >
+                <div className="flex items-start gap-4">
+                  {formData.logo ? (
+                    <img
+                      src={formData.logo}
+                      alt="Institute Logo"
+                      className="h-16 w-16 rounded-3xl object-cover ring-1 ring-white/60"
+                    />
+                  ) : (
+                    <div
+                      className="flex h-16 w-16 items-center justify-center rounded-3xl text-lg font-bold text-white"
+                      style={{ background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` }}
+                    >
+                      {getInitials(formData.name)}
+                    </div>
+                  )}
+
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-300">Institute Preview</p>
+                    <h3 className="mt-2 truncate text-xl font-semibold text-ink dark:text-white">{formData.name || "Institute Name"}</h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      {[formData.instituteCode || "CODE", instituteMeta.label].join(" • ")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 p-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className={softPanelClass}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Head</p>
+                    <p className="mt-2 text-sm font-medium text-ink dark:text-white">{formData.headName || "Not assigned"}</p>
+                  </div>
+                  <div className={softPanelClass}>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Contact</p>
+                    <p className="mt-2 text-sm font-medium text-ink dark:text-white">{formData.email || "No email added"}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${planTone[formData.plan] || planTone.free}`}>
+                    {formData.plan}
+                  </span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${paymentTone[formData.paymentStatus] || paymentTone.trial}`}>
+                    {formData.paymentStatus}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                    {formData.status}
+                  </span>
+                </div>
+
+                <div className={softPanelClass}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Type Notes</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">{instituteMeta.description}</p>
+                </div>
+
+                <div className={softPanelClass}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Readiness Check</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                        {formData.name && formData.email && formData.headName
+                          ? "Core setup details are ready. You can submit this institute now."
+                          : "Add institute name, head name, and email to complete the key setup details."}
+                      </p>
+                    </div>
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white"
+                      style={{ background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` }}
+                    >
+                      <FiArrowRight size={16} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={sectionCardClass}>
+            <h2 className="text-xl font-semibold text-ink dark:text-white">Submit</h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Review the summary, then create the institute when ready.</p>
+
+            <div className="mt-6 space-y-4">
+              <AlertMessage tone="error" message={errorMessage} />
+              <button
+                type="submit"
+                disabled={submitting}
+                style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
+                className="w-full px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {submitting ? "Saving..." : submitLabel}
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </section>

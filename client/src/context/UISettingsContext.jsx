@@ -3,11 +3,14 @@ import api from "../api/axios";
 import { normalizeCustomSidebarItem, serializeCustomSidebarItem } from "../utils/iconRegistry";
 
 const UISettingsContext = createContext(null);
+const defaultFavicon =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%230f766e'/%3E%3Cstop offset='100%25' stop-color='%2314b8a6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Cpath d='M19 20h17c7.2 0 12 4.4 12 11.1 0 4.8-2.4 8.3-6.6 10.1L48 51H38.4l-5.3-8.3h-5V51H19V20zm9.1 7.4v8h7c2.9 0 4.5-1.5 4.5-4s-1.6-4-4.5-4h-7z' fill='white'/%3E%3C/svg%3E";
 
 const defaultSettings = {
   instituteId: null,
   appName: "Eduvanta ERP",
   logo: "",
+  favicon: "",
   primaryColor: "#0f766e",
   secondaryColor: "#f59e0b",
   sidebarColor: "#0f172a",
@@ -110,6 +113,27 @@ const getButtonRadius = (buttonStyle) => {
   return radiusMap[buttonStyle] || radiusMap.rounded;
 };
 
+const applyFaviconToDocument = (favicon) => {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const head = document.head || document.getElementsByTagName("head")[0];
+  if (!head) {
+    return;
+  }
+
+  let faviconLink = document.querySelector("link[rel='icon']");
+  if (!faviconLink) {
+    faviconLink = document.createElement("link");
+    faviconLink.setAttribute("rel", "icon");
+    head.appendChild(faviconLink);
+  }
+
+  faviconLink.setAttribute("type", "image/svg+xml");
+  faviconLink.setAttribute("href", favicon?.trim() || defaultFavicon);
+};
+
 export const UISettingsProvider = ({ children }) => {
   const [localThemeMode, setLocalThemeMode] = useState(() => {
     return localStorage.getItem("themeMode") || null;
@@ -152,6 +176,16 @@ export const UISettingsProvider = ({ children }) => {
       // Ignore storage write failures; the in-memory title still updates.
     }
   }, [settings.appName]);
+
+  useEffect(() => {
+    applyFaviconToDocument(settings.favicon || "");
+
+    try {
+      localStorage.setItem("faviconCache", settings.favicon?.trim() || "");
+    } catch (error) {
+      // Ignore storage write failures; favicon still updates for the current session.
+    }
+  }, [settings.favicon]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
