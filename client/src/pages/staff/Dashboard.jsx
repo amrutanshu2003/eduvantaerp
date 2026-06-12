@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import LatestNoticesPanel from "../../components/LatestNoticesPanel";
+import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { formatLabel } from "../../utils/formatters";
@@ -24,13 +25,6 @@ import {
   FiHome,
   FiInfo,
 } from "react-icons/fi";
-
-const StatCardSkeleton = () => (
-  <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card">
-    <div className="skeleton-block h-3 w-24 rounded-full" />
-    <div className="skeleton-block mt-5 h-9 w-16 rounded-xl" />
-  </div>
-);
 
 const CARD_COLORS = [
   "bg-blue-500", "bg-emerald-500", "bg-purple-500", "bg-orange-500",
@@ -117,17 +111,14 @@ const Dashboard = () => {
           : cards.map((card, index) => {
               const Icon = getStatIcon(card.label);
               return (
-                <Link
+                <StatCard
                   key={card.label}
                   to={CARD_ROUTES[index] || "#"}
-                  className={`${CARD_COLORS[index % CARD_COLORS.length]} rounded-[1.75rem] p-6 shadow-card transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden`}
-                >
-                  <div className="absolute right-5 top-5 text-white/25 text-3xl">
-                    <Icon />
-                  </div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/90">{card.label}</p>
-                  <h3 className="mt-4 text-4xl font-bold tracking-tight text-white">{card.value}</h3>
-                </Link>
+                  color={CARD_COLORS[index % CARD_COLORS.length]}
+                  label={card.label}
+                  value={card.value}
+                  icon={Icon}
+                />
               );
             })}
       </div>

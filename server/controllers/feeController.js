@@ -5,6 +5,7 @@ import createAuditLog from "../utils/audit.js";
 import { getFeeStatus, sanitizeFee } from "../utils/feeUtils.js";
 import { ensureParentStudentAccess, getStudentProfileForUser } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const populateFee = (query) =>
   query
@@ -100,6 +101,26 @@ const createFee = async (req, res, next) => {
     });
 
     await saveFee(fee);
+
+    // Notify student and parent when fee is created
+    const studentForNotification = await Student.findById(fee.studentId).select("userId");
+    if (studentForNotification) {
+      const recipientUserIds = [studentForNotification.userId];
+      const parentUserIds = await getParentUserIdsForStudent(fee.studentId);
+      recipientUserIds.push(...parentUserIds);
+
+      await createNotification({
+        instituteId,
+        recipientUserId: recipientUserIds,
+        title: `New Fee: ${fee.title}`,
+        message: `A new fee of ${fee.amount} has been created. Due date: ${new Date(fee.dueDate).toLocaleDateString()}`,
+        type: "fees",
+        link: `/student/fees`,
+        priority: fee.dueDate && new Date(fee.dueDate) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? "high" : "normal",
+        createdBy: req.user._id,
+        metadata: { feeId: fee._id },
+      });
+    }
 
     await createAuditLog({
       req,
@@ -338,6 +359,26 @@ const markFeePayment = async (req, res, next) => {
     fee.updatedBy = req.user._id;
 
     await saveFee(fee);
+
+    // Notify student and parent when payment is marked
+    const studentForPayment = await Student.findById(fee.studentId).select("userId");
+    if (studentForPayment) {
+      const recipientUserIds = [studentForPayment.userId];
+      const parentUserIds = await getParentUserIdsForStudent(fee.studentId);
+      recipientUserIds.push(...parentUserIds);
+
+      await createNotification({
+        instituteId: fee.instituteId,
+        recipientUserId: recipientUserIds,
+        title: `Payment Received: ${fee.title}`,
+        message: `Payment of ${fee.paidAmount} has been recorded for ${fee.title}. Status: ${fee.status}`,
+        type: "fees",
+        link: `/student/fees`,
+        priority: "success",
+        createdBy: req.user._id,
+        metadata: { feeId: fee._id },
+      });
+    }
 
     await createAuditLog({
       req,

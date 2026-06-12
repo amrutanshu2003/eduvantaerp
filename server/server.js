@@ -35,6 +35,7 @@ import transportRoutes from "./routes/transportRoutes.js";
 import uiSettingsRoutes from "./routes/uiSettingsRoutes.js";
 import marksRoutes from "./routes/marksRoutes.js";
 import auditLogSettingsRoutes from "./routes/auditLogSettingsRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import { purgeExpiredRecycleBinData } from "./utils/recycleBin.js";
 import { autoDeleteAuditLogs } from "./utils/auditLogCleanup.js";
 import { errorHandler, notFound } from "./middleware/errorMiddleware.js";
@@ -141,6 +142,7 @@ app.use("/api/timetables", timetableRoutes);
 app.use("/api/transport", transportRoutes);
 app.use("/api/ui-settings", uiSettingsRoutes);
 app.use("/api/audit-logs", auditLogSettingsRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FiBookOpen, FiCalendar, FiCheckSquare, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPlusSquare, FiSettings, FiShield, FiTrash2, FiTruck, FiUser, FiUsers, FiPackage, FiChevronDown, FiChevronRight } from "react-icons/fi";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
 import { useLabelSettings } from "../context/LabelSettingsContext";
@@ -388,6 +388,56 @@ const Sidebar = () => {
               : []),
           ]
         : defaultMenuItems.map((item) => ({ ...item, path: `${basePath}/${item.suffix}` }));
+
+  const location = useLocation();
+
+  useEffect(() => {
+    // If we are on a dashboard page, keep all sidebar groups collapsed
+    if (location.pathname.endsWith("/dashboard")) {
+      setCollapsedGroups({
+        core: true,
+        institute: true,
+        academics: true,
+        operations: true,
+        services: true,
+        system: true,
+      });
+      return;
+    }
+
+    const activeItem = menuItems
+      .filter((item) => item.path && location.pathname.startsWith(item.path))
+      .sort((a, b) => b.path.length - a.path.length)[0];
+    
+    if (activeItem) {
+      if (activeItem.label.toLowerCase() === "dashboard") {
+        setCollapsedGroups({
+          core: true,
+          institute: true,
+          academics: true,
+          operations: true,
+          services: true,
+          system: true,
+        });
+        return;
+      }
+
+      const activeGroup = getGroupForLabel(activeItem.label);
+      setCollapsedGroups((prev) => {
+        if (prev[activeGroup] === false) return prev;
+        return {
+          core: true,
+          institute: true,
+          academics: true,
+          operations: true,
+          services: true,
+          system: true,
+          [activeGroup]: false,
+        };
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   // Group items
   const groupedItems = {

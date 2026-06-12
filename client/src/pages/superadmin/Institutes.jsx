@@ -5,6 +5,7 @@ import AlertMessage from "../../components/AlertMessage";
 import EmptyState from "../../components/EmptyState";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import StatCard, { StatCardSkeleton } from "../../components/StatCard";
 import { useUISettings } from "../../context/UISettingsContext";
 import { FiHome, FiCheckSquare, FiBookOpen, FiLayers, FiUsers, FiClock, FiPlus } from "react-icons/fi";
 
@@ -26,32 +27,6 @@ const getIcon = (label) => {
   if (l.includes("trial") || l.includes("expired")) return FiClock;
   return FiHome;
 };
-
-// Colorful stat card (matches dashboard style)
-const StatCard = ({ label, value, detail, color, to }) => {
-  const Icon = getIcon(label);
-  return (
-    <Link
-      to={to}
-      className={`${color} rounded-[1.75rem] p-6 shadow-card transition-all duration-300 hover:scale-[1.02] hover:shadow-lg relative overflow-hidden`}
-    >
-      <div className="absolute right-5 top-5 text-white/25 text-3xl">
-        <Icon />
-      </div>
-      <p className="text-sm font-semibold uppercase tracking-[0.25em] text-white/90">{label}</p>
-      <h3 className="mt-4 text-4xl font-bold tracking-tight text-white">{value}</h3>
-      <p className="mt-3 text-sm font-medium text-white/90">{detail}</p>
-    </Link>
-  );
-};
-
-const StatCardSkeleton = () => (
-  <div className="skeleton-surface rounded-[1.75rem] p-6 shadow-card">
-    <div className="skeleton-block h-3 w-24 rounded-full" />
-    <div className="skeleton-block mt-5 h-9 w-16 rounded-xl" />
-    <div className="skeleton-block mt-3 h-3 w-40 rounded-full" />
-  </div>
-);
 
 const CARD_COLORS = [
   "bg-blue-500", "bg-emerald-500", "bg-purple-500",
@@ -176,14 +151,18 @@ const Institutes = () => {
           ? SKELETON_LABELS.map((label, i) => (
               <StatCardSkeleton key={label} />
             ))
-          : statCards.map((item, i) => (
-              <StatCard
-                key={item.label}
-                color={CARD_COLORS[i % CARD_COLORS.length]}
-                to={CARD_ROUTES[i]}
-                {...item}
-              />
-            ))}
+          : statCards.map((item, i) => {
+              const Icon = getIcon(item.label);
+              return (
+                <StatCard
+                  key={item.label}
+                  color={CARD_COLORS[i % CARD_COLORS.length]}
+                  to={CARD_ROUTES[i]}
+                  icon={Icon}
+                  {...item}
+                />
+              );
+            })}
       </div>
 
       <form onSubmit={handleSearch} className="grid gap-4 rounded-[1.75rem] bg-white p-6 shadow-card md:grid-cols-4">

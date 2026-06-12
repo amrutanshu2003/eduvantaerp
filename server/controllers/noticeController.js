@@ -4,6 +4,7 @@ import Student from "../models/Student.js";
 import createAuditLog from "../utils/audit.js";
 import { buildPublishedNoticeQuery, sanitizeNotice } from "../utils/noticeUtils.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { createNotification, getUserIdsByRole } from "../utils/notificationUtils.js";
 
 const populateNotice = (query) =>
   query
@@ -253,9 +254,46 @@ const updateNoticeStatus = async (req, res, next) => {
       throw new Error("Access denied for this notice");
     }
 
+    const previousStatus = notice.status;
     notice.status = status;
     notice.updatedBy = req.user._id;
     await notice.save();
+
+    // Create notifications when notice is published
+    if (status === "published" && previousStatus !== "published") {
+      let recipientUserIds = [];
+
+      if (notice.audience === "all") {
+        const roles = ["teacher", "student", "parent", "staff"];
+        for (const role of roles) {
+          const userIds = await getUserIdsByRole(role, notice.instituteId, notice.academicGroupId);
+          recipientUserIds.push(...userIds);
+        }
+      } else if (notice.audience === "academic_group" && notice.academicGroupId) {
+        const roles = ["teacher", "student"];
+        for (const role of roles) {
+          const userIds = await getUserIdsByRole(role, notice.instituteId, notice.academicGroupId);
+          recipientUserIds.push(...userIds);
+        }
+      } else {
+        const userIds = await getUserIdsByRole(notice.audience, notice.instituteId, notice.academicGroupId);
+        recipientUserIds.push(...userIds);
+      }
+
+      if (recipientUserIds.length > 0) {
+        await createNotification({
+          instituteId: notice.instituteId,
+          recipientUserId: recipientUserIds,
+          title: notice.title,
+          message: notice.description.substring(0, 200) + (notice.description.length > 200 ? "..." : ""),
+          type: "notice",
+          link: `/${req.user.role === "superadmin" ? "admin" : req.user.role}/notices/${notice._id}`,
+          priority: notice.priority,
+          createdBy: req.user._id,
+          metadata: { noticeId: notice._id },
+        });
+      }
+    }
 
     await createAuditLog({
       req,
