@@ -4,6 +4,7 @@ import Student from "../models/Student.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { ensureTeacherAcademicGroupAccess } from "../utils/roleAccess.js";
+import { createNotification, getUserIdsByRole, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const sanitizeExam = (exam) => ({
   _id: exam._id,
@@ -157,6 +158,35 @@ const updateExamStatus = async (req, res, next) => {
     }
     exam.status = req.body.status;
     await exam.save();
+
+    // Notify students and parents when exam is scheduled/published
+    if ((req.body.status === "scheduled" || req.body.status === "published") && exam.academicGroupId) {
+      const studentUserIds = await getUserIdsByRole("student", exam.instituteId, exam.academicGroupId);
+      if (studentUserIds.length > 0) {
+        const recipientUserIds = [...studentUserIds];
+        // Also notify parents
+        for (const studentId of studentUserIds) {
+          const student = await Student.findOne({ userId: studentId, instituteId: exam.instituteId, isDeleted: false }).select("_id");
+          if (student) {
+            const parentUserIds = await getParentUserIdsForStudent(student._id);
+            recipientUserIds.push(...parentUserIds);
+          }
+        }
+
+        await createNotification({
+          instituteId: exam.instituteId,
+          recipientUserId: recipientUserIds,
+          title: `Exam Scheduled: ${exam.examName}`,
+          message: `${exam.examType} exam scheduled from ${new Date(exam.startDate).toLocaleDateString()} to ${new Date(exam.endDate).toLocaleDateString()}`,
+          type: "exam",
+          link: `/student/exams`,
+          priority: exam.startDate && new Date(exam.startDate) < new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) ? "high" : "normal",
+          createdBy: req.user._id,
+          metadata: { examId: exam._id },
+        });
+      }
+    }
+
     await createAuditLog({
       req,
       instituteId: exam.instituteId,

@@ -12,6 +12,7 @@ import {
   getStudentProfileForUser,
 } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { createNotification, getUserIdsByRole } from "../utils/notificationUtils.js";
 
 const populateAssignment = (query) =>
   query
@@ -239,6 +240,24 @@ const updateAssignmentStatus = async (req, res, next) => {
     assignment.status = req.body.status;
     assignment.updatedBy = req.user._id;
     await assignment.save();
+
+    // Notify students when assignment is published
+    if (req.body.status === "published" && assignment.academicGroupId) {
+      const studentUserIds = await getUserIdsByRole("student", assignment.instituteId, assignment.academicGroupId);
+      if (studentUserIds.length > 0) {
+        await createNotification({
+          instituteId: assignment.instituteId,
+          recipientUserId: studentUserIds,
+          title: `New Assignment: ${assignment.title}`,
+          message: assignment.description.substring(0, 200) + (assignment.description.length > 200 ? "..." : ""),
+          type: "assignment",
+          link: `/student/assignments`,
+          priority: assignment.dueDate && new Date(assignment.dueDate) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) ? "high" : "normal",
+          createdBy: req.user._id,
+          metadata: { assignmentId: assignment._id },
+        });
+      }
+    }
 
     await createAuditLog({
       req,
@@ -490,6 +509,22 @@ const reviewAssignmentSubmission = async (req, res, next) => {
     submission.reviewedBy = req.user._id;
     submission.status = "reviewed";
     await submission.save();
+
+    // Notify student when submission is reviewed
+    const student = await Student.findById(submission.studentId).select("userId");
+    if (student) {
+      await createNotification({
+        instituteId: submission.instituteId,
+        recipientUserId: student.userId,
+        title: `Assignment Reviewed: ${assignment.title}`,
+        message: `Your assignment has been reviewed. Marks: ${submission.marksObtained}/${assignment.maxMarks || "N/A"}${submission.feedback ? `. Feedback: ${submission.feedback}` : ""}`,
+        type: "assignment",
+        link: `/student/assignments`,
+        priority: "normal",
+        createdBy: req.user._id,
+        metadata: { assignmentId: assignment._id, submissionId: submission._id },
+      });
+    }
 
     await createAuditLog({
       req,

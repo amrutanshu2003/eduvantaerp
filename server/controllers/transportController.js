@@ -11,6 +11,7 @@ import {
   sanitizeTransportRoute,
   sanitizeTransportVehicle,
 } from "../utils/transportUtils.js";
+import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const vehiclePopulate = [
   { path: "driverId", select: "name email phone designation staffId status" },
@@ -873,6 +874,23 @@ const createAllocation = async (req, res, next) => {
       status,
       createdBy: req.user._id,
       updatedBy: req.user._id,
+    });
+
+    // Notify student and parent when transport allocation is created
+    const recipientUserIds = [student.userId];
+    const parentUserIds = await getParentUserIdsForStudent(student._id);
+    recipientUserIds.push(...parentUserIds);
+
+    await createNotification({
+      instituteId,
+      recipientUserId: recipientUserIds,
+      title: `Transport Allocation Created`,
+      message: `You have been allocated to route ${route.routeName}. Stop: ${stop.stopName}. Monthly fee: ${allocation.monthlyFee}`,
+      type: "transport",
+      link: `/student/transport`,
+      priority: "normal",
+      createdBy: req.user._id,
+      metadata: { allocationId: allocation._id },
     });
 
     await createAuditLog({

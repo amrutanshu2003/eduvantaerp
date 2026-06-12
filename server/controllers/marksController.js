@@ -12,6 +12,7 @@ import {
   ensureTeacherSubjectAccess,
   getStudentProfileForUser,
 } from "../utils/roleAccess.js";
+import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const sanitizeMarks = (marks) => ({
   _id: marks._id,
@@ -235,7 +236,32 @@ const publishMarks = async (req, res, next) => {
     if (req.body.examId) query.examId = req.body.examId;
     if (req.body.academicGroupId) query.academicGroupId = req.body.academicGroupId;
     if (req.body.subjectId) query.subjectId = req.body.subjectId;
+
+    // Get marks before updating to notify students
+    const marksToPublish = await Marks.find(query).populate("studentId").populate("examId", "examName");
     const result = await Marks.updateMany(query, { status: "published" });
+
+    // Notify students and parents when marks are published
+    for (const mark of marksToPublish) {
+      if (mark.studentId && mark.studentId.userId) {
+        const recipientUserIds = [mark.studentId.userId];
+        const parentUserIds = await getParentUserIdsForStudent(mark.studentId._id);
+        recipientUserIds.push(...parentUserIds);
+
+        await createNotification({
+          instituteId,
+          recipientUserId: recipientUserIds,
+          title: `Results Published: ${mark.examId?.examName || "Exam"}`,
+          message: `Your marks have been published. Marks: ${mark.marksObtained}/${mark.totalMarks}`,
+          type: "exam",
+          link: `/student/results`,
+          priority: "normal",
+          createdBy: req.user._id,
+          metadata: { marksId: mark._id },
+        });
+      }
+    }
+
     await createAuditLog({
       req,
       instituteId,

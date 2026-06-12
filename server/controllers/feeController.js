@@ -79,7 +79,7 @@ const createFee = async (req, res, next) => {
       _id: req.body.studentId,
       instituteId,
       isDeleted: false,
-    }).select("academicGroupId");
+    }).select("academicGroupId userId");
 
     const fee = new Fee({
       instituteId,
@@ -103,9 +103,8 @@ const createFee = async (req, res, next) => {
     await saveFee(fee);
 
     // Notify student and parent when fee is created
-    const studentForNotification = await Student.findById(fee.studentId).select("userId");
-    if (studentForNotification) {
-      const recipientUserIds = [studentForNotification.userId];
+    if (student) {
+      const recipientUserIds = [student.userId];
       const parentUserIds = await getParentUserIdsForStudent(fee.studentId);
       recipientUserIds.push(...parentUserIds);
 

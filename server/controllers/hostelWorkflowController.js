@@ -9,6 +9,7 @@ import StaffMember from "../models/StaffMember.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureParentStudentAccess, getStudentProfileForUser } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const allocationPopulate = [
   {
@@ -843,6 +844,22 @@ const updateParentApproval = async (req, res, next) => {
     outpass.finalStatus = status === "approved" ? "parent_approved" : "rejected";
     await outpass.save();
 
+    // Notify student when parent approves/rejects outpass
+    const student = await Student.findById(outpass.studentId).select("userId");
+    if (student) {
+      await createNotification({
+        instituteId: outpass.instituteId,
+        recipientUserId: student.userId,
+        title: `Outpass ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        message: `Your parent has ${status} your outpass request for ${outpass.destination} from ${new Date(outpass.fromDate).toLocaleDateString()} to ${new Date(outpass.toDate).toLocaleDateString()}`,
+        type: "hostel",
+        link: `/student/hostel/outpasses`,
+        priority: status === "rejected" ? "high" : "normal",
+        createdBy: req.user._id,
+        metadata: { outpassId: outpass._id },
+      });
+    }
+
     await createAuditLog({
       req,
       instituteId: outpass.instituteId,
@@ -890,6 +907,22 @@ const updateWardenApproval = async (req, res, next) => {
     outpass.updatedBy = req.user._id;
     outpass.finalStatus = status === "approved" ? "approved" : "rejected";
     await outpass.save();
+
+    // Notify student when warden approves/rejects outpass
+    const student = await Student.findById(outpass.studentId).select("userId");
+    if (student) {
+      await createNotification({
+        instituteId: outpass.instituteId,
+        recipientUserId: student.userId,
+        title: `Outpass ${status.charAt(0).toUpperCase() + status.slice(1)} by Warden`,
+        message: `The warden has ${status} your outpass request for ${outpass.destination} from ${new Date(outpass.fromDate).toLocaleDateString()} to ${new Date(outpass.toDate).toLocaleDateString()}${remarks ? `. Remarks: ${remarks}` : ""}`,
+        type: "hostel",
+        link: `/student/hostel/outpasses`,
+        priority: status === "rejected" ? "high" : "normal",
+        createdBy: req.user._id,
+        metadata: { outpassId: outpass._id },
+      });
+    }
 
     await createAuditLog({
       req,
@@ -1220,6 +1253,24 @@ const updateHostelComplaintStatus = async (req, res, next) => {
       complaint.resolvedAt = new Date();
     }
     await complaint.save();
+
+    // Notify student when complaint is resolved/closed
+    if (["resolved", "closed"].includes(status)) {
+      const student = await Student.findById(complaint.studentId).select("userId");
+      if (student) {
+        await createNotification({
+          instituteId: complaint.instituteId,
+          recipientUserId: student.userId,
+          title: `Complaint ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+          message: `Your complaint "${complaint.title}" has been ${status}${resolutionNote ? `. Resolution: ${resolutionNote}` : ""}`,
+          type: "hostel",
+          link: `/student/hostel/complaints`,
+          priority: "normal",
+          createdBy: req.user._id,
+          metadata: { complaintId: complaint._id },
+        });
+      }
+    }
 
     await createAuditLog({
       req,

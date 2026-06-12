@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiBell, FiLogOut, FiSearch, FiSun, FiMoon } from "react-icons/fi";
+import { FiBell, FiLogOut, FiSearch, FiSun, FiMoon, FiCheck, FiTrash2 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
 import api from "../api/axios";
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+} from "../api/notifications";
 
 const Navbar = ({ onThemeToggle, themeReveal }) => {
   const navigate = useNavigate();
@@ -20,6 +27,13 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
   const searchContainerRef = useRef(null);
   const [dropdownStyle, setDropdownStyle] = useState({});
 
+  // Notification state
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotificationDropdown, setShowNotificationDropdown] = useState(false);
+  const notificationRef = useRef(null);
+  const [notificationDropdownStyle, setNotificationDropdownStyle] = useState({});
+
   // Close dropdown on click outside, and reposition on scroll/resize
   useEffect(() => {
     const handleOutsideClick = (e) => {
@@ -28,6 +42,11 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
         const dropdown = document.getElementById("navbar-search-dropdown");
         if (dropdown && dropdown.contains(e.target)) return;
         setShowDropdown(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
+        const notificationDropdown = document.getElementById("navbar-notification-dropdown");
+        if (notificationDropdown && notificationDropdown.contains(e.target)) return;
+        setShowNotificationDropdown(false);
       }
     };
     const handleScrollOrResize = () => {
@@ -38,6 +57,16 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
           top: rect.bottom + 8,
           left: rect.left,
           width: rect.width,
+          zIndex: 99999,
+        });
+      }
+      if (notificationRef.current) {
+        const rect = notificationRef.current.getBoundingClientRect();
+        setNotificationDropdownStyle({
+          position: "fixed",
+          top: rect.bottom + 8,
+          left: rect.left,
+          width: 320,
           zIndex: 99999,
         });
       }
@@ -62,6 +91,102 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
       document.head.appendChild(style);
     }
   }, []);
+
+  // Fetch notifications and unread count
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchNotifications = async () => {
+      try {
+        const data = await getNotifications({ limit: 10 });
+        setNotifications(data.notifications || []);
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+      }
+    };
+
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await getUnreadNotificationCount();
+        setUnreadCount(data.unreadCount || 0);
+      } catch (error) {
+        console.error("Failed to fetch unread count:", error);
+      }
+    };
+
+    fetchNotifications();
+    fetchUnreadCount();
+
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Update notification dropdown position
+  const updateNotificationDropdownPosition = () => {
+    if (notificationRef.current) {
+      const rect = notificationRef.current.getBoundingClientRect();
+      setNotificationDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: 320,
+        zIndex: 99999,
+      });
+    }
+  };
+
+  const handleNotificationClick = () => {
+    updateNotificationDropdownPosition();
+    setShowNotificationDropdown((prev) => !prev);
+  };
+
+  const handleMarkAsRead = async (notificationId, e) => {
+    e.stopPropagation();
+    try {
+      await markNotificationAsRead(notificationId);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === notificationId ? { ...n, isRead: true, readAt: new Date() } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true, readAt: new Date() })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId, e) => {
+    e.stopPropagation();
+    try {
+      await deleteNotification(notificationId);
+      setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
+      if (notifications.find((n) => n._id === notificationId)?.isRead === false) {
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error("Failed to delete notification:", error);
+    }
+  };
+
+  const handleNotificationClickItem = (notification) => {
+    if (!notification.isRead) {
+      markNotificationAsRead(notification._id, { stopPropagation: () => {} });
+    }
+    if (notification.link) {
+      navigate(notification.link);
+    }
+    setShowNotificationDropdown(false);
+  };
 
   const searchItemsByRole = {
     superadmin: [

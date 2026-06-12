@@ -7,6 +7,7 @@ import createAuditLog from "../utils/audit.js";
 import { calculateFineAmount, getIssueStatus, sanitizeBookIssue, sanitizeLibraryBook } from "../utils/libraryUtils.js";
 import { ensureParentStudentAccess, getStudentProfileForUser } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const populateBook = (query) =>
   query
@@ -337,6 +338,23 @@ const createIssue = async (req, res, next) => {
     await book.save();
     await syncIssueStatus(issue);
 
+    // Notify student and parent when book is issued
+    const recipientUserIds = [student.userId];
+    const parentUserIds = await getParentUserIdsForStudent(student._id);
+    recipientUserIds.push(...parentUserIds);
+
+    await createNotification({
+      instituteId,
+      recipientUserId: recipientUserIds,
+      title: `Book Issued: ${book.title}`,
+      message: `You have been issued the book "${book.title}". Due date: ${new Date(issue.dueDate).toLocaleDateString()}`,
+      type: "library",
+      link: `/student/library`,
+      priority: "normal",
+      createdBy: req.user._id,
+      metadata: { issueId: issue._id },
+    });
+
     await createAuditLog({
       req,
       instituteId,
@@ -506,6 +524,22 @@ const returnBook = async (req, res, next) => {
     }
     book.updatedBy = req.user._id;
     await book.save();
+
+    // Notify student when book is returned
+    const student = await Student.findById(issue.studentId).select("userId");
+    if (student) {
+      await createNotification({
+        instituteId: issue.instituteId,
+        recipientUserId: student.userId,
+        title: `Book Returned: ${book.title}`,
+        message: `The book "${book.title}" has been returned successfully${issue.fineAmount > 0 ? `. Fine: ${issue.fineAmount}` : ""}`,
+        type: "library",
+        link: `/student/library`,
+        priority: issue.fineAmount > 0 ? "high" : "normal",
+        createdBy: req.user._id,
+        metadata: { issueId: issue._id },
+      });
+    }
 
     await createAuditLog({
       req,

@@ -10,6 +10,7 @@ import {
   ensureTeacherSubjectAccess,
   getStudentProfileForUser,
 } from "../utils/roleAccess.js";
+import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const startOfDay = (value) => {
   const date = new Date(value);
@@ -133,6 +134,34 @@ const createAttendance = async (req, res, next) => {
       createdBy: req.user._id,
       updatedBy: req.user._id,
     });
+
+    // Notify students and parents for absent/late attendance (not for present to avoid spam)
+    const absentOrLateRecords = attendance.records.filter((r) => r.status === "absent" || r.status === "late");
+    if (absentOrLateRecords.length > 0) {
+      const studentIds = absentOrLateRecords.map((r) => r.studentId);
+      const students = await Student.find({ _id: { $in: studentIds }, instituteId, isDeleted: false }).select("userId");
+
+      for (const student of students) {
+        const record = absentOrLateRecords.find((r) => String(r.studentId) === String(student._id));
+        if (!record) continue;
+
+        const recipientUserIds = [student.userId];
+        const parentUserIds = await getParentUserIdsForStudent(student._id);
+        recipientUserIds.push(...parentUserIds);
+
+        await createNotification({
+          instituteId,
+          recipientUserId: recipientUserIds,
+          title: `Attendance Marked: ${record.status.toUpperCase()}`,
+          message: `You were marked ${record.status} on ${new Date(attendance.date).toLocaleDateString()}${record.remarks ? `. Remarks: ${record.remarks}` : ""}`,
+          type: "attendance",
+          link: `/student/attendance`,
+          priority: record.status === "absent" ? "high" : "normal",
+          createdBy: req.user._id,
+          metadata: { attendanceId: attendance._id, studentId: student._id },
+        });
+      }
+    }
 
     await createAuditLog({
       req,
