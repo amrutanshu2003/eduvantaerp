@@ -557,13 +557,27 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
           document.body
         )}
 
-        <button
-          type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-90 flex-shrink-0"
-          title="Notifications"
-        >
-          <FiBell className="h-4 w-4" />
-        </button>
+        <div ref={notificationRef} className="relative">
+          <button
+            type="button"
+            onClick={handleNotificationClick}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-90 flex-shrink-0 relative"
+            title="Notifications"
+          >
+            <FiBell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span
+                className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
+                style={{
+                  fontSize: unreadCount > 99 ? "0.625rem" : "0.75rem",
+                  minWidth: unreadCount > 99 ? "1.25rem" : "1.25rem",
+                }}
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         <button
           ref={themeToggleRef}
