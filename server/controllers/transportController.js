@@ -11,6 +11,7 @@ import {
   sanitizeTransportRoute,
   sanitizeTransportVehicle,
 } from "../utils/transportUtils.js";
+import { getUserModelName } from "../utils/userModel.js";
 import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const vehiclePopulate = [
@@ -262,6 +263,7 @@ const getSupportData = async (req, res, next) => {
 const createVehicle = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, true);
+    const actorModel = getUserModelName(req.user?.role);
     const {
       vehicleNumber,
       vehicleType = "bus",
@@ -303,7 +305,9 @@ const createVehicle = async (req, res, next) => {
       fitnessExpiry: fitnessExpiry || null,
       status,
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await createAuditLog({
@@ -379,6 +383,7 @@ const getVehicleById = async (req, res, next) => {
 
 const updateVehicle = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const vehicle = await TransportVehicle.findOne({ _id: req.params.id, isDeleted: false });
     if (!vehicle) {
       res.status(404);
@@ -420,6 +425,7 @@ const updateVehicle = async (req, res, next) => {
       fitnessExpiry: req.body.fitnessExpiry !== undefined ? req.body.fitnessExpiry || null : vehicle.fitnessExpiry,
       status: req.body.status ?? vehicle.status,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await vehicle.save();
@@ -444,6 +450,7 @@ const updateVehicle = async (req, res, next) => {
 
 const updateVehicleStatus = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const { status } = req.body;
     if (!["active", "inactive", "maintenance"].includes(status)) {
       res.status(400);
@@ -463,6 +470,7 @@ const updateVehicleStatus = async (req, res, next) => {
 
     vehicle.status = status;
     vehicle.updatedBy = req.user._id;
+    vehicle.updatedByModel = actorModel;
     await vehicle.save();
 
     await createAuditLog({
@@ -485,6 +493,7 @@ const updateVehicleStatus = async (req, res, next) => {
 
 const deleteVehicle = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const vehicle = await TransportVehicle.findOne({ _id: req.params.id, isDeleted: false });
     if (!vehicle) {
       res.status(404);
@@ -500,6 +509,7 @@ const deleteVehicle = async (req, res, next) => {
     vehicle.deletedAt = new Date();
     vehicle.status = "inactive";
     vehicle.updatedBy = req.user._id;
+    vehicle.updatedByModel = actorModel;
     await vehicle.save();
 
     await createAuditLog({
@@ -520,6 +530,7 @@ const deleteVehicle = async (req, res, next) => {
 const createRoute = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, true);
+    const actorModel = getUserModelName(req.user?.role);
     const {
       routeName,
       routeCode,
@@ -578,7 +589,9 @@ const createRoute = async (req, res, next) => {
       monthlyFee: Number(monthlyFee || 0),
       status,
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await createAuditLog({
@@ -664,6 +677,7 @@ const getRouteById = async (req, res, next) => {
 
 const updateRoute = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const route = await TransportRoute.findOne({ _id: req.params.id, isDeleted: false });
     if (!route) {
       res.status(404);
@@ -725,6 +739,7 @@ const updateRoute = async (req, res, next) => {
       monthlyFee: req.body.monthlyFee !== undefined ? Number(req.body.monthlyFee || 0) : route.monthlyFee,
       status: req.body.status ?? route.status,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await route.save();
@@ -749,6 +764,7 @@ const updateRoute = async (req, res, next) => {
 
 const updateRouteStatus = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const { status } = req.body;
     if (!["active", "inactive"].includes(status)) {
       res.status(400);
@@ -768,6 +784,7 @@ const updateRouteStatus = async (req, res, next) => {
 
     route.status = status;
     route.updatedBy = req.user._id;
+    route.updatedByModel = actorModel;
     await route.save();
 
     await createAuditLog({
@@ -790,6 +807,7 @@ const updateRouteStatus = async (req, res, next) => {
 
 const deleteRoute = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const route = await TransportRoute.findOne({ _id: req.params.id, isDeleted: false });
     if (!route) {
       res.status(404);
@@ -805,6 +823,7 @@ const deleteRoute = async (req, res, next) => {
     route.deletedAt = new Date();
     route.status = "inactive";
     route.updatedBy = req.user._id;
+    route.updatedByModel = actorModel;
     await route.save();
 
     await createAuditLog({
@@ -825,6 +844,7 @@ const deleteRoute = async (req, res, next) => {
 const createAllocation = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, true);
+    const actorModel = getUserModelName(req.user?.role);
     const { studentId, routeId, stopName, pickupTime, dropTime, monthlyFee, startDate, endDate, status = "active" } =
       req.body;
 
@@ -873,7 +893,9 @@ const createAllocation = async (req, res, next) => {
       endDate: endDate || null,
       status,
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     // Notify student and parent when transport allocation is created
@@ -971,6 +993,7 @@ const getAllocationById = async (req, res, next) => {
 
 const updateAllocation = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const allocation = await TransportAllocation.findOne({ _id: req.params.id, isDeleted: false });
     if (!allocation) {
       res.status(404);
@@ -1034,6 +1057,7 @@ const updateAllocation = async (req, res, next) => {
       endDate: req.body.endDate !== undefined ? req.body.endDate || null : allocation.endDate,
       status,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await allocation.save();
@@ -1058,6 +1082,7 @@ const updateAllocation = async (req, res, next) => {
 
 const updateAllocationStatus = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const { status } = req.body;
     if (!["active", "inactive"].includes(status)) {
       res.status(400);
@@ -1081,6 +1106,7 @@ const updateAllocationStatus = async (req, res, next) => {
 
     allocation.status = status;
     allocation.updatedBy = req.user._id;
+    allocation.updatedByModel = actorModel;
     await allocation.save();
 
     await createAuditLog({
@@ -1103,6 +1129,7 @@ const updateAllocationStatus = async (req, res, next) => {
 
 const deleteAllocation = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const allocation = await TransportAllocation.findOne({ _id: req.params.id, isDeleted: false });
     if (!allocation) {
       res.status(404);
@@ -1118,6 +1145,7 @@ const deleteAllocation = async (req, res, next) => {
     allocation.deletedAt = new Date();
     allocation.status = "inactive";
     allocation.updatedBy = req.user._id;
+    allocation.updatedByModel = actorModel;
     await allocation.save();
 
     await createAuditLog({

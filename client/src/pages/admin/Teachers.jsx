@@ -6,6 +6,7 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { getTeacherLabel, getTeacherLabelPlural } from "../../utils/instituteLabels";
@@ -19,6 +20,8 @@ const Teachers = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchTeachers = async () => {
     try {
@@ -38,21 +41,60 @@ const Teachers = () => {
   }, []);
 
   const handleStatusToggle = async (teacher) => {
-    const status = teacher.status === "active" ? "inactive" : "active";
-    await api.patch(`/teachers/${teacher._id}/status`, { status });
-    setMessageTone("success");
-    setMessage(`${singularLabel} marked as ${status}`);
-    fetchTeachers();
+    setConfirmModal({
+      type: "status",
+      teacher,
+      title: teacher.status === "active" ? `Deactivate ${singularLabel}?` : `Activate ${singularLabel}?`,
+      message: teacher.status === "active" 
+        ? `This ${singularLabel.toLowerCase()} will no longer be able to login.` 
+        : `This ${singularLabel.toLowerCase()} will be able to login again.`,
+    });
   };
 
   const handleDelete = async (teacher) => {
-    if (!(await window.confirm(`Delete this ${singularLabel.toLowerCase()}?`))) {
-      return;
+    setConfirmModal({
+      type: "delete",
+      teacher,
+      title: `Delete ${singularLabel}?`,
+      message: `This action will remove the ${singularLabel.toLowerCase()} record. This cannot be undone.`,
+    });
+  };
+
+  const confirmStatusToggle = async () => {
+    if (!confirmModal) return;
+    const { teacher } = confirmModal;
+    try {
+      setActionLoading(true);
+      const nextStatus = teacher.status === "active" ? "inactive" : "active";
+      await api.patch(`/teachers/${teacher._id}/status`, { status: nextStatus });
+      setMessageTone("success");
+      setMessage(`${singularLabel} marked as ${nextStatus}`);
+      setConfirmModal(null);
+      fetchTeachers();
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Status update failed");
+    } finally {
+      setActionLoading(false);
     }
-    await api.delete(`/teachers/${teacher._id}`);
-    setMessageTone("success");
-    setMessage(`${singularLabel} deleted successfully`);
-    fetchTeachers();
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { teacher } = confirmModal;
+    try {
+      setActionLoading(true);
+      await api.delete(`/teachers/${teacher._id}`);
+      setMessageTone("success");
+      setMessage(`${singularLabel} deleted successfully`);
+      setConfirmModal(null);
+      fetchTeachers();
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Unable to delete");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading) {
@@ -67,16 +109,16 @@ const Teachers = () => {
         description={`Manage ${pluralLabel.toLowerCase()} within your institute.`}
         actions={
           <div className="flex flex-wrap gap-3">
-            <Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">
+            <Button variant="secondary" as={Link} to="/admin/bulk-import">
               Bulk Import
-            </Link>
-            <Link
+            </Button>
+            <Button
+              as={Link}
               to="/admin/teachers/create"
               style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-              className="px-5 py-3 text-sm font-semibold text-white"
             >
               Create {singularLabel}
-            </Link>
+            </Button>
           </div>
         }
       />
@@ -91,41 +133,51 @@ const Teachers = () => {
           actionLink="/admin/teachers/create"
         />
       ) : (
-        <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Name</th>
-                  <th className="px-6 py-4 font-medium">Email</th>
-                  <th className="px-6 py-4 font-medium">Department</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teachers.map((teacher) => (
-                  <tr key={teacher._id} className="border-t border-slate-100">
-                    <td className="px-6 py-4 font-medium text-ink">{teacher.name}</td>
-                    <td className="px-6 py-4 text-slate-600">{teacher.email}</td>
-                    <td className="px-6 py-4 text-slate-600">{teacher.department || "-"}</td>
-                    <td className="px-6 py-4"><StatusBadge value={teacher.status} /></td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Link to={`/admin/teachers/${teacher._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">View</Link>
-                        <Link to={`/admin/teachers/${teacher._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Edit</Link>
-                        <Link to={`/admin/teachers/${teacher._id}/assign`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Assign</Link>
-                        <button type="button" onClick={() => handleStatusToggle(teacher)} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">{teacher.status === "active" ? "Deactivate" : "Activate"}</button>
-                        <button type="button" onClick={() => handleDelete(teacher)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600">Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TableShell
+          headers={["Name", "Email", "Department", "Status", "Actions"]}
+        >
+          {teachers.map((teacher) => (
+            <tr key={teacher._id} className="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/40">
+              <td className="px-6 py-4">
+                <p className="font-medium text-slate-900 dark:text-white">{teacher.name}</p>
+              </td>
+              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{teacher.email}</td>
+              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{teacher.department || "-"}</td>
+              <td className="px-6 py-4"><StatusBadge value={teacher.status} /></td>
+              <td className="px-6 py-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/teachers/${teacher._id}`}>
+                    View
+                  </Button>
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/teachers/${teacher._id}/edit`}>
+                    Edit
+                  </Button>
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/teachers/${teacher._id}/assign`}>
+                    Assign
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => handleStatusToggle(teacher)}>
+                    {teacher.status === "active" ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(teacher)}>
+                    Delete
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmModal?.type === "delete" ? confirmDelete : confirmStatusToggle}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText={confirmModal?.type === "delete" ? "Delete" : confirmModal?.teacher?.status === "active" ? "Deactivate" : "Activate"}
+        variant={confirmModal?.type === "delete" ? "danger" : "primary"}
+        loading={actionLoading}
+      />
     </section>
   );
 };

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios";
+import { normalizeCustomSidebarItem, serializeCustomSidebarItem } from "../utils/iconRegistry";
 
 const UISettingsContext = createContext(null);
 
@@ -17,6 +18,7 @@ const defaultSettings = {
   captchaEnabled: true,
   privilegedRecoveryEnabled: false,
   privilegedRecoveryHint: "",
+  customSidebarItems: [],
   academicConfig: {
     school: {
       allowedSchoolLevels: ["Pre-Primary", "Primary", "Middle", "Secondary"],
@@ -32,6 +34,21 @@ const defaultSettings = {
     },
   },
 };
+
+const normalizeSettings = (settings = {}) => ({
+  ...defaultSettings,
+  ...settings,
+  customSidebarItems: Array.isArray(settings.customSidebarItems)
+    ? settings.customSidebarItems.map(normalizeCustomSidebarItem)
+    : defaultSettings.customSidebarItems,
+});
+
+const serializeSettingsForUpdate = (settings = {}) => ({
+  ...settings,
+  customSidebarItems: Array.isArray(settings.customSidebarItems)
+    ? settings.customSidebarItems.map(serializeCustomSidebarItem)
+    : [],
+});
 
 const getBootstrappedThemeMode = () => {
   if (typeof document === "undefined") {
@@ -158,7 +175,7 @@ export const UISettingsProvider = ({ children }) => {
     const fetchGlobalSettings = async () => {
       try {
         const { data } = await api.get("/ui-settings/global");
-        setSettings({ ...defaultSettings, ...data.settings });
+        setSettings(normalizeSettings(data.settings));
       } catch (error) {
         setSettings(defaultSettings);
       } finally {
@@ -171,14 +188,14 @@ export const UISettingsProvider = ({ children }) => {
 
   const refreshSettings = async () => {
     const { data } = await api.get("/ui-settings/global");
-    const nextSettings = { ...defaultSettings, ...data.settings };
+    const nextSettings = normalizeSettings(data.settings);
     setSettings(nextSettings);
     return nextSettings;
   };
 
   const updateGlobalSettings = async (payload) => {
-    const { data } = await api.put("/ui-settings/global", payload);
-    const nextSettings = { ...defaultSettings, ...data.settings };
+    const { data } = await api.put("/ui-settings/global", serializeSettingsForUpdate(payload));
+    const nextSettings = normalizeSettings(data.settings);
     setSettings(nextSettings);
     return data;
   };

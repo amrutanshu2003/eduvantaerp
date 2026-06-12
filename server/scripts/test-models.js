@@ -1,10 +1,11 @@
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import connectDB from "../server/config/db.js";
-import Attendance from "../server/models/Attendance.js";
+import { fileURLToPath } from "url";
+import connectDB from "../config/db.js";
+import Attendance from "../models/Attendance.js";
 
 // Load env
-dotenv.config({ path: "../server/.env" });
+dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)) });
 
 const run = async () => {
   try {
@@ -16,7 +17,7 @@ const run = async () => {
     console.log("Registered models before import:", Object.keys(mongoose.models));
     
     const records = await Attendance.find({}).populate("markedBy").limit(1);
-    console.log("Successfully fetched attendance records:", records);
+    console.log("Successfully fetched attendance records:", records.length);
   } catch (error) {
     console.error("CRITICAL ERROR IN QUERY:", error);
   } finally {

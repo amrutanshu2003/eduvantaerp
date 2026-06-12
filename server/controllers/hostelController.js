@@ -6,6 +6,7 @@ import StaffMember from "../models/StaffMember.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
 import { sanitizeHostel, sanitizeHostelBed, sanitizeHostelRoom } from "../utils/hostelUtils.js";
+import { getUserModelName } from "../utils/userModel.js";
 
 const hostelPopulate = [
   { path: "wardenId", select: "name email phone designation staffId status" },
@@ -179,6 +180,7 @@ const getSupportData = async (req, res, next) => {
 const createHostel = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, true);
+    const actorModel = getUserModelName(req.user?.role);
     const {
       hostelName,
       hostelCode,
@@ -218,7 +220,9 @@ const createHostel = async (req, res, next) => {
       contactNumber: contactNumber?.trim() || "",
       status,
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await createAuditLog({
@@ -289,6 +293,7 @@ const getHostelById = async (req, res, next) => {
 
 const updateHostel = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const hostel = await Hostel.findOne({ _id: req.params.id, isDeleted: false });
     if (!hostel) {
       res.status(404);
@@ -325,6 +330,7 @@ const updateHostel = async (req, res, next) => {
       contactNumber: req.body.contactNumber?.trim() ?? hostel.contactNumber,
       status: req.body.status ?? hostel.status,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await hostel.save();
@@ -349,6 +355,7 @@ const updateHostel = async (req, res, next) => {
 
 const updateHostelStatus = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const { status } = req.body;
     if (!["active", "inactive", "maintenance"].includes(status)) {
       res.status(400);
@@ -368,6 +375,7 @@ const updateHostelStatus = async (req, res, next) => {
 
     hostel.status = status;
     hostel.updatedBy = req.user._id;
+    hostel.updatedByModel = actorModel;
     await hostel.save();
 
     await createAuditLog({
@@ -390,6 +398,7 @@ const updateHostelStatus = async (req, res, next) => {
 
 const deleteHostel = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const hostel = await Hostel.findOne({ _id: req.params.id, isDeleted: false });
     if (!hostel) {
       res.status(404);
@@ -405,6 +414,7 @@ const deleteHostel = async (req, res, next) => {
     hostel.deletedAt = new Date();
     hostel.status = "inactive";
     hostel.updatedBy = req.user._id;
+    hostel.updatedByModel = actorModel;
     await hostel.save();
     await HostelRoom.updateMany(
       { hostelId: hostel._id, isDeleted: false },
@@ -413,6 +423,7 @@ const deleteHostel = async (req, res, next) => {
         deletedAt: new Date(),
         status: "inactive",
         updatedBy: req.user._id,
+        updatedByModel: actorModel,
       }
     );
     await HostelBed.updateMany(
@@ -423,6 +434,7 @@ const deleteHostel = async (req, res, next) => {
         status: "inactive",
         allocatedStudentId: null,
         updatedBy: req.user._id,
+        updatedByModel: actorModel,
       }
     );
 
@@ -444,6 +456,7 @@ const deleteHostel = async (req, res, next) => {
 const createRoom = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, true);
+    const actorModel = getUserModelName(req.user?.role);
     const hostel = await Hostel.findOne({ _id: req.params.hostelId, instituteId, isDeleted: false });
     if (!hostel) {
       res.status(404);
@@ -483,7 +496,9 @@ const createRoom = async (req, res, next) => {
       occupiedBeds: 0,
       status,
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await createAuditLog({
@@ -553,6 +568,7 @@ const getHostelRoomById = async (req, res, next) => {
 
 const updateHostelRoom = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const room = await HostelRoom.findOne({ _id: req.params.id, isDeleted: false });
     if (!room) {
       res.status(404);
@@ -591,6 +607,7 @@ const updateHostelRoom = async (req, res, next) => {
       capacity: nextCapacity,
       status: req.body.status ?? room.status,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await room.save();
@@ -616,6 +633,7 @@ const updateHostelRoom = async (req, res, next) => {
 
 const updateHostelRoomStatus = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const { status } = req.body;
     if (!["available", "full", "maintenance", "inactive"].includes(status)) {
       res.status(400);
@@ -635,6 +653,7 @@ const updateHostelRoomStatus = async (req, res, next) => {
 
     room.status = status;
     room.updatedBy = req.user._id;
+    room.updatedByModel = actorModel;
     await room.save();
 
     if (status === "available" || status === "full") {
@@ -661,6 +680,7 @@ const updateHostelRoomStatus = async (req, res, next) => {
 
 const deleteHostelRoom = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const room = await HostelRoom.findOne({ _id: req.params.id, isDeleted: false });
     if (!room) {
       res.status(404);
@@ -676,6 +696,7 @@ const deleteHostelRoom = async (req, res, next) => {
     room.deletedAt = new Date();
     room.status = "inactive";
     room.updatedBy = req.user._id;
+    room.updatedByModel = actorModel;
     await room.save();
     await HostelBed.updateMany(
       { roomId: room._id, isDeleted: false },
@@ -685,6 +706,7 @@ const deleteHostelRoom = async (req, res, next) => {
         status: "inactive",
         allocatedStudentId: null,
         updatedBy: req.user._id,
+        updatedByModel: actorModel,
       }
     );
 
@@ -706,6 +728,7 @@ const deleteHostelRoom = async (req, res, next) => {
 const createBed = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, true);
+    const actorModel = getUserModelName(req.user?.role);
     const room = await HostelRoom.findOne({ _id: req.params.roomId, instituteId, isDeleted: false });
     if (!room) {
       res.status(404);
@@ -752,7 +775,9 @@ const createBed = async (req, res, next) => {
       bedNumber: bedNumber.trim().toUpperCase(),
       status,
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await syncRoomOccupancy(room._id);
@@ -827,6 +852,7 @@ const getHostelBedById = async (req, res, next) => {
 
 const updateHostelBed = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const bed = await HostelBed.findOne({ _id: req.params.id, isDeleted: false });
     if (!bed) {
       res.status(404);
@@ -870,6 +896,7 @@ const updateHostelBed = async (req, res, next) => {
       status: nextStatus,
       allocatedStudentId: nextAllocatedStudentId,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await bed.save();
@@ -895,6 +922,7 @@ const updateHostelBed = async (req, res, next) => {
 
 const updateHostelBedStatus = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const { status } = req.body;
     if (!["available", "occupied", "maintenance", "inactive"].includes(status)) {
       res.status(400);
@@ -924,6 +952,7 @@ const updateHostelBedStatus = async (req, res, next) => {
 
     bed.status = status;
     bed.updatedBy = req.user._id;
+    bed.updatedByModel = actorModel;
     await bed.save();
     await syncRoomOccupancy(bed.roomId);
 
@@ -947,6 +976,7 @@ const updateHostelBedStatus = async (req, res, next) => {
 
 const deleteHostelBed = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const bed = await HostelBed.findOne({ _id: req.params.id, isDeleted: false });
     if (!bed) {
       res.status(404);
@@ -963,6 +993,7 @@ const deleteHostelBed = async (req, res, next) => {
     bed.status = "inactive";
     bed.allocatedStudentId = null;
     bed.updatedBy = req.user._id;
+    bed.updatedByModel = actorModel;
     await bed.save();
     await syncRoomOccupancy(bed.roomId);
 

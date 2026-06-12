@@ -9,6 +9,7 @@ import StaffMember from "../models/StaffMember.js";
 import createAuditLog from "../utils/audit.js";
 import { ensureParentStudentAccess, getStudentProfileForUser } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { getUserModelName } from "../utils/userModel.js";
 import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const allocationPopulate = [
@@ -246,6 +247,7 @@ const getAllocationSupportData = async (req, res, next) => {
 const createHostelAllocation = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, true);
+    const actorModel = getUserModelName(req.user?.role);
     const {
       studentId,
       hostelId,
@@ -285,7 +287,9 @@ const createHostelAllocation = async (req, res, next) => {
       securityDeposit: Number(securityDeposit || 0),
       remarks: remarks?.trim() || "",
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await applyAllocationResources({ bedId, studentId });
@@ -375,6 +379,7 @@ const getHostelAllocationById = async (req, res, next) => {
 
 const updateHostelAllocation = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const allocation = await HostelAllocation.findOne({ _id: req.params.id, isDeleted: false });
     if (!allocation) {
       res.status(404);
@@ -392,6 +397,7 @@ const updateHostelAllocation = async (req, res, next) => {
         req.body.securityDeposit !== undefined ? Number(req.body.securityDeposit || 0) : allocation.securityDeposit,
       remarks: req.body.remarks !== undefined ? req.body.remarks?.trim() || "" : allocation.remarks,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await allocation.save();
@@ -416,6 +422,7 @@ const updateHostelAllocation = async (req, res, next) => {
 
 const leaveHostelAllocation = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const allocation = await HostelAllocation.findOne({ _id: req.params.id, isDeleted: false });
     if (!allocation) {
       res.status(404);
@@ -434,6 +441,7 @@ const leaveHostelAllocation = async (req, res, next) => {
     allocation.leavingDate = req.body.leavingDate || new Date();
     allocation.remarks = req.body.remarks?.trim() || allocation.remarks;
     allocation.updatedBy = req.user._id;
+    allocation.updatedByModel = actorModel;
     await allocation.save();
     await releaseAllocationResources(allocation);
 
@@ -457,6 +465,7 @@ const leaveHostelAllocation = async (req, res, next) => {
 
 const cancelHostelAllocation = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const allocation = await HostelAllocation.findOne({ _id: req.params.id, isDeleted: false });
     if (!allocation) {
       res.status(404);
@@ -474,6 +483,7 @@ const cancelHostelAllocation = async (req, res, next) => {
     allocation.status = "cancelled";
     allocation.remarks = req.body.remarks?.trim() || allocation.remarks;
     allocation.updatedBy = req.user._id;
+    allocation.updatedByModel = actorModel;
     await allocation.save();
     await releaseAllocationResources(allocation);
 
@@ -671,7 +681,9 @@ const createHostelOutpass = async (req, res, next) => {
       finalStatus: "pending",
       remarks: remarks?.trim() || "",
       createdBy: req.user._id,
+      createdByModel: getUserModelName(req.user?.role, "Student"),
       updatedBy: req.user._id,
+      updatedByModel: getUserModelName(req.user?.role, "Student"),
     });
 
     await createAuditLog({
@@ -812,6 +824,7 @@ const getChildHostelOutpasses = async (req, res, next) => {
 
 const updateParentApproval = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role, "Parent");
     const outpass = await HostelOutpass.findOne({ _id: req.params.id, isDeleted: false });
     if (!outpass) {
       res.status(404);
@@ -841,6 +854,7 @@ const updateParentApproval = async (req, res, next) => {
     outpass.parentApprovedBy = req.user._id;
     outpass.parentApprovedAt = new Date();
     outpass.updatedBy = req.user._id;
+    outpass.updatedByModel = actorModel;
     outpass.finalStatus = status === "approved" ? "parent_approved" : "rejected";
     await outpass.save();
 
@@ -880,6 +894,7 @@ const updateParentApproval = async (req, res, next) => {
 
 const updateWardenApproval = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const outpass = await HostelOutpass.findOne({ _id: req.params.id, isDeleted: false });
     if (!outpass) {
       res.status(404);
@@ -905,6 +920,7 @@ const updateWardenApproval = async (req, res, next) => {
     outpass.wardenApprovedAt = new Date();
     outpass.remarks = remarks?.trim() || outpass.remarks;
     outpass.updatedBy = req.user._id;
+    outpass.updatedByModel = actorModel;
     outpass.finalStatus = status === "approved" ? "approved" : "rejected";
     await outpass.save();
 
@@ -944,6 +960,7 @@ const updateWardenApproval = async (req, res, next) => {
 
 const cancelHostelOutpass = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role, "Student");
     const outpass = await HostelOutpass.findOne({ _id: req.params.id, isDeleted: false });
     if (!outpass) {
       res.status(404);
@@ -961,6 +978,7 @@ const cancelHostelOutpass = async (req, res, next) => {
 
     outpass.finalStatus = "cancelled";
     outpass.updatedBy = req.user._id;
+    outpass.updatedByModel = actorModel;
     await outpass.save();
 
     await createAuditLog({
@@ -983,6 +1001,7 @@ const cancelHostelOutpass = async (req, res, next) => {
 
 const deleteHostelOutpass = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const outpass = await HostelOutpass.findOne({ _id: req.params.id, isDeleted: false });
     if (!outpass) {
       res.status(404);
@@ -995,6 +1014,7 @@ const deleteHostelOutpass = async (req, res, next) => {
     outpass.isDeleted = true;
     outpass.deletedAt = new Date();
     outpass.updatedBy = req.user._id;
+    outpass.updatedByModel = actorModel;
     await outpass.save();
 
     await createAuditLog({
@@ -1040,7 +1060,9 @@ const createHostelComplaint = async (req, res, next) => {
       description: description.trim(),
       priority,
       createdBy: req.user._id,
+      createdByModel: getUserModelName(req.user?.role, "Student"),
       updatedBy: req.user._id,
+      updatedByModel: getUserModelName(req.user?.role, "Student"),
     });
 
     await createAuditLog({
@@ -1182,6 +1204,7 @@ const getChildHostelComplaints = async (req, res, next) => {
 
 const assignHostelComplaint = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const complaint = await HostelComplaint.findOne({ _id: req.params.id, isDeleted: false });
     if (!complaint) {
       res.status(404);
@@ -1207,6 +1230,7 @@ const assignHostelComplaint = async (req, res, next) => {
 
     complaint.assignedTo = assignedTo;
     complaint.updatedBy = req.user._id;
+    complaint.updatedByModel = actorModel;
     await complaint.save();
 
     await createAuditLog({
@@ -1229,6 +1253,7 @@ const assignHostelComplaint = async (req, res, next) => {
 
 const updateHostelComplaintStatus = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const complaint = await HostelComplaint.findOne({ _id: req.params.id, isDeleted: false });
     if (!complaint) {
       res.status(404);
@@ -1248,6 +1273,7 @@ const updateHostelComplaintStatus = async (req, res, next) => {
     complaint.status = status;
     complaint.resolutionNote = resolutionNote?.trim() || complaint.resolutionNote;
     complaint.updatedBy = req.user._id;
+    complaint.updatedByModel = actorModel;
     if (["resolved", "closed"].includes(status)) {
       complaint.resolvedBy = req.user._id;
       complaint.resolvedAt = new Date();
@@ -1292,6 +1318,7 @@ const updateHostelComplaintStatus = async (req, res, next) => {
 
 const deleteHostelComplaint = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const complaint = await HostelComplaint.findOne({ _id: req.params.id, isDeleted: false });
     if (!complaint) {
       res.status(404);
@@ -1304,6 +1331,7 @@ const deleteHostelComplaint = async (req, res, next) => {
     complaint.isDeleted = true;
     complaint.deletedAt = new Date();
     complaint.updatedBy = req.user._id;
+    complaint.updatedByModel = actorModel;
     await complaint.save();
 
     await createAuditLog({

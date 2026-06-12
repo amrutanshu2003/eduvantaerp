@@ -7,6 +7,7 @@ import createAuditLog from "../utils/audit.js";
 import { calculateFineAmount, getIssueStatus, sanitizeBookIssue, sanitizeLibraryBook } from "../utils/libraryUtils.js";
 import { ensureParentStudentAccess, getStudentProfileForUser } from "../utils/roleAccess.js";
 import { ensureInstituteScope, getScopedInstituteId } from "../utils/scope.js";
+import { getUserModelName } from "../utils/userModel.js";
 import { createNotification, getParentUserIdsForStudent } from "../utils/notificationUtils.js";
 
 const populateBook = (query) =>
@@ -19,13 +20,7 @@ const populateBook = (query) =>
 const populateIssue = (query) =>
   query
     .populate("bookId", "title author isbn category shelfNumber")
-    .populate({
-      path: "studentId",
-      populate: {
-        path: "userId",
-        select: "name email",
-      },
-    })
+    .populate("studentId", "name email phone role status rollNumber admissionNumber academicGroupId instituteId")
     .populate("issuedBy", "name role")
     .populate("createdBy", "name role")
     .populate("updatedBy", "name role");
@@ -61,6 +56,7 @@ const validateBookPayload = async (req, payload) => {
 const createBook = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, false);
+    const actorModel = getUserModelName(req.user?.role);
     const validationError = await validateBookPayload(req, req.body);
     if (validationError) {
       res.status(400);
@@ -83,7 +79,9 @@ const createBook = async (req, res, next) => {
       availableCopies: Number(req.body.availableCopies ?? req.body.totalCopies),
       status: req.body.status || "active",
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await createAuditLog({
@@ -143,6 +141,7 @@ const getBookById = async (req, res, next) => {
 
 const updateBook = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const book = await LibraryBook.findOne({ _id: req.params.id, isDeleted: false });
     if (!book) {
       res.status(404);
@@ -187,6 +186,7 @@ const updateBook = async (req, res, next) => {
       availableCopies: nextAvailableCopies,
       status: req.body.status ?? book.status,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     await book.save();
@@ -208,6 +208,7 @@ const updateBook = async (req, res, next) => {
 
 const updateBookStatus = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     if (!["active", "inactive"].includes(req.body.status)) {
       res.status(400);
       throw new Error("Status must be active or inactive");
@@ -225,6 +226,7 @@ const updateBookStatus = async (req, res, next) => {
 
     book.status = req.body.status;
     book.updatedBy = req.user._id;
+    book.updatedByModel = actorModel;
     await book.save();
 
     await createAuditLog({
@@ -244,6 +246,7 @@ const updateBookStatus = async (req, res, next) => {
 
 const deleteBook = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const book = await LibraryBook.findOne({ _id: req.params.id, isDeleted: false });
     if (!book) {
       res.status(404);
@@ -258,6 +261,7 @@ const deleteBook = async (req, res, next) => {
     book.deletedAt = new Date();
     book.status = "inactive";
     book.updatedBy = req.user._id;
+    book.updatedByModel = actorModel;
     await book.save();
 
     await createAuditLog({
@@ -283,6 +287,7 @@ const syncIssueStatus = async (issue) => {
 const createIssue = async (req, res, next) => {
   try {
     const instituteId = getScopedInstituteId(req, false);
+    const actorModel = getUserModelName(req.user?.role);
     if (!req.body.bookId || !req.body.studentId || !req.body.issueDate || !req.body.dueDate) {
       res.status(400);
       throw new Error("Book, student, issue date, and due date are required");
@@ -324,13 +329,16 @@ const createIssue = async (req, res, next) => {
       bookId: book._id,
       studentId: student._id,
       issuedBy: req.user._id,
+      issuedByModel: actorModel,
       issueDate: req.body.issueDate,
       dueDate: req.body.dueDate,
       fineAmount: Number(req.body.fineAmount || 0),
       status: "issued",
       remarks: req.body.remarks?.trim() || "",
       createdBy: req.user._id,
+      createdByModel: actorModel,
       updatedBy: req.user._id,
+      updatedByModel: actorModel,
     });
 
     book.availableCopies -= 1;
@@ -365,7 +373,8 @@ const createIssue = async (req, res, next) => {
       metadata: { bookId: book._id, studentId: student._id },
     });
 
-    res.status(201).json({ message: "Book issued successfully", issue: sanitizeBookIssue(issue) });
+    const populatedIssue = await populateIssue(BookIssue.findById(issue._id));
+    res.status(201).json({ message: "Book issued successfully", issue: sanitizeBookIssue(populatedIssue) });
   } catch (error) {
     next(error);
   }
@@ -490,6 +499,7 @@ const getIssueById = async (req, res, next) => {
 
 const returnBook = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const issue = await BookIssue.findOne({ _id: req.params.id, isDeleted: false });
     if (!issue) {
       res.status(404);
@@ -516,6 +526,7 @@ const returnBook = async (req, res, next) => {
     issue.remarks = req.body.remarks?.trim() ?? issue.remarks;
     issue.status = "returned";
     issue.updatedBy = req.user._id;
+    issue.updatedByModel = actorModel;
     await issue.save();
 
     book.availableCopies += 1;
@@ -523,6 +534,7 @@ const returnBook = async (req, res, next) => {
       book.availableCopies = book.totalCopies;
     }
     book.updatedBy = req.user._id;
+    book.updatedByModel = actorModel;
     await book.save();
 
     // Notify student when book is returned
@@ -551,7 +563,8 @@ const returnBook = async (req, res, next) => {
       metadata: { bookId: book._id, studentId: issue.studentId },
     });
 
-    res.json({ message: "Book returned successfully", issue: sanitizeBookIssue(issue) });
+    const populatedIssue = await populateIssue(BookIssue.findById(issue._id));
+    res.json({ message: "Book returned successfully", issue: sanitizeBookIssue(populatedIssue) });
   } catch (error) {
     next(error);
   }
@@ -559,6 +572,7 @@ const returnBook = async (req, res, next) => {
 
 const updateIssueFine = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const issue = await BookIssue.findOne({ _id: req.params.id, isDeleted: false });
     if (!issue) {
       res.status(404);
@@ -571,6 +585,7 @@ const updateIssueFine = async (req, res, next) => {
 
     issue.fineAmount = Number(req.body.fineAmount || 0);
     issue.updatedBy = req.user._id;
+    issue.updatedByModel = actorModel;
     await issue.save();
 
     await createAuditLog({
@@ -582,7 +597,8 @@ const updateIssueFine = async (req, res, next) => {
       message: "Book issue fine updated",
     });
 
-    res.json({ message: "Fine updated successfully", issue: sanitizeBookIssue(issue) });
+    const populatedIssue = await populateIssue(BookIssue.findById(issue._id));
+    res.json({ message: "Fine updated successfully", issue: sanitizeBookIssue(populatedIssue) });
   } catch (error) {
     next(error);
   }
@@ -590,6 +606,7 @@ const updateIssueFine = async (req, res, next) => {
 
 const deleteIssue = async (req, res, next) => {
   try {
+    const actorModel = getUserModelName(req.user?.role);
     const issue = await BookIssue.findOne({ _id: req.params.id, isDeleted: false });
     if (!issue) {
       res.status(404);
@@ -605,6 +622,7 @@ const deleteIssue = async (req, res, next) => {
       if (book) {
         book.availableCopies = Math.min(book.totalCopies, book.availableCopies + 1);
         book.updatedBy = req.user._id;
+        book.updatedByModel = actorModel;
         await book.save();
       }
     }
@@ -612,6 +630,7 @@ const deleteIssue = async (req, res, next) => {
     issue.isDeleted = true;
     issue.deletedAt = new Date();
     issue.updatedBy = req.user._id;
+    issue.updatedByModel = actorModel;
     await issue.save();
 
     await createAuditLog({

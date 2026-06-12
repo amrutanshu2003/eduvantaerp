@@ -6,6 +6,7 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { getParentLabel, getParentLabelPlural } from "../../utils/instituteLabels";
@@ -19,6 +20,8 @@ const Parents = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchParents = async () => {
     try {
@@ -38,26 +41,85 @@ const Parents = () => {
   }, []);
 
   const handleStatusToggle = async (parent) => {
-    const status = parent.status === "active" ? "inactive" : "active";
-    await api.patch(`/parents/${parent._id}/status`, { status });
-    setMessageTone("success");
-    setMessage(`${singularLabel} marked as ${status}`);
-    fetchParents();
+    setConfirmModal({
+      type: "status",
+      parent,
+      title: parent.status === "active" ? `Deactivate ${singularLabel}?` : `Activate ${singularLabel}?`,
+      message: parent.status === "active" 
+        ? `This ${singularLabel.toLowerCase()} will no longer be able to login.` 
+        : `This ${singularLabel.toLowerCase()} will be able to login again.`,
+    });
   };
 
   const handleDelete = async (parent) => {
-    if (!(await window.confirm(`Delete this ${singularLabel.toLowerCase()}?`))) return;
-    await api.delete(`/parents/${parent._id}`);
-    setMessageTone("success");
-    setMessage(`${singularLabel} deleted successfully`);
-    fetchParents();
+    setConfirmModal({
+      type: "delete",
+      parent,
+      title: `Delete ${singularLabel}?`,
+      message: `This action will remove the ${singularLabel.toLowerCase()} record. This cannot be undone.`,
+    });
+  };
+
+  const confirmStatusToggle = async () => {
+    if (!confirmModal) return;
+    const { parent } = confirmModal;
+    try {
+      setActionLoading(true);
+      const nextStatus = parent.status === "active" ? "inactive" : "active";
+      await api.patch(`/parents/${parent._id}/status`, { status: nextStatus });
+      setMessageTone("success");
+      setMessage(`${singularLabel} marked as ${nextStatus}`);
+      setConfirmModal(null);
+      fetchParents();
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Status update failed");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { parent } = confirmModal;
+    try {
+      setActionLoading(true);
+      await api.delete(`/parents/${parent._id}`);
+      setMessageTone("success");
+      setMessage(`${singularLabel} deleted successfully`);
+      setConfirmModal(null);
+      fetchParents();
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Unable to delete");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading) return <LoadingBlock message={`Loading ${pluralLabel.toLowerCase()}...`} />;
 
   return (
     <section className="space-y-6">
-      <PageHeader eyebrow="Admin" title={pluralLabel} description={`Manage ${pluralLabel.toLowerCase()} linked to students in this institute.`} actions={<div className="flex flex-wrap gap-3"><Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Bulk Import</Link><Link to="/admin/parents/create" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Create {singularLabel}</Link></div>} />
+      <PageHeader 
+        eyebrow="Admin" 
+        title={pluralLabel} 
+        description={`Manage ${pluralLabel.toLowerCase()} linked to students in this institute.`} 
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" as={Link} to="/admin/bulk-import">
+              Bulk Import
+            </Button>
+            <Button
+              as={Link}
+              to="/admin/parents/create"
+              style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
+            >
+              Create {singularLabel}
+            </Button>
+          </div>
+        } 
+      />
       <AlertMessage tone={messageTone} message={message} />
       {parents.length === 0 ? (
         <EmptyState
@@ -67,25 +129,52 @@ const Parents = () => {
           actionLink="/admin/parents/create"
         />
       ) : (
-        <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500"><tr><th className="px-6 py-4 font-medium">Name</th><th className="px-6 py-4 font-medium">Relation</th><th className="px-6 py-4 font-medium">Linked Students</th><th className="px-6 py-4 font-medium">Status</th><th className="px-6 py-4 font-medium">Actions</th></tr></thead>
-              <tbody>
-                {parents.map((parent) => (
-                  <tr key={parent._id} className="border-t border-slate-100">
-                    <td className="px-6 py-4"><p className="font-medium text-ink">{parent.name}</p><p className="text-xs text-slate-500">{parent.email}</p></td>
-                    <td className="px-6 py-4 text-slate-600 capitalize">{parent.relation || "-"}</td>
-                    <td className="px-6 py-4 text-slate-600">{parent.linkedStudentIds?.length || 0}</td>
-                    <td className="px-6 py-4"><StatusBadge value={parent.status} /></td>
-                    <td className="px-6 py-4"><div className="flex flex-wrap gap-2"><Link to={`/admin/parents/${parent._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">View</Link><Link to={`/admin/parents/${parent._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Edit</Link><Link to={`/admin/parents/${parent._id}/link-students`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Link Students</Link><button type="button" onClick={() => handleStatusToggle(parent)} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">{parent.status === "active" ? "Deactivate" : "Activate"}</button><button type="button" onClick={() => handleDelete(parent)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600">Delete</button></div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TableShell
+          headers={["Name", "Relation", "Linked Students", "Status", "Actions"]}
+        >
+          {parents.map((parent) => (
+            <tr key={parent._id} className="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/40">
+              <td className="px-6 py-4">
+                <p className="font-medium text-slate-900 dark:text-white">{parent.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{parent.email}</p>
+              </td>
+              <td className="px-6 py-4 text-slate-600 dark:text-slate-300 capitalize">{parent.relation || "-"}</td>
+              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{parent.linkedStudentIds?.length || 0}</td>
+              <td className="px-6 py-4"><StatusBadge value={parent.status} /></td>
+              <td className="px-6 py-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/parents/${parent._id}`}>
+                    View
+                  </Button>
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/parents/${parent._id}/edit`}>
+                    Edit
+                  </Button>
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/parents/${parent._id}/link-students`}>
+                    Link Students
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => handleStatusToggle(parent)}>
+                    {parent.status === "active" ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(parent)}>
+                    Delete
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmModal?.type === "delete" ? confirmDelete : confirmStatusToggle}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText={confirmModal?.type === "delete" ? "Delete" : confirmModal?.parent?.status === "active" ? "Deactivate" : "Activate"}
+        variant={confirmModal?.type === "delete" ? "danger" : "primary"}
+        loading={actionLoading}
+      />
     </section>
   );
 };

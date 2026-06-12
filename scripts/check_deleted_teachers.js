@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import User from "./server/models/User.js"; // note: we can run this from project root
+import { fileURLToPath } from "url";
+import User from "../server/models/User.js";
 
-dotenv.config({ path: "./server/.env" });
+dotenv.config({ path: fileURLToPath(new URL("../server/.env", import.meta.url)) });
 
 const run = async () => {
   try {

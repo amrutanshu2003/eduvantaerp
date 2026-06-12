@@ -1,6 +1,84 @@
 # Eduvanta ERP
 
-Eduvanta ERP is a SaaS-style MERN Stack Institution ERP for schools, colleges and universities, featuring role-based dashboards, secure authentication, institute management, academic workflows, fees, hostel, transport, library and full ERP customization.
+Eduvanta ERP is a portfolio-ready MERN institution management platform for schools, colleges, and universities. It combines multi-role dashboards, academic operations, finance, library, transport, hostel workflows, and ERP-level branding/customization in one full-stack demo project.
+
+## Live Demo
+
+- Frontend Demo: [https://eduvantaerp.pages.dev](https://eduvantaerp.pages.dev)
+
+## Tech Stack
+
+- Frontend: React 18, Vite, Tailwind CSS, React Router, Axios
+- Backend: Node.js, Express, MongoDB, Mongoose, JWT authentication
+- Tooling: Nodemon, npm root scripts, environment-based deployment config
+- Deployment: Cloudflare Pages, Render, MongoDB Atlas
+
+## Key Features
+
+- Multi-role authentication for super admin, admin, teacher, student, parent, and staff
+- Institute lifecycle management with super admin controls
+- Academic groups, subjects, exams, marks, attendance, and results
+- Fees, notices, timetables, assignments, and bulk import workflows
+- Library issue/return tracking with overdue and fine management
+- Transport vehicles, routes, allocations, and driver/student views
+- Hostel setup, rooms, beds, allocations, outpasses, and complaints
+- Global and institute-level ERP customization for branding, labels, modules, and forms
+
+## Screenshots
+
+- Super Admin dashboard and institute management
+- Institute Admin academic and operational modules
+- Student and Parent self-service dashboards
+- Library, Transport, and Hostel workflow screens
+
+Add exported screenshots from the live demo here when preparing the public portfolio page or GitHub project showcase.
+
+## Quick Start
+
+1. Install dependencies:
+
+```bash
+npm run install:all
+```
+
+2. Create local environment files from the examples:
+
+```powershell
+Copy-Item server/.env.example server/.env
+Copy-Item client/.env.example client/.env
+```
+
+3. Update local values inside `server/.env` and `client/.env`.
+
+4. Seed the initial super admin if needed:
+
+```bash
+npm run seed
+```
+
+5. Start the full stack app:
+
+```bash
+npm start
+```
+
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:5000`
+
+## Demo Roles
+
+- `Super Admin`: global controls, institute management, ERP settings
+- `Institute Admin`: academics, students, staff, transport, hostel, library
+- `Teacher`: attendance, marks, timetable, assignments
+- `Student`: results, assignments, library, transport, hostel
+- `Parent`: linked child views for academic and operational modules
+- `Staff`: librarian, transport staff, driver, hostel warden, hostel security workflows
+
+Use locally seeded demo data for role access. Do not publish real passwords in the repository.
+
+## Detailed Documentation
+
+Detailed phase-wise module notes, routes, setup details, and testing flows continue below.
 
 ## Security Notice
 
@@ -239,7 +317,7 @@ The customization system includes built-in backward compatibility:
 
 1. **Fallback to Defaults**: All API endpoints fall back to global settings if institute-specific settings don't exist
 2. **Default Values**: Controllers return sensible defaults if no settings are configured
-3. **Initialization Script**: Run `node server/initialize_settings.js` to create default settings for existing institutes
+3. **Initialization Script**: Run `node server/scripts/initialize_settings.js` to create default settings for existing institutes
 4. **No Breaking Changes**: Existing data and functionality continue to work without settings
 
 ### Initialization
@@ -248,7 +326,7 @@ For existing deployments, run the initialization script to create default settin
 
 ```bash
 cd server
-node initialize_settings.js
+node scripts/initialize_settings.js
 ```
 
 This script:
@@ -351,7 +429,7 @@ npm run seed:demo
 
 ## Backend Setup
 
-Create `server/.env` with:
+Copy `server/.env.example` to `server/.env` locally and update it with your own values:
 
 ```env
 MONGO_URI=your_mongodb_atlas_uri_here

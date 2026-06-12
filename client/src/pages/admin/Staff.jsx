@@ -6,6 +6,7 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 
 const Staff = () => {
@@ -14,6 +15,8 @@ const Staff = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const fetchStaff = async () => {
     try {
@@ -33,26 +36,85 @@ const Staff = () => {
   }, []);
 
   const handleStatusToggle = async (member) => {
-    const status = member.status === "active" ? "inactive" : "active";
-    await api.patch(`/staff/${member._id}/status`, { status });
-    setMessageTone("success");
-    setMessage(`Staff marked as ${status}`);
-    fetchStaff();
+    setConfirmModal({
+      type: "status",
+      member,
+      title: member.status === "active" ? "Deactivate Staff?" : "Activate Staff?",
+      message: member.status === "active" 
+        ? "This staff member will no longer be able to login." 
+        : "This staff member will be able to login again.",
+    });
   };
 
   const handleDelete = async (member) => {
-    if (!(await window.confirm("Delete this staff member?"))) return;
-    await api.delete(`/staff/${member._id}`);
-    setMessageTone("success");
-    setMessage("Staff deleted successfully");
-    fetchStaff();
+    setConfirmModal({
+      type: "delete",
+      member,
+      title: "Delete Staff?",
+      message: "This action will remove the staff record. This cannot be undone.",
+    });
+  };
+
+  const confirmStatusToggle = async () => {
+    if (!confirmModal) return;
+    const { member } = confirmModal;
+    try {
+      setActionLoading(true);
+      const nextStatus = member.status === "active" ? "inactive" : "active";
+      await api.patch(`/staff/${member._id}/status`, { status: nextStatus });
+      setMessageTone("success");
+      setMessage(`Staff marked as ${nextStatus}`);
+      setConfirmModal(null);
+      fetchStaff();
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Status update failed");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { member } = confirmModal;
+    try {
+      setActionLoading(true);
+      await api.delete(`/staff/${member._id}`);
+      setMessageTone("success");
+      setMessage("Staff deleted successfully");
+      setConfirmModal(null);
+      fetchStaff();
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Unable to delete");
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   if (loading) return <LoadingBlock message="Loading staff..." />;
 
   return (
     <section className="space-y-6">
-      <PageHeader eyebrow="Admin" title="Staff" description="Manage institute staff accounts and permissions." actions={<div className="flex flex-wrap gap-3"><Link to="/admin/bulk-import" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Bulk Import</Link><Link to="/admin/staff/create" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Create Staff</Link></div>} />
+      <PageHeader 
+        eyebrow="Admin" 
+        title="Staff" 
+        description="Manage institute staff accounts and permissions." 
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" as={Link} to="/admin/bulk-import">
+              Bulk Import
+            </Button>
+            <Button
+              as={Link}
+              to="/admin/staff/create"
+              style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
+            >
+              Create Staff
+            </Button>
+          </div>
+        } 
+      />
       <AlertMessage tone={messageTone} message={message} />
       {staffMembers.length === 0 ? (
         <EmptyState
@@ -62,25 +124,52 @@ const Staff = () => {
           actionLink="/admin/staff/create"
         />
       ) : (
-        <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500"><tr><th className="px-6 py-4 font-medium">Name</th><th className="px-6 py-4 font-medium">Designation</th><th className="px-6 py-4 font-medium">Department</th><th className="px-6 py-4 font-medium">Status</th><th className="px-6 py-4 font-medium">Actions</th></tr></thead>
-              <tbody>
-                {staffMembers.map((member) => (
-                  <tr key={member._id} className="border-t border-slate-100">
-                    <td className="px-6 py-4"><p className="font-medium text-ink">{member.name}</p><p className="text-xs text-slate-500">{member.email}</p></td>
-                    <td className="px-6 py-4 text-slate-600">{String(member.designation || "-").replaceAll("_", " ")}</td>
-                    <td className="px-6 py-4 text-slate-600">{member.department || "-"}</td>
-                    <td className="px-6 py-4"><StatusBadge value={member.status} /></td>
-                    <td className="px-6 py-4"><div className="flex flex-wrap gap-2"><Link to={`/admin/staff/${member._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">View</Link><Link to={`/admin/staff/${member._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Edit</Link><Link to={`/admin/staff/${member._id}/permissions`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Permissions</Link><button type="button" onClick={() => handleStatusToggle(member)} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">{member.status === "active" ? "Deactivate" : "Activate"}</button><button type="button" onClick={() => handleDelete(member)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600">Delete</button></div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TableShell
+          headers={["Name", "Designation", "Department", "Status", "Actions"]}
+        >
+          {staffMembers.map((member) => (
+            <tr key={member._id} className="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/40">
+              <td className="px-6 py-4">
+                <p className="font-medium text-slate-900 dark:text-white">{member.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{member.email}</p>
+              </td>
+              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{String(member.designation || "-").replaceAll("_", " ")}</td>
+              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{member.department || "-"}</td>
+              <td className="px-6 py-4"><StatusBadge value={member.status} /></td>
+              <td className="px-6 py-4">
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/staff/${member._id}`}>
+                    View
+                  </Button>
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/staff/${member._id}/edit`}>
+                    Edit
+                  </Button>
+                  <Button variant="secondary" size="sm" as={Link} to={`/admin/staff/${member._id}/permissions`}>
+                    Permissions
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => handleStatusToggle(member)}>
+                    {member.status === "active" ? "Deactivate" : "Activate"}
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => handleDelete(member)}>
+                    Delete
+                  </Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmModal?.type === "delete" ? confirmDelete : confirmStatusToggle}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText={confirmModal?.type === "delete" ? "Delete" : confirmModal?.member?.status === "active" ? "Deactivate" : "Activate"}
+        variant={confirmModal?.type === "delete" ? "danger" : "primary"}
+        loading={actionLoading}
+      />
     </section>
   );
 };

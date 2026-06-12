@@ -95,7 +95,7 @@ const StatCard = ({ to, color, label, value, icon: Icon, detail }) => {
       <div className="flex flex-col justify-between h-full min-h-[100px] z-10 relative">
         {/* Top: Label and glassmorphic icon */}
         <div className="flex items-start justify-between gap-4">
-          <span className="text-[11px] font-extrabold uppercase tracking-[0.15em] text-white/95 leading-snug flex-1">
+          <span className="text-[18px] font-bold uppercase tracking-wider text-white/95 leading-snug flex-1">
             {label}
           </span>
           {Icon && (
@@ -107,11 +107,11 @@ const StatCard = ({ to, color, label, value, icon: Icon, detail }) => {
         
         {/* Bottom: Value and detail */}
         <div className="mt-5">
-          <h3 className="text-3xl font-black tracking-tight text-white line-clamp-1">
+          <h3 className="text-4xl font-black tracking-tight text-white line-clamp-1">
             {value}
           </h3>
           {displayDetail && (
-            <p className="mt-2 text-xs font-medium text-white/90 leading-snug">
+            <p className="mt-2 text-[15px] font-medium text-white/85 leading-normal">
               {displayDetail}
             </p>
           )}

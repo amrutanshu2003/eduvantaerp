@@ -137,7 +137,7 @@ const Login = () => {
   const usernameInputRef = useRef(null);
   const passwordInputRef = useRef(null);
   const loginInteractionRef = useRef(false);
-  const { login } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const {
     settings,
     getButtonRadius,
@@ -211,6 +211,27 @@ const Login = () => {
       window.removeEventListener("pageshow", handlePageShow);
     };
   }, []);
+
+  // Redirect logged-in users to their last visited path or dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      const requestedPath = location.state?.from?.pathname;
+      const allowedBasePaths = roleBasePathMap[user.role] || [];
+      const isRequestedPathAllowed = requestedPath &&
+        requestedPath !== "/login" &&
+        requestedPath !== "/unauthorized" &&
+        allowedBasePaths.some((basePath) => requestedPath.startsWith(basePath));
+
+      const savedPath = localStorage.getItem(`last_path_${user?._id || user?.role || "default"}`);
+      const fallbackPath = roleRedirectMap[user.role] || "/unauthorized";
+
+      const redirectPath = isRequestedPathAllowed
+        ? requestedPath
+        : (savedPath || fallbackPath);
+
+      navigate(redirectPath, { replace: true });
+    }
+  }, [user, authLoading, navigate, location.state]);
 
   const themeSwitchRef = useRef(null);
   const cleanupRef = useRef(null);
@@ -374,7 +395,8 @@ const Login = () => {
     setSubmitting(true);
     try {
       const user = await login(usernameVal, passwordVal);
-      const fallbackPath = roleRedirectMap[user.role] || "/unauthorized";
+      const savedPath = localStorage.getItem(`last_path_${user?._id || user?.role || "default"}`);
+      const fallbackPath = savedPath || roleRedirectMap[user.role] || "/unauthorized";
       const requestedPath = location.state?.from?.pathname;
       const allowedBasePaths = roleBasePathMap[user.role] || [];
       const redirectPath =
@@ -398,8 +420,8 @@ const Login = () => {
     }
   };
 
-  if (settingsLoading) {
-    return <LoginSkeleton message="Loading login page..." />;
+  if (settingsLoading || authLoading) {
+    return <LoginSkeleton message="Loading..." />;
   }
 
   const isDark = resolvedTheme === "dark";

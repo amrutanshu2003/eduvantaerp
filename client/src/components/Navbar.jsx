@@ -127,12 +127,23 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
   const updateNotificationDropdownPosition = () => {
     if (notificationRef.current) {
       const rect = notificationRef.current.getBoundingClientRect();
+      const dropdownWidth = 320;
+      const dropdownHeight = 400; // Approximate max height
+      const rightSpace = window.innerWidth - rect.left;
+      const bottomSpace = window.innerHeight - rect.bottom;
+      
+      // If there's not enough space on the right, align to the right edge
+      const left = rightSpace < dropdownWidth ? rect.right - dropdownWidth : rect.left;
+      
+      // If there's not enough space at the bottom, position above the button
+      const top = bottomSpace < dropdownHeight ? rect.top - dropdownHeight - 8 : rect.bottom + 8;
+      
       setNotificationDropdownStyle({
         position: "fixed",
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: 320,
-        zIndex: 99999,
+        top,
+        left,
+        width: dropdownWidth,
+        zIndex: 2147483647,
       });
     }
   };
@@ -578,6 +589,111 @@ const Navbar = ({ onThemeToggle, themeReveal }) => {
             )}
           </button>
         </div>
+
+        {/* Notification dropdown rendered via Portal */}
+        {showNotificationDropdown && createPortal(
+          <div
+            id="navbar-notification-dropdown"
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              position: "fixed",
+              top: notificationDropdownStyle.top ?? 0,
+              left: notificationDropdownStyle.left ?? 0,
+              width: notificationDropdownStyle.width ?? 320,
+              zIndex: 2147483647,
+              backgroundColor: isDark ? "#111c2d" : "rgba(255,255,255,0.97)",
+              border: `1px solid ${isDark ? "#223147" : "#e2e8f0"}`,
+              borderRadius: "1rem",
+              padding: "0.5rem",
+              boxShadow: isDark
+                ? "0 24px 70px rgba(2,6,23,0.7), 0 0 0 1px rgba(255,255,255,0.04)"
+                : "0 20px 60px rgba(15,23,42,0.13)",
+              backdropFilter: "blur(16px)",
+              maxHeight: "24rem",
+              overflowY: "auto",
+              msOverflowStyle: "none",
+              scrollbarWidth: "none",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0.75rem", borderBottom: `1px solid ${isDark ? "#223147" : "#e2e8f0"}`, marginBottom: "0.5rem" }}>
+              <span style={{ fontSize: "0.875rem", fontWeight: 600, color: isDark ? "#cad7ea" : "#334155" }}>Notifications</span>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  style={{ fontSize: "0.75rem", color: isDark ? "#7487a3" : "#64748b", background: "none", border: "none", cursor: "pointer", padding: "0.25rem 0.5rem", borderRadius: "0.375rem" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.07)" : "#f1f5f9"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
+            {notifications.length === 0 ? (
+              <div style={{ padding: "1.5rem", textAlign: "center", fontSize: "0.875rem", color: isDark ? "#7487a3" : "#94a3b8" }}>
+                No notifications
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification._id}
+                  onClick={() => handleNotificationClickItem(notification)}
+                  style={{
+                    display: "flex",
+                    gap: "0.75rem",
+                    padding: "0.75rem",
+                    borderRadius: "0.75rem",
+                    cursor: "pointer",
+                    background: notification.isRead ? "transparent" : isDark ? "rgba(59,130,246,0.1)" : "rgba(59,130,246,0.05)",
+                    border: notification.isRead ? "none" : `1px solid ${isDark ? "rgba(59,130,246,0.2)" : "rgba(59,130,246,0.1)"}`,
+                    marginBottom: "0.25rem",
+                    transition: "background 150ms ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.07)" : "#f1f5f9";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = notification.isRead ? "transparent" : isDark ? "rgba(59,130,246,0.1)" : "rgba(59,130,246,0.05)";
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: "0.875rem", fontWeight: 500, color: isDark ? "#cad7ea" : "#334155", marginBottom: "0.25rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {notification.title}
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: isDark ? "#7487a3" : "#64748b", marginBottom: "0.25rem", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      {notification.message}
+                    </div>
+                    <div style={{ fontSize: "0.6875rem", color: isDark ? "#5a6b85" : "#94a3b8" }}>
+                      {new Date(notification.createdAt).toLocaleDateString()} {new Date(notification.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                    {!notification.isRead && (
+                      <button
+                        onClick={(e) => handleMarkAsRead(notification._id, e)}
+                        style={{ padding: "0.25rem", background: "transparent", border: "none", cursor: "pointer", color: isDark ? "#7487a3" : "#64748b", borderRadius: "0.25rem" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.07)" : "#f1f5f9"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                        title="Mark as read"
+                      >
+                        <FiCheck style={{ width: "0.875rem", height: "0.875rem" }} />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => handleDeleteNotification(notification._id, e)}
+                      style={{ padding: "0.25rem", background: "transparent", border: "none", cursor: "pointer", color: isDark ? "#7487a3" : "#64748b", borderRadius: "0.25rem" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? "rgba(255,255,255,0.07)" : "#f1f5f9"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      title="Delete"
+                    >
+                      <FiTrash2 style={{ width: "0.875rem", height: "0.875rem" }} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>,
+          document.body
+        )}
 
         <button
           ref={themeToggleRef}

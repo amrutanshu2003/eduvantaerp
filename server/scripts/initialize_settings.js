@@ -8,15 +8,17 @@
  * all existing institutes have default settings.
  */
 
-const mongoose = require('mongoose');
-const Institute = require('./models/Institute');
-const ERPSettings = require('./models/ERPSettings');
-const LabelSettings = require('./models/LabelSettings');
-const ModuleSettings = require('./models/ModuleSettings');
-const AcademicSettings = require('./models/AcademicSettings');
-const FormSettings = require('./models/FormSettings');
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+import { fileURLToPath } from "url";
+import AcademicSettings from "../models/AcademicSettings.js";
+import ERPSettings from "../models/ERPSettings.js";
+import FormSettings from "../models/FormSettings.js";
+import Institute from "../models/Institute.js";
+import LabelSettings from "../models/LabelSettings.js";
+import ModuleSettings from "../models/ModuleSettings.js";
 
-require('dotenv').config();
+dotenv.config({ path: fileURLToPath(new URL("../.env", import.meta.url)) });
 
 const defaultERPSettings = {
   appName: "Eduvanta ERP",

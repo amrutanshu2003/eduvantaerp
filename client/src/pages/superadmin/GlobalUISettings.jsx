@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { FiPlus, FiTrash2, FiEdit2 } from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
 import PageHeader from "../../components/PageHeader";
+import IconPicker from "../../components/ui/IconPicker";
 import { useUISettings } from "../../context/UISettingsContext";
+import { normalizeCustomSidebarItem, serializeCustomSidebarItem } from "../../utils/iconRegistry";
 
 const ALL_SCHOOL_LEVELS = ["Pre-Primary", "Primary", "Middle", "Secondary", "Higher Secondary"];
 const ALL_PROGRAM_LEVELS = ["UG", "PG", "PhD", "Diploma", "Certificate"];
@@ -16,9 +19,17 @@ const GlobalUISettings = () => {
   const [clearRecoveryKey, setClearRecoveryKey] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState(null);
   const [customFieldInput, setCustomFieldInput] = useState("");
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [editingIconIndex, setEditingIconIndex] = useState(null);
+  const [newMenuItem, setNewMenuItem] = useState({ label: "", path: "", icon: null });
 
   useEffect(() => {
-    setFormData(settings);
+    setFormData({
+      ...settings,
+      customSidebarItems: Array.isArray(settings.customSidebarItems)
+        ? settings.customSidebarItems.map(normalizeCustomSidebarItem)
+        : [],
+    });
     setRecoveryKey("");
     setClearRecoveryKey(false);
   }, [settings]);
@@ -116,6 +127,7 @@ const GlobalUISettings = () => {
     try {
       await updateGlobalSettings({
         ...formData,
+        customSidebarItems: (formData.customSidebarItems || []).map(serializeCustomSidebarItem),
         privilegedRecoveryKey: recoveryKey,
         clearPrivilegedRecoveryKey: clearRecoveryKey,
       });
@@ -223,6 +235,49 @@ const GlobalUISettings = () => {
         </div>
       </div>
     );
+  };
+
+  const handleAddCustomMenuItem = () => {
+    if (!newMenuItem.label || !newMenuItem.path || !newMenuItem.icon) return;
+    
+    setFormData((current) => ({
+      ...current,
+      customSidebarItems: [...(current.customSidebarItems || []), normalizeCustomSidebarItem(newMenuItem)],
+    }));
+    setNewMenuItem({ label: "", path: "", icon: null });
+  };
+
+  const handleRemoveCustomMenuItem = (index) => {
+    setFormData((current) => ({
+      ...current,
+      customSidebarItems: current.customSidebarItems?.filter((_, i) => i !== index) || [],
+    }));
+  };
+
+  const handleIconSelect = (icon) => {
+    const normalizedIcon = {
+      key: icon.key,
+      name: icon.name,
+      component: icon.component,
+    };
+
+    if (editingIconIndex !== null) {
+      setFormData((current) => ({
+        ...current,
+        customSidebarItems: current.customSidebarItems?.map((item, i) =>
+          i === editingIconIndex ? normalizeCustomSidebarItem({ ...item, iconKey: normalizedIcon.key }) : item
+        ) || [],
+      }));
+      setEditingIconIndex(null);
+    } else {
+      setNewMenuItem((current) => ({ ...current, icon: normalizedIcon, iconKey: normalizedIcon.key }));
+    }
+    setIconPickerOpen(false);
+  };
+
+  const openIconPicker = (index = null) => {
+    setEditingIconIndex(index);
+    setIconPickerOpen(true);
   };
 
   const renderPanelHeader = (label, icon, panelKey, badgeCount) => {
@@ -506,6 +561,103 @@ const GlobalUISettings = () => {
             </div>
           </div>
 
+          {/* Sidebar Customization */}
+          <div className="mt-8 border-t border-slate-200 pt-6">
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold text-slate-800">Sidebar Customization</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Add custom menu items to the sidebar with custom icons. These will appear in the sidebar for all users.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* Add New Menu Item */}
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <p className="mb-3 text-sm font-medium text-slate-700">Add New Menu Item</p>
+                <div className="grid gap-3 md:grid-cols-4">
+                  <input
+                    type="text"
+                    value={newMenuItem.label}
+                    onChange={(e) => setNewMenuItem((current) => ({ ...current, label: e.target.value }))}
+                    placeholder="Label (e.g., Reports)"
+                    className={`${inputClassName}`}
+                  />
+                  <input
+                    type="text"
+                    value={newMenuItem.path}
+                    onChange={(e) => setNewMenuItem((current) => ({ ...current, path: e.target.value }))}
+                    placeholder="Path (e.g., /admin/reports)"
+                    className={`${inputClassName}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => openIconPicker(null)}
+                    className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                      newMenuItem.icon
+                        ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                    }`}
+                  >
+                    {newMenuItem.icon ? (
+                      <>
+                        <newMenuItem.icon.component className="h-5 w-5" />
+                        {newMenuItem.icon.name}
+                      </>
+                    ) : (
+                      "Select Icon"
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddCustomMenuItem}
+                    disabled={!newMenuItem.label || !newMenuItem.path || !newMenuItem.icon}
+                    className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                  >
+                    <FiPlus className="mr-2 h-4 w-4" />
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Custom Menu Items List */}
+              {formData.customSidebarItems && formData.customSidebarItems.length > 0 && (
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="mb-3 text-sm font-medium text-slate-700">Custom Menu Items</p>
+                  <div className="space-y-2">
+                    {formData.customSidebarItems.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
+                      >
+                        <item.icon.component className="h-5 w-5 text-slate-600" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                          <p className="text-xs text-slate-500">{item.path}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openIconPicker(index)}
+                          className="rounded-lg p-2 text-slate-500 hover:bg-slate-200 transition-colors"
+                          title="Change Icon"
+                        >
+                          <FiEdit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCustomMenuItem(index)}
+                          className="rounded-lg p-2 text-rose-500 hover:bg-rose-100 transition-colors"
+                          title="Remove"
+                        >
+                          <FiTrash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={submitting}
@@ -593,6 +745,15 @@ const GlobalUISettings = () => {
           </div>
         </div>
       </div>
+
+      {/* Icon Picker Modal */}
+      {iconPickerOpen && (
+        <IconPicker
+          selectedIcon={editingIconIndex !== null ? formData.customSidebarItems?.[editingIconIndex]?.icon : newMenuItem.icon}
+          onSelect={handleIconSelect}
+          onClose={() => setIconPickerOpen(false)}
+        />
+      )}
     </section>
   );
 };

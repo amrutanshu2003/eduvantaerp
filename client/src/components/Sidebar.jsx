@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { FiBookOpen, FiCalendar, FiCheckSquare, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPlusSquare, FiSettings, FiShield, FiTrash2, FiTruck, FiUser, FiUsers, FiPackage, FiChevronDown, FiChevronRight } from "react-icons/fi";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
 import { useLabelSettings } from "../context/LabelSettingsContext";
 import { canManageHostel, isHostelSecurityUser } from "../utils/hostelAccess";
 import { canManageTransport, isDriverUser } from "../utils/transportAccess";
+import { normalizeCustomSidebarItem } from "../utils/iconRegistry";
 
 const roleLabels = {
   superadmin: "Super Admin",
@@ -59,70 +60,70 @@ const defaultMenuItems = [
 
 const getGroupForLabel = (label) => {
   const l = label.toLowerCase();
-  
+
   if (l === "dashboard" || l === "my profile") {
     return "core";
   }
   if (
-    l === "institutes" || 
-    l === "create institute" || 
-    l === "institute settings" || 
-    l === "bulk-import" || 
+    l === "institutes" ||
+    l === "create institute" ||
+    l === "institute settings" ||
+    l === "bulk-import" ||
     l === "bulk import"
   ) {
     return "institute";
   }
   if (
-    l.includes("academic") || 
-    l.includes("subject") || 
-    l.includes("exam") || 
-    l.includes("mark") || 
-    l.includes("result") || 
-    l.includes("timetable") || 
+    l.includes("academic") ||
+    l.includes("subject") ||
+    l.includes("exam") ||
+    l.includes("mark") ||
+    l.includes("result") ||
+    l.includes("timetable") ||
     l.includes("assignment")
   ) {
     return "academics";
   }
   if (
-    l === "admins" || 
-    l.includes("teacher") || 
-    l.includes("faculty") || 
-    l.includes("student") || 
-    l.includes("parent") || 
-    l.includes("guardian") || 
-    l.includes("staff") || 
-    l.includes("attendance") || 
+    l === "admins" ||
+    l.includes("teacher") ||
+    l.includes("faculty") ||
+    l.includes("student") ||
+    l.includes("parent") ||
+    l.includes("guardian") ||
+    l.includes("staff") ||
+    l.includes("attendance") ||
     l.includes("fee")
   ) {
     if (l === "my students") return "services";
     return "operations";
   }
   if (
-    l.includes("library") || 
-    l.includes("book") || 
-    l.includes("transport") || 
-    l.includes("vehicle") || 
-    l.includes("route") || 
-    l.includes("allocation") || 
-    l.includes("hostel") || 
-    l.includes("room") || 
-    l.includes("bed") || 
-    l.includes("outpass") || 
-    l.includes("complaint") || 
+    l.includes("library") ||
+    l.includes("book") ||
+    l.includes("transport") ||
+    l.includes("vehicle") ||
+    l.includes("route") ||
+    l.includes("allocation") ||
+    l.includes("hostel") ||
+    l.includes("room") ||
+    l.includes("bed") ||
+    l.includes("outpass") ||
+    l.includes("complaint") ||
     l.includes("driver")
   ) {
     return "services";
   }
   if (
-    l === "global settings" || 
-    l === "global ui settings" || 
-    l === "audit log settings" || 
-    l === "recycle bin" || 
+    l === "global settings" ||
+    l === "global ui settings" ||
+    l === "audit log settings" ||
+    l === "recycle bin" ||
     l.includes("notice")
   ) {
     return "system";
   }
-  
+
   return "core";
 };
 
@@ -134,31 +135,80 @@ const Sidebar = () => {
   const sidebarStyle = isDark
     ? { backgroundColor: settings.sidebarColor }
     : {
-        background:
-          "linear-gradient(180deg, #f8fbff 0%, #eef5ff 52%, #e6f0ff 100%)",
-        borderRight: "1px solid rgba(203, 213, 225, 0.8)",
-      };
+      background:
+        "linear-gradient(180deg, #f8fbff 0%, #eef5ff 52%, #e6f0ff 100%)",
+      borderRight: "1px solid rgba(203, 213, 225, 0.8)",
+    };
   const canManageLibrary = user?.role === "admin" || (user?.role === "staff" && (user?.designation === "librarian" || (user?.permissions || []).includes("library.manage")));
   const canManageTransportModule = canManageTransport(user);
   const isDriver = isDriverUser(user);
   const canManageHostelModule = canManageHostel(user);
   const isHostelSecurity = isHostelSecurityUser(user);
   const basePath = user?.role === "superadmin" ? "/super-admin" : `/${user?.role}`;
+  const customSidebarItems = (settings.customSidebarItems || []).map(normalizeCustomSidebarItem);
 
-  const [collapsedGroups, setCollapsedGroups] = useState({
-    core: true,
-    institute: true,
-    academics: true,
-    operations: true,
-    services: true,
-    system: true,
+  const storageKey = `sidebar_collapsed_${user?._id || user?.role || "default"}`;
+  const isInitialMount = useRef(true);
+  const lastLoadedKeyRef = useRef(storageKey);
+
+  const [collapsedGroups, setCollapsedGroups] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return {
+      core: true,
+      institute: true,
+      academics: true,
+      operations: true,
+      services: true,
+      system: true,
+    };
   });
+
+  // Load state when key changes (login/logout/refresh)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        setCollapsedGroups(JSON.parse(saved));
+      } else {
+        setCollapsedGroups({
+          core: true,
+          institute: true,
+          academics: true,
+          operations: true,
+          services: true,
+          system: true,
+        });
+      }
+      lastLoadedKeyRef.current = storageKey;
+      isInitialMount.current = true; // reset mount tracker for path auto-expand
+    } catch (e) {
+      console.error(e);
+    }
+  }, [storageKey]);
+
+  // Save state when collapsedGroups changes, but only if synced with current storageKey
+  useEffect(() => {
+    if (storageKey === lastLoadedKeyRef.current) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(collapsedGroups));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, [collapsedGroups, storageKey]);
 
   const toggleGroup = (groupId) => {
     setCollapsedGroups((prev) => {
       const isOpening = prev[groupId];
       if (isOpening) {
-        // Collapse all groups, then expand the chosen one
+        // Collapse all other groups, expand the clicked one
         return {
           core: true,
           institute: true,
@@ -237,56 +287,66 @@ const Sidebar = () => {
   const menuItems =
     user?.role === "superadmin"
       ? [
-          ...superAdminItems,
-          ...adminItemsForSuper,
-        ]
+        ...superAdminItems,
+        ...adminItemsForSuper,
+        ...customSidebarItems.map((item) => ({
+          label: item.label,
+          icon: item.icon.component,
+          path: item.path,
+        })),
+      ]
       : user?.role === "admin"
         ? [
-            { label: "Dashboard", icon: FiHome, path: "/admin/dashboard" },
-            { label: "My Profile", icon: FiUser, path: "/admin/profile" },
-            { label: "Institute Settings", icon: FiSettings, path: "/admin/settings" },
-            { label: "Bulk Import", icon: FiPlusSquare, path: "/admin/bulk-import" },
-            { label: getAcademicGroupLabel(), icon: FiBookOpen, path: "/admin/academic-groups" },
-            ...(isModuleEnabled("teachers") ? [{ label: getTeacherLabelPlural(), icon: FiUser, path: "/admin/teachers" }] : []),
-            ...(isModuleEnabled("students") ? [{ label: getLabel("studentLabel") + "s", icon: FiUsers, path: "/admin/students" }] : []),
-            ...(isModuleEnabled("parents") ? [{ label: getParentLabelPlural(), icon: FiShield, path: "/admin/parents" }] : []),
-            ...(isModuleEnabled("staff") ? [{ label: getLabel("staffLabel") + "s", icon: FiLayers, path: "/admin/staff" }] : []),
-            ...(isModuleEnabled("subjects") ? [{ label: getSubjectLabelPlural(), icon: FiBookOpen, path: "/admin/subjects" }] : []),
-            ...(isModuleEnabled("attendance") ? [
-              { label: getLabel("attendanceLabel"), icon: FiCheckSquare, path: "/admin/attendance" },
-              { label: "Attendance Reports", icon: FiFileText, path: "/admin/attendance/reports" },
-            ] : []),
-            ...(isModuleEnabled("exams") ? [{ label: getLabel("examLabel") + "s", icon: FiCalendar, path: "/admin/exams" }] : []),
-            ...(isModuleEnabled("marks") ? [
-              { label: getLabel("marksLabel"), icon: FiEdit, path: "/admin/marks" },
-              { label: getLabel("resultLabel") + "s", icon: FiFileText, path: "/admin/results" },
-            ] : []),
-            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/admin/notices" }] : []),
-            ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/admin/fees" }] : []),
-            ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/admin/timetables" }] : []),
-            ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/admin/assignments" }] : []),
-            { label: "Recycle Bin", icon: FiPackage, path: "/admin/recycle-bin" },
-            ...(isModuleEnabled("library") ? [
-              { label: getLabel("libraryLabel") + " Books", icon: FiBookOpen, path: "/admin/library/books" },
-              { label: "Book Issues", icon: FiFileText, path: "/admin/library/issues" },
-              { label: "Overdue Books", icon: FiCalendar, path: "/admin/library/issues/overdue" },
-            ] : []),
-            ...(isModuleEnabled("transport") ? [
-              { label: getLabel("transportLabel") + " Vehicles", icon: FiTruck, path: "/admin/transport/vehicles" },
-              { label: getLabel("transportLabel") + " Routes", icon: FiMap, path: "/admin/transport/routes" },
-              { label: getLabel("transportLabel") + " Allocations", icon: FiUsers, path: "/admin/transport/allocations" },
-            ] : []),
-            ...(isModuleEnabled("hostel") ? [
-              { label: getLabel("hostelLabel") + "s", icon: FiHome, path: "/admin/hostels" },
-              { label: getLabel("hostelLabel") + " Rooms", icon: FiLayers, path: "/admin/hostel-rooms" },
-              { label: getLabel("hostelLabel") + " Beds", icon: FiPackage, path: "/admin/hostel-beds" },
-              { label: getLabel("hostelLabel") + " Allocations", icon: FiUsers, path: "/admin/hostel-allocations" },
-              { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/admin/hostel-outpasses" },
-              { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/admin/hostel-complaints" },
-            ] : []),
-          ]
-      : user?.role === "teacher"
-        ? [
+          { label: "Dashboard", icon: FiHome, path: "/admin/dashboard" },
+          { label: "My Profile", icon: FiUser, path: "/admin/profile" },
+          { label: "Institute Settings", icon: FiSettings, path: "/admin/settings" },
+          { label: "Bulk Import", icon: FiPlusSquare, path: "/admin/bulk-import" },
+          { label: getAcademicGroupLabel(), icon: FiBookOpen, path: "/admin/academic-groups" },
+          ...(isModuleEnabled("teachers") ? [{ label: getTeacherLabelPlural(), icon: FiUser, path: "/admin/teachers" }] : []),
+          ...(isModuleEnabled("students") ? [{ label: getLabel("studentLabel") + "s", icon: FiUsers, path: "/admin/students" }] : []),
+          ...(isModuleEnabled("parents") ? [{ label: getParentLabelPlural(), icon: FiShield, path: "/admin/parents" }] : []),
+          ...(isModuleEnabled("staff") ? [{ label: getLabel("staffLabel") + "s", icon: FiLayers, path: "/admin/staff" }] : []),
+          ...(isModuleEnabled("subjects") ? [{ label: getSubjectLabelPlural(), icon: FiBookOpen, path: "/admin/subjects" }] : []),
+          ...(isModuleEnabled("attendance") ? [
+            { label: getLabel("attendanceLabel"), icon: FiCheckSquare, path: "/admin/attendance" },
+            { label: "Attendance Reports", icon: FiFileText, path: "/admin/attendance/reports" },
+          ] : []),
+          ...(isModuleEnabled("exams") ? [{ label: getLabel("examLabel") + "s", icon: FiCalendar, path: "/admin/exams" }] : []),
+          ...(isModuleEnabled("marks") ? [
+            { label: getLabel("marksLabel"), icon: FiEdit, path: "/admin/marks" },
+            { label: getLabel("resultLabel") + "s", icon: FiFileText, path: "/admin/results" },
+          ] : []),
+          ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/admin/notices" }] : []),
+          ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/admin/fees" }] : []),
+          ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/admin/timetables" }] : []),
+          ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/admin/assignments" }] : []),
+          { label: "Recycle Bin", icon: FiPackage, path: "/admin/recycle-bin" },
+          ...(isModuleEnabled("library") ? [
+            { label: getLabel("libraryLabel") + " Books", icon: FiBookOpen, path: "/admin/library/books" },
+            { label: "Book Issues", icon: FiFileText, path: "/admin/library/issues" },
+            { label: "Overdue Books", icon: FiCalendar, path: "/admin/library/issues/overdue" },
+          ] : []),
+          ...(isModuleEnabled("transport") ? [
+            { label: getLabel("transportLabel") + " Vehicles", icon: FiTruck, path: "/admin/transport/vehicles" },
+            { label: getLabel("transportLabel") + " Routes", icon: FiMap, path: "/admin/transport/routes" },
+            { label: getLabel("transportLabel") + " Allocations", icon: FiUsers, path: "/admin/transport/allocations" },
+          ] : []),
+          ...(isModuleEnabled("hostel") ? [
+            { label: getLabel("hostelLabel") + "s", icon: FiHome, path: "/admin/hostels" },
+            { label: getLabel("hostelLabel") + " Rooms", icon: FiLayers, path: "/admin/hostel-rooms" },
+            { label: getLabel("hostelLabel") + " Beds", icon: FiPackage, path: "/admin/hostel-beds" },
+            { label: getLabel("hostelLabel") + " Allocations", icon: FiUsers, path: "/admin/hostel-allocations" },
+            { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/admin/hostel-outpasses" },
+            { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/admin/hostel-complaints" },
+          ] : []),
+          ...customSidebarItems.map((item) => ({
+            label: item.label,
+            icon: item.icon.component,
+            path: item.path,
+          })),
+        ]
+        : user?.role === "teacher"
+          ? [
             { label: "Dashboard", icon: FiHome, path: "/teacher/dashboard" },
             { label: "My Profile", icon: FiUser, path: "/teacher/profile" },
             ...(isModuleEnabled("subjects") ? [{ label: "My Subjects", icon: FiBookOpen, path: "/teacher/subjects" }] : []),
@@ -305,135 +365,166 @@ const Sidebar = () => {
               { label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/teacher/assignments" },
               { label: "Create Assignment", icon: FiPlusSquare, path: "/teacher/assignments/create" },
             ] : []),
+            ...customSidebarItems.map((item) => ({
+              label: item.label,
+              icon: item.icon.component,
+              path: item.path,
+            })),
           ]
-      : user?.role === "student"
-        ? [
-            { label: "Dashboard", icon: FiHome, path: "/student/dashboard" },
-            { label: "My Profile", icon: FiUser, path: "/student/profile" },
-            ...(isModuleEnabled("attendance") ? [{ label: "My Attendance", icon: FiCheckSquare, path: "/student/attendance" }] : []),
-            ...(isModuleEnabled("exams") ? [{ label: "My Exams", icon: FiCalendar, path: "/student/exams" }] : []),
-            ...(isModuleEnabled("marks") ? [{ label: "My Results", icon: FiFileText, path: "/student/results" }] : []),
-            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/student/notices" }] : []),
-            ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/student/fees" }] : []),
-            ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/student/timetable" }] : []),
-            ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/student/assignments" }] : []),
-            ...(isModuleEnabled("library") ? [{ label: getLabel("libraryLabel"), icon: FiBookOpen, path: "/student/library" }] : []),
-            ...(isModuleEnabled("transport") ? [{ label: getLabel("transportLabel"), icon: FiTruck, path: "/student/transport" }] : []),
-            ...(isModuleEnabled("hostel") ? [
-              { label: "My Hostel", icon: FiHome, path: "/student/hostel" },
-              { label: "Hostel Outpass", icon: FiFileText, path: "/student/hostel/outpasses" },
-              { label: "Hostel Complaints", icon: FiShield, path: "/student/hostel/complaints" },
-            ] : []),
-          ]
-      : user?.role === "parent"
-        ? [
-            { label: "Dashboard", icon: FiHome, path: "/parent/dashboard" },
-            { label: "My Profile", icon: FiUser, path: "/parent/profile" },
-            ...(isModuleEnabled("attendance") ? [{ label: "Child Attendance", icon: FiCheckSquare, path: "/parent/attendance" }] : []),
-            ...(isModuleEnabled("exams") ? [{ label: "Child Exams", icon: FiCalendar, path: "/parent/exams" }] : []),
-            ...(isModuleEnabled("marks") ? [{ label: "Child Results", icon: FiFileText, path: "/parent/results" }] : []),
-            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/parent/notices" }] : []),
-            ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/parent/fees" }] : []),
-            ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/parent/timetable" }] : []),
-            ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/parent/assignments" }] : []),
-            ...(isModuleEnabled("library") ? [{ label: "Child Library", icon: FiBookOpen, path: "/parent/library" }] : []),
-            ...(isModuleEnabled("transport") ? [{ label: "Child Transport", icon: FiTruck, path: "/parent/transport" }] : []),
-            ...(isModuleEnabled("hostel") ? [
-              { label: "Child Hostel", icon: FiHome, path: "/parent/hostel" },
-              { label: "Hostel Outpasses", icon: FiFileText, path: "/parent/hostel/outpasses" },
-              { label: "Hostel Complaints", icon: FiShield, path: "/parent/hostel/complaints" },
-            ] : []),
-          ]
-      : user?.role === "staff"
-        ? [
-            { label: "Dashboard", icon: FiHome, path: "/staff/dashboard" },
-            { label: "My Profile", icon: FiUser, path: "/staff/profile" },
-            ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/staff/notices" }] : []),
-            ...(canManageLibrary && isModuleEnabled("library")
+          : user?.role === "student"
+            ? [
+              { label: "Dashboard", icon: FiHome, path: "/student/dashboard" },
+              { label: "My Profile", icon: FiUser, path: "/student/profile" },
+              ...(isModuleEnabled("attendance") ? [{ label: "My Attendance", icon: FiCheckSquare, path: "/student/attendance" }] : []),
+              ...(isModuleEnabled("exams") ? [{ label: "My Exams", icon: FiCalendar, path: "/student/exams" }] : []),
+              ...(isModuleEnabled("marks") ? [{ label: "My Results", icon: FiFileText, path: "/student/results" }] : []),
+              ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/student/notices" }] : []),
+              ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/student/fees" }] : []),
+              ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/student/timetable" }] : []),
+              ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/student/assignments" }] : []),
+              ...(isModuleEnabled("library") ? [{ label: getLabel("libraryLabel"), icon: FiBookOpen, path: "/student/library" }] : []),
+              ...(isModuleEnabled("transport") ? [{ label: getLabel("transportLabel"), icon: FiTruck, path: "/student/transport" }] : []),
+              ...(isModuleEnabled("hostel") ? [
+                { label: "My Hostel", icon: FiHome, path: "/student/hostel" },
+                { label: "Hostel Outpass", icon: FiFileText, path: "/student/hostel/outpasses" },
+                { label: "Hostel Complaints", icon: FiShield, path: "/student/hostel/complaints" },
+              ] : []),
+              ...customSidebarItems.map((item) => ({
+                label: item.label,
+                icon: item.icon.component,
+                path: item.path,
+              })),
+            ]
+            : user?.role === "parent"
               ? [
-                  { label: getLabel("libraryLabel") + " Books", icon: FiBookOpen, path: "/staff/library/books" },
-                  { label: "Book Issues", icon: FiFileText, path: "/staff/library/issues" },
-                  { label: "Overdue Books", icon: FiCalendar, path: "/staff/library/issues/overdue" },
+                { label: "Dashboard", icon: FiHome, path: "/parent/dashboard" },
+                { label: "My Profile", icon: FiUser, path: "/parent/profile" },
+                ...(isModuleEnabled("attendance") ? [{ label: "Child Attendance", icon: FiCheckSquare, path: "/parent/attendance" }] : []),
+                ...(isModuleEnabled("exams") ? [{ label: "Child Exams", icon: FiCalendar, path: "/parent/exams" }] : []),
+                ...(isModuleEnabled("marks") ? [{ label: "Child Results", icon: FiFileText, path: "/parent/results" }] : []),
+                ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/parent/notices" }] : []),
+                ...(isModuleEnabled("fees") ? [{ label: getLabel("feeLabel") + "s", icon: FiCreditCard, path: "/parent/fees" }] : []),
+                ...(isModuleEnabled("timetable") ? [{ label: getLabel("timetableLabel"), icon: FiClock, path: "/parent/timetable" }] : []),
+                ...(isModuleEnabled("assignments") ? [{ label: getLabel("assignmentLabel") + "s", icon: FiEdit, path: "/parent/assignments" }] : []),
+                ...(isModuleEnabled("library") ? [{ label: "Child Library", icon: FiBookOpen, path: "/parent/library" }] : []),
+                ...(isModuleEnabled("transport") ? [{ label: "Child Transport", icon: FiTruck, path: "/parent/transport" }] : []),
+                ...(isModuleEnabled("hostel") ? [
+                  { label: "Child Hostel", icon: FiHome, path: "/parent/hostel" },
+                  { label: "Hostel Outpasses", icon: FiFileText, path: "/parent/hostel/outpasses" },
+                  { label: "Hostel Complaints", icon: FiShield, path: "/parent/hostel/complaints" },
+                ] : []),
+                ...customSidebarItems.map((item) => ({
+                  label: item.label,
+                  icon: item.icon.component,
+                  path: item.path,
+                })),
+              ]
+              : user?.role === "staff"
+                ? [
+                  { label: "Dashboard", icon: FiHome, path: "/staff/dashboard" },
+                  { label: "My Profile", icon: FiUser, path: "/staff/profile" },
+                  ...(isModuleEnabled("notices") ? [{ label: getLabel("noticeLabel") + "s", icon: FiFileText, path: "/staff/notices" }] : []),
+                  ...(canManageLibrary && isModuleEnabled("library")
+                    ? [
+                      { label: getLabel("libraryLabel") + " Books", icon: FiBookOpen, path: "/staff/library/books" },
+                      { label: "Book Issues", icon: FiFileText, path: "/staff/library/issues" },
+                      { label: "Overdue Books", icon: FiCalendar, path: "/staff/library/issues/overdue" },
+                    ]
+                    : []),
+                  ...(canManageTransportModule && isModuleEnabled("transport")
+                    ? [
+                      { label: getLabel("transportLabel") + " Vehicles", icon: FiTruck, path: "/staff/transport/vehicles" },
+                      { label: getLabel("transportLabel") + " Routes", icon: FiMap, path: "/staff/transport/routes" },
+                      { label: getLabel("transportLabel") + " Allocations", icon: FiUsers, path: "/staff/transport/allocations" },
+                    ]
+                    : []),
+                  ...(isDriver
+                    ? [
+                      { label: "My Route", icon: FiTruck, path: "/staff/transport/my-route" },
+                      { label: "My Students", icon: FiUsers, path: "/staff/transport/my-students" },
+                    ]
+                    : []),
+                  ...(canManageHostelModule && isModuleEnabled("hostel")
+                    ? [
+                      { label: getLabel("hostelLabel") + "s", icon: FiHome, path: "/staff/hostels" },
+                      { label: getLabel("hostelLabel") + " Rooms", icon: FiLayers, path: "/staff/hostel-rooms" },
+                      { label: getLabel("hostelLabel") + " Beds", icon: FiPackage, path: "/staff/hostel-beds" },
+                      { label: getLabel("hostelLabel") + " Allocations", icon: FiUsers, path: "/staff/hostel-allocations" },
+                      { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/staff/hostel-outpasses" },
+                      { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/staff/hostel-complaints" },
+                    ]
+                    : []),
+                  ...(isHostelSecurity
+                    ? [
+                      { label: getLabel("hostelLabel") + "s View", icon: FiHome, path: "/staff/hostels" },
+                      { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/staff/hostel-outpasses" },
+                      { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/staff/hostel-complaints" },
+                    ]
+                    : []),
+                  ...customSidebarItems.map((item) => ({
+                    label: item.label,
+                    icon: item.icon.component,
+                    path: item.path,
+                  })),
                 ]
-              : []),
-            ...(canManageTransportModule && isModuleEnabled("transport")
-              ? [
-                  { label: getLabel("transportLabel") + " Vehicles", icon: FiTruck, path: "/staff/transport/vehicles" },
-                  { label: getLabel("transportLabel") + " Routes", icon: FiMap, path: "/staff/transport/routes" },
-                  { label: getLabel("transportLabel") + " Allocations", icon: FiUsers, path: "/staff/transport/allocations" },
-                ]
-              : []),
-            ...(isDriver
-              ? [
-                  { label: "My Route", icon: FiTruck, path: "/staff/transport/my-route" },
-                  { label: "My Students", icon: FiUsers, path: "/staff/transport/my-students" },
-                ]
-              : []),
-            ...(canManageHostelModule && isModuleEnabled("hostel")
-              ? [
-                  { label: getLabel("hostelLabel") + "s", icon: FiHome, path: "/staff/hostels" },
-                  { label: getLabel("hostelLabel") + " Rooms", icon: FiLayers, path: "/staff/hostel-rooms" },
-                  { label: getLabel("hostelLabel") + " Beds", icon: FiPackage, path: "/staff/hostel-beds" },
-                  { label: getLabel("hostelLabel") + " Allocations", icon: FiUsers, path: "/staff/hostel-allocations" },
-                  { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/staff/hostel-outpasses" },
-                  { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/staff/hostel-complaints" },
-                ]
-              : []),
-            ...(isHostelSecurity
-              ? [
-                  { label: getLabel("hostelLabel") + "s View", icon: FiHome, path: "/staff/hostels" },
-                  { label: getLabel("hostelLabel") + " Outpasses", icon: FiFileText, path: "/staff/hostel-outpasses" },
-                  { label: getLabel("hostelLabel") + " Complaints", icon: FiShield, path: "/staff/hostel-complaints" },
-                ]
-              : []),
-          ]
-        : defaultMenuItems.map((item) => ({ ...item, path: `${basePath}/${item.suffix}` }));
+                : defaultMenuItems.map((item) => ({ ...item, path: `${basePath}/${item.suffix}` }));
 
   const location = useLocation();
+  const navigate = useNavigate();
 
+  // Save current path to localStorage whenever route changes
   useEffect(() => {
-    // If we are on a dashboard page, keep all sidebar groups collapsed
-    if (location.pathname.endsWith("/dashboard")) {
-      setCollapsedGroups({
-        core: true,
-        institute: true,
-        academics: true,
-        operations: true,
-        services: true,
-        system: true,
-      });
+    if (!user) return;
+    const path = location.pathname;
+    
+    // Don't save login, logout, unauthorized, or root paths
+    if (path && path !== "/" && path !== "/login" && path !== "/logout" && path !== "/unauthorized") {
+      // Ensure the path matches the user's role prefix
+      const isSuperAdminAllowed = user.role === "superadmin" && (path.startsWith("/super-admin") || path.startsWith("/admin"));
+      const isRegularRoleAllowed = path.startsWith(`/${user.role}`);
+      
+      if (isSuperAdminAllowed || isRegularRoleAllowed) {
+        localStorage.setItem(
+          `last_path_${user?._id || user?.role || "default"}`,
+          path + location.search + location.hash
+        );
+      }
+    }
+  }, [location.pathname, location.search, location.hash, user]);
+
+  // Handle sidebar group auto-expansion on active navigation (excludes initial mount)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
       return;
     }
 
     const activeItem = menuItems
       .filter((item) => item.path && location.pathname.startsWith(item.path))
       .sort((a, b) => b.path.length - a.path.length)[0];
-    
-    if (activeItem) {
-      if (activeItem.label.toLowerCase() === "dashboard") {
-        setCollapsedGroups({
-          core: true,
-          institute: true,
-          academics: true,
-          operations: true,
-          services: true,
-          system: true,
-        });
-        return;
-      }
 
+    if (activeItem) {
       const activeGroup = getGroupForLabel(activeItem.label);
       setCollapsedGroups((prev) => {
         if (prev[activeGroup] === false) return prev;
-        return {
-          core: true,
-          institute: true,
-          academics: true,
-          operations: true,
-          services: true,
-          system: true,
-          [activeGroup]: false,
-        };
+        if (activeGroup === "core") {
+          // Navigating to core (Dashboard/Profile) expands core but does NOT collapse other groups
+          return {
+            ...prev,
+            core: false,
+          };
+        } else {
+          // Navigating to other modules expands the target group and collapses all others
+          return {
+            core: true,
+            institute: true,
+            academics: true,
+            operations: true,
+            services: true,
+            system: true,
+            [activeGroup]: false,
+          };
+        }
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -467,9 +558,8 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`flex w-full flex-col px-5 py-6 md:h-screen md:w-72 md:flex-shrink-0 md:overflow-hidden ${
-        isDark ? "text-white" : "text-slate-900"
-      }`}
+      className={`flex w-full flex-col px-5 py-6 md:h-screen md:w-72 md:flex-shrink-0 md:overflow-hidden ${isDark ? "text-white" : "text-slate-900"
+        }`}
       style={sidebarStyle}
     >
       <div className="flex min-h-0 flex-1 flex-col">
@@ -490,9 +580,8 @@ const Sidebar = () => {
                 <button
                   onClick={() => toggleGroup(group.id)}
                   type="button"
-                  className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors rounded-xl ${
-                    isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-950 hover:bg-slate-100/50"
-                  }`}
+                  className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors rounded-xl ${isDark ? "text-slate-400 hover:text-white hover:bg-white/5" : "text-slate-500 hover:text-slate-950 hover:bg-slate-100/50"
+                    }`}
                 >
                   <div className="flex items-center gap-2">
                     <GroupIcon size={16} />
@@ -508,12 +597,11 @@ const Sidebar = () => {
                         key={path}
                         to={path}
                         className={({ isActive }) =>
-                          `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${
-                            isActive
-                              ? isDark ? "text-white shadow-sm border-l-4" : "shadow-sm border-l-4"
-                              : isDark
-                                ? "text-slate-300 hover:bg-white/10 hover:text-white border-l-4 border-l-transparent"
-                                : "text-slate-700 hover:bg-white hover:text-slate-950 border-l-4 border-l-transparent"
+                          `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition ${isActive
+                            ? isDark ? "text-white shadow-sm border-l-4" : "shadow-sm border-l-4"
+                            : isDark
+                              ? "text-slate-300 hover:bg-white/10 hover:text-white border-l-4 border-l-transparent"
+                              : "text-slate-700 hover:bg-white hover:text-slate-950 border-l-4 border-l-transparent"
                           }`
                         }
                         style={({ isActive }) => (isActive ? {

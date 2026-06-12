@@ -31,6 +31,7 @@ const defaultGlobalSettings = {
   captchaEnabled: true,
   privilegedRecoveryEnabled: false,
   privilegedRecoveryHint: "",
+  customSidebarItems: [],
   academicConfig: defaultAcademicConfig,
 };
 
@@ -69,6 +70,16 @@ const updateGlobalUISettings = async (req, res, next) => {
       themeMode: req.body.themeMode || defaultGlobalSettings.themeMode,
       footerText: req.body.footerText?.trim() || defaultGlobalSettings.footerText,
       captchaEnabled: typeof req.body.captchaEnabled === "boolean" ? req.body.captchaEnabled : defaultGlobalSettings.captchaEnabled,
+      customSidebarItems: Array.isArray(req.body.customSidebarItems)
+        ? req.body.customSidebarItems
+            .filter((item) => item && typeof item === "object")
+            .map((item) => ({
+              label: item.label?.trim(),
+              path: item.path?.trim(),
+              iconKey: item.iconKey?.trim() || "info",
+            }))
+            .filter((item) => item.label && item.path)
+        : defaultGlobalSettings.customSidebarItems,
       privilegedRecoveryEnabled:
         typeof req.body.privilegedRecoveryEnabled === "boolean"
           ? req.body.privilegedRecoveryEnabled

@@ -160,6 +160,7 @@ import UserTransportPage from "./pages/transport/UserTransportPage";
 import VehicleDetailsPage from "./pages/transport/VehicleDetailsPage";
 import VehicleFormPage from "./pages/transport/VehicleFormPage";
 import CustomAlert from "./components/CustomAlert";
+import Notifications from "./pages/Notifications";
 
 const App = () => {
   return (
@@ -187,6 +188,7 @@ const App = () => {
             <Route path="/super-admin/admins/:id/edit" element={<EditAdmin />} />
             <Route path="/super-admin/settings" element={<Settings />} />
             <Route path="/super-admin/audit-log-settings" element={<AuditLogSettings />} />
+            <Route path="/super-admin/notifications" element={<Notifications />} />
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["admin"]} />}>
@@ -292,6 +294,7 @@ const App = () => {
             <Route path="/admin/hostel-outpasses/:id" element={<HostelOutpassDetailsPage eyebrow="Admin" roleMode="manager" />} />
             <Route path="/admin/hostel-complaints" element={<ManageComplaintsPage basePath="/admin" eyebrow="Admin" title="Hostel Complaints" description="Track hostel issues, assignments, and resolution status." mode="manager" />} />
             <Route path="/admin/hostel-complaints/:id" element={<HostelComplaintDetailsPage eyebrow="Admin" roleMode="manager" />} />
+            <Route path="/admin/notifications" element={<Notifications />} />
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["teacher"]} />}>
@@ -313,6 +316,7 @@ const App = () => {
             <Route path="/teacher/assignments/:id" element={<TeacherAssignmentDetails />} />
             <Route path="/teacher/assignments/:id/edit" element={<EditAssignment />} />
             <Route path="/teacher/assignments/:id/submissions" element={<TeacherAssignmentSubmissions />} />
+            <Route path="/teacher/notifications" element={<Notifications />} />
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["student"]} />}>
@@ -336,6 +340,7 @@ const App = () => {
             <Route path="/student/hostel/complaints" element={<ManageComplaintsPage basePath="/student" eyebrow="Student" title="Hostel Complaints" description="Track your hostel complaints and issue resolution." mode="student" />} />
             <Route path="/student/hostel/complaints/create" element={<HostelComplaintFormPage basePath="/student" eyebrow="Student" />} />
             <Route path="/student/hostel/complaints/:id" element={<HostelComplaintDetailsPage eyebrow="Student" roleMode="student" />} />
+            <Route path="/student/notifications" element={<Notifications />} />
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["parent"]} />}>
@@ -365,6 +370,7 @@ const App = () => {
             <Route path="/parent/hostel/complaints" element={<ParentHostelSectionPage title="Hostel Complaints" description="Choose a linked child to review hostel complaints." pathBuilder={(id) => `/parent/children/${id}/hostel/complaints`} />} />
             <Route path="/parent/children/:studentId/hostel/complaints" element={<ManageComplaintsPage basePath="/parent" eyebrow="Parent" title="Child Hostel Complaints" description="Review linked child hostel complaints and status updates." mode="parent-child" />} />
             <Route path="/parent/hostel/complaints/:id" element={<HostelComplaintDetailsPage eyebrow="Parent" roleMode="parent" />} />
+            <Route path="/parent/notifications" element={<Notifications />} />
           </Route>
 
           <Route element={<RoleRoute allowedRoles={["staff"]} />}>
@@ -416,6 +422,7 @@ const App = () => {
             <Route path="/staff/hostel-outpasses/:id" element={<HostelOutpassDetailsPage eyebrow="Staff" roleMode="manager" />} />
             <Route path="/staff/hostel-complaints" element={<ManageComplaintsPage basePath="/staff" eyebrow="Staff" title="Hostel Complaints" description="Review, assign, and resolve hostel complaints." mode="manager" />} />
             <Route path="/staff/hostel-complaints/:id" element={<HostelComplaintDetailsPage eyebrow="Staff" roleMode="manager" />} />
+            <Route path="/staff/notifications" element={<Notifications />} />
           </Route>
         </Route>
       </Route>

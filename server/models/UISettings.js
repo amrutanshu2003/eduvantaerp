@@ -59,6 +59,28 @@ const uiSettingsSchema = new mongoose.Schema(
       default: "",
       trim: true,
     },
+    customSidebarItems: {
+      type: [
+        {
+          label: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          path: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+          iconKey: {
+            type: String,
+            required: true,
+            trim: true,
+          },
+        },
+      ],
+      default: [],
+    },
     privilegedRecoveryKeyHash: {
       type: String,
       default: "",
