@@ -51,15 +51,16 @@ const CreateInstitute = () => {
   };
 
   return (
-      <InstituteForm
-        title="Create Institute"
-        description="Create a new school, college, or university and keep the record ready for institute-level admin onboarding."
-        formData={formData}
-        onChange={handleChange}
+    <InstituteForm
+      title="Create Institute"
+      description="Create a new school, college, or university and keep the record ready for institute-level admin onboarding."
+      formData={formData}
+      onChange={handleChange}
       onSubmit={handleSubmit}
       submitting={submitting}
       errorMessage={errorMessage}
       submitLabel="Create Institute"
+      submittingLabel="Creating..."
     />
   );
 };

@@ -6,19 +6,33 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { getAcademicGroupLabel, getInstituteType } from "../../utils/instituteLabels";
 
+const getInitials = (name) => {
+  if (!name) return "NA";
+  const words = name.trim().split(" ");
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 const AcademicGroups = () => {
   const { user } = useAuth();
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const instituteType = getInstituteType(user);
   const [groups, setGroups] = useState([]);
   const [academicSettings, setAcademicSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   const fetchGroups = async () => {
     try {
@@ -48,31 +62,59 @@ const AcademicGroups = () => {
   }, []);
 
   const handleStatusToggle = async (group) => {
+    setConfirmModal({
+      type: "status",
+      group,
+      title: group.status === "active" ? `Deactivate ${academicGroupLabel}?` : `Activate ${academicGroupLabel}?`,
+      message: group.status === "active" 
+        ? `This ${academicGroupLabel.toLowerCase()} will no longer be accessible.` 
+        : `This ${academicGroupLabel.toLowerCase()} will be accessible again.`,
+    });
+  };
+
+  const confirmStatusToggle = async () => {
+    if (!confirmModal) return;
+    const { group } = confirmModal;
     try {
+      setActionLoading(true);
       const status = group.status === "active" ? "inactive" : "active";
       await api.patch(`/academic-groups/${group._id}/status`, { status });
       setMessageTone("success");
       setMessage(`Academic group marked as ${status}`);
+      setConfirmModal(null);
       fetchGroups();
     } catch (error) {
       setMessageTone("error");
       setMessage(error.response?.data?.message || "Status update failed");
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleDelete = async (group) => {
-    if (!(await window.confirm("Delete this academic group?"))) {
-      return;
-    }
+    setConfirmModal({
+      type: "delete",
+      group,
+      title: `Delete ${academicGroupLabel}?`,
+      message: `This action will remove the ${academicGroupLabel.toLowerCase()} record. This cannot be undone.`,
+    });
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { group } = confirmModal;
     try {
+      setActionLoading(true);
       await api.delete(`/academic-groups/${group._id}`);
       setMessageTone("success");
       setMessage("Academic group deleted successfully");
+      setConfirmModal(null);
       fetchGroups();
     } catch (error) {
       setMessageTone("error");
       setMessage(error.response?.data?.message || "Delete failed");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -145,62 +187,60 @@ const AcademicGroups = () => {
           actionLink="/admin/academic-groups/create"
         />
       ) : (
-        <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card dark:bg-slate-900">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Name</th>
-                  {listFields
-                    .sort((a, b) => a.order - b.order)
-                    .map((field) => (
-                      <th key={field.fieldKey} className="px-6 py-4 font-medium">
-                        {field.label}
-                      </th>
-                    ))}
-                  <th className="px-6 py-4 font-medium">{subGroupLabel}</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {groups.map((group) => (
-                  <tr key={group._id} className="border-t border-slate-100 dark:border-slate-800">
-                    <td className="px-6 py-4 font-medium text-ink dark:text-slate-200">
-                      {getGroupDisplayName(group)}
-                    </td>
-                    {listFields
-                      .sort((a, b) => a.order - b.order)
-                      .map((field) => (
-                        <td key={field.fieldKey} className="px-6 py-4 text-slate-600 dark:text-slate-400">
-                          {getFieldValue(group, field)}
-                        </td>
-                      ))}
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{group.section || "-"}</td>
-                    <td className="px-6 py-4"><StatusBadge value={group.status} /></td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Link to={`/admin/academic-groups/${group._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-300">
-                          View
-                        </Link>
-                        <Link to={`/admin/academic-groups/${group._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-300">
-                          Edit
-                        </Link>
-                        <button type="button" onClick={() => handleStatusToggle(group)} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-300">
-                          {group.status === "active" ? "Deactivate" : "Activate"}
-                        </button>
-                        <button type="button" onClick={() => handleDelete(group)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 dark:border-rose-900 dark:text-rose-400">
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+        <TableShell
+          headers={["Name", ...listFields.sort((a, b) => a.order - b.order).map((f) => f.label), subGroupLabel, "Status", "Actions"]}
+        >
+          {groups.map((group) => (
+            <tr key={group._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                    {getInitials(getGroupDisplayName(group))}
+                  </div>
+                  <div>
+                    <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{getGroupDisplayName(group)}</p>
+                  </div>
+                </div>
+              </td>
+              {listFields
+                .sort((a, b) => a.order - b.order)
+                .map((field) => (
+                  <td key={field.fieldKey} className="px-6 py-4">
+                    <p className={isDark ? "text-slate-300" : "text-slate-700"}>{getFieldValue(group, field)}</p>
+                  </td>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{group.section || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={group.status} />
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={group}
+                  isActive={group.status === "active"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDeactivate={group.status === "active" ? () => handleStatusToggle(group) : undefined}
+                  onActivate={group.status === "inactive" ? () => handleStatusToggle(group) : undefined}
+                  onDelete={() => handleDelete(group)}
+                />
+              </td>
+            </tr>
+          ))}
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmModal?.type === "delete" ? confirmDelete : confirmStatusToggle}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText={confirmModal?.type === "delete" ? "Delete" : confirmModal?.group?.status === "active" ? "Deactivate" : "Activate"}
+        variant={confirmModal?.type === "delete" ? "danger" : "primary"}
+        loading={actionLoading}
+      />
     </section>
   );
 };

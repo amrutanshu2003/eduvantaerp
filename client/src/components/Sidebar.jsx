@@ -712,13 +712,13 @@ const Sidebar = () => {
   }, {});
 
   const groupsConfig = [
-    { id: "core", name: "Core", icon: FiHome },
-    { id: "institute", name: "Institute", icon: FiLayers },
-    { id: "academicSetup", name: "Academic Setup", icon: FiBookOpen },
-    { id: "academics", name: "Academics", icon: FiBookOpen },
-    { id: "operations", name: "Operations", icon: FiUsers },
-    { id: "services", name: "Services", icon: FiTruck },
-    { id: "system", name: "System", icon: FiSettings },
+    { id: "core", name: "CORE", icon: FiHome },
+    { id: "institute", name: "INSTITUTE", icon: FiLayers },
+    { id: "academicSetup", name: "ACADEMIC SETUP", icon: FiBookOpen },
+    { id: "academics", name: "ACADEMICS", icon: FiBookOpen },
+    { id: "operations", name: "OPERATIONS", icon: FiUsers },
+    { id: "services", name: "SERVICES", icon: FiTruck },
+    { id: "system", name: "SYSTEM", icon: FiSettings },
   ];
 
   const groupsToShow = groupsConfig.filter((g) => groupedItems[g.id].length > 0);

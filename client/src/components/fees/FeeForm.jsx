@@ -1,5 +1,7 @@
 import { FiCreditCard, FiDollarSign, FiFileText, FiLayers, FiUser } from "react-icons/fi";
 import AlertMessage from "../AlertMessage";
+import PageHeader from "../PageHeader";
+import { Button, Input, Select, FormSection, FormField, FormActionBar } from "../ui";
 import { useUISettings } from "../../context/UISettingsContext";
 import { feeTypeOptions, paymentMethodOptions } from "../../utils/feeOptions";
 import { formatLabel } from "../../utils/formatters";
@@ -29,129 +31,150 @@ const FeeForm = ({
 
   return (
     <section className="space-y-6">
-      <div
-        className={`${sectionCardClass} overflow-hidden`}
-        style={{
-          backgroundImage: `radial-gradient(circle at top right, ${settings.primaryColor}16, transparent 34%), radial-gradient(circle at bottom left, ${settings.secondaryColor}14, transparent 30%)`,
-        }}
-      >
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-teal-700 dark:text-emerald-300">Finance Setup</p>
-            <h1 className="mt-3 text-4xl font-semibold text-ink dark:text-white">{title}</h1>
-            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{description}</p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { label: "Fee Type", value: formData.feeType || "tuition", icon: FiCreditCard },
-              { label: "Amount", value: formData.amount || 0, icon: FiDollarSign },
-              { label: "Status", value: formData.status || "pending", icon: FiFileText },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.label} className={softPanelClass}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
-                    <Icon className="text-slate-400" size={15} />
-                  </div>
-                  <p className="mt-3 text-base font-semibold capitalize text-ink dark:text-white">{item.value}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={title}
+        description={description}
+      />
 
       <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
         <div className="space-y-6">
-          <div className={sectionCardClass}>
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-ink dark:text-white">Fee Details</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Assign the fee to a student, set amounts, and track payment details.</p>
-            </div>
-
+          <FormSection title="Fee Details" description="Assign the fee to a student, set amounts, and track payment details.">
             <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Student</label>
-                <select name="studentId" value={formData.studentId} onChange={onChange} className={inputClass} required>
+              <FormField label="Student" required>
+                <Select
+                  name="studentId"
+                  value={formData.studentId}
+                  onChange={onChange}
+                  required
+                >
                   <option value="">Select Student</option>
                   {students.map((student) => (
                     <option key={student._id} value={student._id}>
                       {student.name} ({student.rollNumber})
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Academic Group</label>
-                <select name="academicGroupId" value={formData.academicGroupId} onChange={onChange} className={inputClass}>
+                </Select>
+              </FormField>
+              <FormField label="Academic Group" helperText="Optional override from student's group">
+                <Select
+                  name="academicGroupId"
+                  value={formData.academicGroupId}
+                  onChange={onChange}
+                >
                   <option value="">Auto from student</option>
                   {academicGroups.map((group) => (
                     <option key={group._id} value={group._id}>
                       {getGroupLabel(group)}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Fee Type</label>
-                <select name="feeType" value={formData.feeType} onChange={onChange} className={inputClass}>
+                </Select>
+              </FormField>
+              <FormField label="Fee Type">
+                <Select
+                  name="feeType"
+                  value={formData.feeType}
+                  onChange={onChange}
+                >
                   {feeTypeOptions.map((value) => (
                     <option key={value} value={value}>
                       {formatLabel(value)}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Title</label>
-                <input name="title" value={formData.title} onChange={onChange} className={inputClass} required />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Amount</label>
-                <input type="number" min="0" name="amount" value={formData.amount} onChange={onChange} className={inputClass} required />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Discount</label>
-                <input type="number" min="0" name="discount" value={formData.discount} onChange={onChange} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Fine</label>
-                <input type="number" min="0" name="fine" value={formData.fine} onChange={onChange} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Paid Amount</label>
-                <input type="number" min="0" name="paidAmount" value={formData.paidAmount} onChange={onChange} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Due Date</label>
-                <input type="date" name="dueDate" value={formData.dueDate} onChange={onChange} className={inputClass} required />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Payment Date</label>
-                <input type="date" name="paymentDate" value={formData.paymentDate} onChange={onChange} className={inputClass} />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Payment Method</label>
-                <select name="paymentMethod" value={formData.paymentMethod} onChange={onChange} className={inputClass}>
+                </Select>
+              </FormField>
+              <FormField label="Title" required>
+                <Input
+                  name="title"
+                  value={formData.title}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
+              <FormField label="Amount" required helperText="Total fee amount">
+                <Input
+                  name="amount"
+                  type="number"
+                  min="0"
+                  value={formData.amount}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
+              <FormField label="Discount" helperText="Optional discount amount">
+                <Input
+                  name="discount"
+                  type="number"
+                  min="0"
+                  value={formData.discount}
+                  onChange={onChange}
+                />
+              </FormField>
+              <FormField label="Fine" helperText="Late payment fine">
+                <Input
+                  name="fine"
+                  type="number"
+                  min="0"
+                  value={formData.fine}
+                  onChange={onChange}
+                />
+              </FormField>
+              <FormField label="Paid Amount" helperText="Amount already paid">
+                <Input
+                  name="paidAmount"
+                  type="number"
+                  min="0"
+                  value={formData.paidAmount}
+                  onChange={onChange}
+                />
+              </FormField>
+              <FormField label="Due Date" required>
+                <Input
+                  name="dueDate"
+                  type="date"
+                  value={formData.dueDate}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
+              <FormField label="Payment Date">
+                <Input
+                  name="paymentDate"
+                  type="date"
+                  value={formData.paymentDate}
+                  onChange={onChange}
+                />
+              </FormField>
+              <FormField label="Payment Method">
+                <Select
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  onChange={onChange}
+                >
                   {paymentMethodOptions.map((value) => (
                     <option key={value} value={value}>
                       {formatLabel(value)}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Transaction ID</label>
-                <input name="transactionId" value={formData.transactionId} onChange={onChange} className={inputClass} />
-              </div>
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
-                <textarea name="description" value={formData.description} onChange={onChange} rows="4" className={`${inputClass} resize-none`} />
-              </div>
+                </Select>
+              </FormField>
+              <FormField label="Transaction ID">
+                <Input
+                  name="transactionId"
+                  value={formData.transactionId}
+                  onChange={onChange}
+                />
+              </FormField>
+              <FormField label="Description" className="md:col-span-2">
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={onChange}
+                  rows="4"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none resize-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+              </FormField>
             </div>
-          </div>
+          </FormSection>
         </div>
 
         <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
@@ -195,14 +218,11 @@ const FeeForm = ({
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Once values look correct, save this fee record.</p>
             <div className="mt-6 space-y-4">
               <AlertMessage tone="error" message={errorMessage} />
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-                className="w-full px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:opacity-95 disabled:opacity-60"
-              >
-                {submitting ? "Saving..." : submitLabel}
-              </button>
+              <FormActionBar
+                onSubmit={onSubmit}
+                submitting={submitting}
+                submitLabel={submitLabel}
+              />
             </div>
           </div>
         </div>

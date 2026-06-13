@@ -6,16 +6,22 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { getSubjectLabelPlural, getInstituteType } from "../../utils/instituteLabels";
 
 const Subjects = () => {
   const { user } = useAuth();
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
+  const instituteType = getInstituteType(user);
 
   useEffect(() => {
     const loadSubjects = async () => {
@@ -31,21 +37,31 @@ const Subjects = () => {
     loadSubjects();
   }, []);
 
-  const handleDelete = async (subjectId) => {
-    if (!(await window.confirm("Are you sure you want to delete this subject?"))) {
-      return;
-    }
+  const handleDelete = async (subject) => {
+    setConfirmModal({
+      type: "delete",
+      subject,
+      title: "Delete Subject?",
+      message: "This action will remove the subject record. This cannot be undone.",
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { subject } = confirmModal;
     try {
-      await api.delete(`/subjects/${subjectId}`);
-      setSubjects((current) => current.filter((s) => s._id !== subjectId));
+      setActionLoading(true);
+      await api.delete(`/subjects/${subject._id}`);
+      setSubjects((current) => current.filter((s) => s._id !== subject._id));
+      setConfirmModal(null);
     } catch (error) {
       setErrorMessage(error.response?.data?.message || "Unable to delete subject");
+    } finally {
+      setActionLoading(false);
     }
   };
 
   if (loading) return <LoadingBlock message="Loading subjects..." />;
-
-  const instituteType = getInstituteType(user);
 
   return (
     <section className="space-y-6">
@@ -77,61 +93,48 @@ const Subjects = () => {
           actionLink="/admin/subjects/create"
         />
       ) : (
-        <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Subject</th>
-                  <th className="px-6 py-4 font-medium">
-                    {["college", "university"].includes(instituteType) ? "Academic Group" : "Class"}
-                  </th>
-                  <th className="px-6 py-4 font-medium">Teacher</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {subjects.map((subject) => (
-                  <tr key={subject._id} className="border-t border-slate-100">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-ink">{subject.subjectName}</p>
-                      <p className="text-xs text-slate-500">{subject.subjectCode}</p>
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {subject.academicGroupId?.className || subject.academicGroupId?.department || "-"}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">{subject.teacherId?.name || "Unassigned"}</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge value={subject.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Link to={`/admin/subjects/${subject._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                          View
-                        </Link>
-                        <Link to={`/admin/subjects/${subject._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                          Edit
-                        </Link>
-                        <Link to={`/admin/subjects/${subject._id}/assign-teacher`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                          Assign
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(subject._id)}
-                          className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TableShell
+          headers={["Subject", ["college", "university"].includes(instituteType) ? "Academic Group" : "Class", "Teacher", "Status", "Actions"]}
+        >
+          {subjects.map((subject) => (
+            <tr key={subject._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
+              <td className="px-6 py-4">
+                <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{subject.subjectName}</p>
+                <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{subject.subjectCode}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{subject.academicGroupId?.className || subject.academicGroupId?.department || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{subject.teacherId?.name || "Unassigned"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={subject.status} />
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={subject}
+                  isActive={subject.status === "active"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDelete={() => handleDelete(subject)}
+                />
+              </td>
+            </tr>
+          ))}
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmDelete}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText="Delete"
+        variant="danger"
+        loading={actionLoading}
+      />
     </section>
   );
 };

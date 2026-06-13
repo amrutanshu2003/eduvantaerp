@@ -3,9 +3,13 @@ import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import EmptyState from "../../components/EmptyState";
+import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
+import ActionPopover from "../../components/ui/ActionPopover";
+import FilterBar from "../../components/ui/FilterBar";
+import { Button, TableShell, ConfirmModal, Input, Select } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 import { FiHome, FiCheckSquare, FiBookOpen, FiLayers, FiUsers, FiClock, FiPlus } from "react-icons/fi";
 
@@ -44,14 +48,26 @@ const SKELETON_LABELS = [
   "Colleges", "Universities", "Total Admins", "Trial / Expired",
 ];
 
+const getInitials = (name) => {
+  if (!name) return "NA";
+  const words = name.trim().split(" ");
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 const Institutes = () => {
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const [filters, setFilters] = useState(filterDefaults);
   const [institutes, setInstitutes] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   const fetchInstitutes = async () => {
     try {
@@ -81,32 +97,65 @@ const Institutes = () => {
   };
 
   const handleStatusToggle = async (institute) => {
+    setConfirmModal({
+      type: "status",
+      institute,
+      title: institute.status === "active" ? "Deactivate Institute?" : "Activate Institute?",
+      message: institute.status === "active" 
+        ? "This institute will no longer be able to login." 
+        : "This institute will be able to login again.",
+    });
+  };
+
+  const confirmStatusToggle = async () => {
+    if (!confirmModal) return;
+    const { institute } = confirmModal;
     try {
+      setActionLoading(true);
       const nextStatus = institute.status === "active" ? "inactive" : "active";
       await api.patch(`/institutes/${institute._id}/status`, { status: nextStatus });
       setMessageTone("success");
       setMessage(`Institute marked as ${nextStatus}`);
+      setConfirmModal(null);
       await fetchInstitutes();
     } catch (error) {
       setMessageTone("error");
       setMessage(error.response?.data?.message || "Status update failed");
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleDelete = async (institute) => {
-    if (!(await window.confirm(`Delete ${institute.name}? This will soft delete the institute.`))) {
-      return;
-    }
+    setConfirmModal({
+      type: "delete",
+      institute,
+      title: `Delete ${institute.name}?`,
+      message: "This will soft delete the institute. This cannot be undone.",
+    });
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { institute } = confirmModal;
     try {
+      setActionLoading(true);
       await api.delete(`/institutes/${institute._id}`);
       setMessageTone("success");
       setMessage("Institute deleted successfully");
+      setConfirmModal(null);
       await fetchInstitutes();
     } catch (error) {
       setMessageTone("error");
       setMessage(error.response?.data?.message || "Unable to delete institute");
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const handleResetFilters = () => {
+    setFilters(filterDefaults);
+    fetchInstitutes();
   };
 
   const statCards = useMemo(
@@ -165,48 +214,51 @@ const Institutes = () => {
             })}
       </div>
 
-      <form onSubmit={handleSearch} className="grid gap-4 rounded-[1.75rem] bg-white p-6 shadow-card md:grid-cols-4">
-        <input
+      <FilterBar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onSearch={handleSearch}
+        onReset={handleResetFilters}
+        searchPlaceholder="Search by name, code, email..."
+      >
+        <Input
           name="search"
           value={filters.search}
           onChange={handleFilterChange}
           placeholder="Search by name, code, email..."
-          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"
         />
-        <select name="status" value={filters.status} onChange={handleFilterChange} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none">
+        <Select
+          name="status"
+          value={filters.status}
+          onChange={handleFilterChange}
+        >
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
-        </select>
-        <select
+        </Select>
+        <Select
           name="instituteType"
           value={filters.instituteType}
           onChange={handleFilterChange}
-          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none"
         >
           <option value="all">All Types</option>
           <option value="school">School</option>
           <option value="college">College</option>
           <option value="university">University</option>
-        </select>
-        <div className="flex gap-3">
-          <select name="plan" value={filters.plan} onChange={handleFilterChange} className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none">
-            <option value="all">All Plans</option>
-            <option value="free">Free</option>
-            <option value="basic">Basic</option>
-            <option value="premium">Premium</option>
-          </select>
-          <button
-            type="submit"
-            style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-            className="px-5 py-3 text-sm font-semibold text-white"
-          >
-            Search
-          </button>
-        </div>
-      </form>
+        </Select>
+        <Select
+          name="plan"
+          value={filters.plan}
+          onChange={handleFilterChange}
+        >
+          <option value="all">All Plans</option>
+          <option value="free">Free</option>
+          <option value="basic">Basic</option>
+          <option value="premium">Premium</option>
+        </Select>
+      </FilterBar>
 
-      {!loading && institutes.length === 0 ? (
+      {institutes.length === 0 ? (
         <EmptyState
           title="No institutes found"
           description="No institutes found. Create your first institute to get started."
@@ -214,73 +266,60 @@ const Institutes = () => {
           actionLink="/super-admin/institutes/create"
         />
       ) : (
-        <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Institute</th>
-                  <th className="px-6 py-4 font-medium">Type</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Plan</th>
-                  <th className="px-6 py-4 font-medium">Payment</th>
-                  <th className="px-6 py-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading
-                  ? Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={i} className="border-t border-slate-100">
-                        {Array.from({ length: 6 }).map((__, j) => (
-                          <td key={j} className="px-6 py-4">
-                            <div className="h-4 rounded-full bg-slate-100 animate-pulse" style={{ width: j === 0 ? "8rem" : "4rem" }} />
-                          </td>
-                        ))}
-                      </tr>
-                    ))
-                  : institutes.map((institute) => (
-                      <tr key={institute._id} className="border-t border-slate-100">
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="font-semibold text-ink">{institute.name}</p>
-                            <p className="text-xs text-slate-500">{institute.instituteCode} • {institute.email}</p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4"><StatusBadge value={institute.instituteType} /></td>
-                        <td className="px-6 py-4"><StatusBadge value={institute.status} /></td>
-                        <td className="px-6 py-4"><StatusBadge value={institute.plan} /></td>
-                        <td className="px-6 py-4"><StatusBadge value={institute.paymentStatus} /></td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-wrap gap-2">
-                            <Link to={`/super-admin/institutes/${institute._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                              View
-                            </Link>
-                            <Link to={`/super-admin/institutes/${institute._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                              Edit
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={() => handleStatusToggle(institute)}
-                              className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-                            >
-                              {institute.status === "active" ? "Deactivate" : "Activate"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(institute)}
-                              className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TableShell
+          headers={["Institute", "Type", "Status", "Plan", "Payment", "Actions"]}
+        >
+          {institutes.map((institute) => (
+            <tr key={institute._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
+                    {getInitials(institute.name)}
+                  </div>
+                  <div>
+                    <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{institute.name}</p>
+                    <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{institute.instituteCode} • {institute.email}</p>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={institute.instituteType} />
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={institute.status} />
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={institute.plan} />
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={institute.paymentStatus} />
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={institute}
+                  isActive={institute.status === "active"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDeactivate={institute.status === "active" ? () => handleStatusToggle(institute) : undefined}
+                  onActivate={institute.status === "inactive" ? () => handleStatusToggle(institute) : undefined}
+                  onDelete={() => handleDelete(institute)}
+                />
+              </td>
+            </tr>
+          ))}
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmModal?.type === "delete" ? confirmDelete : confirmStatusToggle}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText={confirmModal?.type === "delete" ? "Delete" : confirmModal?.institute?.status === "active" ? "Deactivate" : "Activate"}
+        variant={confirmModal?.type === "delete" ? "danger" : "primary"}
+        loading={actionLoading}
+      />
     </section>
   );
 };

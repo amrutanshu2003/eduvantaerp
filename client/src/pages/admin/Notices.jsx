@@ -6,14 +6,15 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
+import FilterBar from "../../components/ui/FilterBar";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 import { formatDate, formatLabel } from "../../utils/formatters";
 import { noticeAudienceOptions, noticePriorityOptions, noticeStatusOptions, noticeTypeOptions } from "../../utils/noticeOptions";
 
-const filterClass = "rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none";
-
 const Notices = () => {
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const [notices, setNotices] = useState([]);
   const [filters, setFilters] = useState({
     search: "",
@@ -24,6 +25,9 @@ const Notices = () => {
   });
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   const fetchNotices = async () => {
     try {
@@ -52,26 +56,66 @@ const Notices = () => {
     );
   }, [notices, filters.search]);
 
-  const handleStatusUpdate = async (noticeId, status) => {
+  const handleStatusUpdate = async (notice) => {
+    const nextStatus = notice.status === "published" ? "archived" : "published";
+    setConfirmModal({
+      type: "status",
+      notice,
+      title: `${nextStatus === "published" ? "Publish" : "Archive"} Notice?`,
+      message: nextStatus === "published" 
+        ? "This notice will be visible to the target audience." 
+        : "This notice will be archived and no longer visible.",
+    });
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!confirmModal) return;
+    const { notice } = confirmModal;
+    const nextStatus = notice.status === "published" ? "archived" : "published";
     try {
-      const { data } = await api.patch(`/notices/${noticeId}/status`, { status });
-      setNotices((current) => current.map((notice) => (notice._id === noticeId ? data.notice : notice)));
-      window.alert(`Notice marked ${status}`);
+      setActionLoading(true);
+      const { data } = await api.patch(`/notices/${notice._id}/status`, { status: nextStatus });
+      setNotices((current) => current.map((n) => (n._id === notice._id ? data.notice : n)));
+      setConfirmModal(null);
     } catch (error) {
-      window.alert(error.response?.data?.message || "Unable to update notice status");
+      setErrorMessage(error.response?.data?.message || "Unable to update notice status");
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleDelete = async (noticeId) => {
-    if (!(await window.confirm("Delete this notice?"))) return;
+  const handleDelete = async (notice) => {
+    setConfirmModal({
+      type: "delete",
+      notice,
+      title: "Delete Notice?",
+      message: "This action will remove the notice record. This cannot be undone.",
+    });
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { notice } = confirmModal;
     try {
-      await api.delete(`/notices/${noticeId}`);
-      setNotices((current) => current.filter((notice) => notice._id !== noticeId));
-      window.alert("Notice deleted successfully");
+      setActionLoading(true);
+      await api.delete(`/notices/${notice._id}`);
+      setNotices((current) => current.filter((n) => n._id !== notice._id));
+      setConfirmModal(null);
     } catch (error) {
-      window.alert(error.response?.data?.message || "Unable to delete notice");
+      setErrorMessage(error.response?.data?.message || "Unable to delete notice");
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      search: "",
+      status: "all",
+      audience: "all",
+      priority: "all",
+      noticeType: "all",
+    });
   };
 
   if (loading) return <LoadingBlock message="Loading notices..." />;
@@ -93,30 +137,37 @@ const Notices = () => {
         }
       />
 
-      <div className="grid gap-4 rounded-[1.75rem] bg-white p-6 shadow-card md:grid-cols-5">
+      <FilterBar
+        filters={filters}
+        onFilterChange={(event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }))}
+        onSearch={() => {}}
+        onReset={handleResetFilters}
+        searchPlaceholder="Search notices"
+      >
         <input
+          name="search"
           placeholder="Search notices"
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-          className={filterClass}
+          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
         />
-        <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className={filterClass}>
+        <select name="status" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Status</option>
           {noticeStatusOptions.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
         </select>
-        <select value={filters.audience} onChange={(event) => setFilters((current) => ({ ...current, audience: event.target.value }))} className={filterClass}>
+        <select name="audience" value={filters.audience} onChange={(event) => setFilters((current) => ({ ...current, audience: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Audience</option>
           {noticeAudienceOptions.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
         </select>
-        <select value={filters.priority} onChange={(event) => setFilters((current) => ({ ...current, priority: event.target.value }))} className={filterClass}>
+        <select name="priority" value={filters.priority} onChange={(event) => setFilters((current) => ({ ...current, priority: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Priority</option>
           {noticePriorityOptions.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
         </select>
-        <select value={filters.noticeType} onChange={(event) => setFilters((current) => ({ ...current, noticeType: event.target.value }))} className={filterClass}>
+        <select name="noticeType" value={filters.noticeType} onChange={(event) => setFilters((current) => ({ ...current, noticeType: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Types</option>
           {noticeTypeOptions.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
         </select>
-      </div>
+      </FilterBar>
 
       <AlertMessage tone="error" message={errorMessage} />
 
@@ -128,49 +179,53 @@ const Notices = () => {
           actionLink="/admin/notices/create"
         />
       ) : (
-        <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Notice</th>
-                  <th className="px-6 py-4 font-medium">Audience</th>
-                  <th className="px-6 py-4 font-medium">Priority</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Publish Date</th>
-                  <th className="px-6 py-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredNotices.map((notice) => (
-                  <tr key={notice._id} className="border-t border-slate-100">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-ink">{notice.title}</p>
-                      <p className="text-xs text-slate-500">{formatLabel(notice.noticeType)}</p>
-                    </td>
-                    <td className="px-6 py-4"><StatusBadge value={notice.audience} /></td>
-                    <td className="px-6 py-4"><StatusBadge value={notice.priority} /></td>
-                    <td className="px-6 py-4"><StatusBadge value={notice.status} /></td>
-                    <td className="px-6 py-4 text-slate-600">{formatDate(notice.publishDate)}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Link to={`/admin/notices/${notice._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">View</Link>
-                        <Link to={`/admin/notices/${notice._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Edit</Link>
-                        <button type="button" onClick={() => handleStatusUpdate(notice._id, notice.status === "published" ? "archived" : "published")} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                          {notice.status === "published" ? "Archive" : "Publish"}
-                        </button>
-                        <button type="button" onClick={() => handleDelete(notice._id)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600">
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TableShell
+          headers={["Notice", "Audience", "Priority", "Status", "Publish Date", "Actions"]}
+        >
+          {filteredNotices.map((notice) => (
+            <tr key={notice._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
+              <td className="px-6 py-4">
+                <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{notice.title}</p>
+                <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{formatLabel(notice.noticeType)}</p>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={notice.audience} />
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={notice.priority} />
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={notice.status} />
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{formatDate(notice.publishDate)}</p>
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={notice}
+                  isActive={notice.status === "published"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDeactivate={notice.status === "published" ? () => handleStatusUpdate(notice) : undefined}
+                  onActivate={notice.status === "archived" ? () => handleStatusUpdate(notice) : undefined}
+                  onDelete={() => handleDelete(notice)}
+                />
+              </td>
+            </tr>
+          ))}
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmModal?.type === "delete" ? confirmDelete : confirmStatusUpdate}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText={confirmModal?.type === "delete" ? "Delete" : confirmModal?.notice?.status === "published" ? "Archive" : "Publish"}
+        variant={confirmModal?.type === "delete" ? "danger" : "primary"}
+        loading={actionLoading}
+      />
     </section>
   );
 };

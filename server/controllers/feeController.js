@@ -9,13 +9,7 @@ import { createNotification, getParentUserIdsForStudent } from "../utils/notific
 
 const populateFee = (query) =>
   query
-    .populate({
-      path: "studentId",
-      populate: {
-        path: "userId",
-        select: "name email",
-      },
-    })
+    .populate("studentId")
     .populate("academicGroupId", "className section department course semester year")
     .populate("createdBy", "name role")
     .populate("updatedBy", "name role");

@@ -2,6 +2,7 @@ import { useUISettings } from "../../context/UISettingsContext";
 import { forwardRef } from "react";
 
 const Button = forwardRef(({ 
+  as: Component = "button",
   variant = "primary", 
   size = "md", 
   children, 
@@ -48,11 +49,11 @@ const Button = forwardRef(({
   const borderRadius = getButtonRadius(settings.buttonStyle);
 
   return (
-    <button
+    <Component
       ref={ref}
-      type={type}
-      disabled={disabled}
-      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
+      type={Component === "button" ? type : undefined}
+      disabled={Component === "button" ? disabled : undefined}
+      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className} ${disabled ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
       style={{
         ...backgroundColorStyles[variant],
         borderRadius,
@@ -61,7 +62,7 @@ const Button = forwardRef(({
       {...props}
     >
       {children}
-    </button>
+    </Component>
   );
 });
 

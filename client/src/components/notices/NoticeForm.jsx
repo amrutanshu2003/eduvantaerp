@@ -1,5 +1,7 @@
 import { FiAlertCircle, FiCalendar, FiFileText, FiFlag, FiLayers } from "react-icons/fi";
 import AlertMessage from "../AlertMessage";
+import PageHeader from "../PageHeader";
+import { Button, Input, Select, FormSection, FormField, FormActionBar } from "../ui";
 import { useUISettings } from "../../context/UISettingsContext";
 import { noticeAudienceOptions, noticePriorityOptions, noticeStatusOptions, noticeTypeOptions } from "../../utils/noticeOptions";
 import { formatLabel } from "../../utils/formatters";
@@ -17,119 +19,121 @@ const NoticeForm = ({ title, description, formData, academicGroups, onChange, on
 
   return (
     <section className="space-y-6">
-      <div
-        className={`${sectionCardClass} overflow-hidden`}
-        style={{
-          backgroundImage: `radial-gradient(circle at top right, ${settings.primaryColor}16, transparent 34%), radial-gradient(circle at bottom left, ${settings.secondaryColor}14, transparent 30%)`,
-        }}
-      >
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-teal-700 dark:text-emerald-300">Communication Setup</p>
-            <h1 className="mt-3 text-4xl font-semibold text-ink dark:text-white">{title}</h1>
-            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{description}</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { label: "Audience", value: formData.audience || "all", icon: FiLayers },
-              { label: "Priority", value: formData.priority || "medium", icon: FiFlag },
-              { label: "Status", value: formData.status || "draft", icon: FiAlertCircle },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.label} className={softPanelClass}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
-                    <Icon className="text-slate-400" size={15} />
-                  </div>
-                  <p className="mt-3 text-base font-semibold capitalize text-ink dark:text-white">{item.value}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={title}
+        description={description}
+      />
 
       <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.95fr)]">
         <div className="space-y-6">
-          <div className={sectionCardClass}>
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-ink dark:text-white">Notice Details</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Define the message type, target audience, schedule, and content.</p>
-            </div>
-
+          <FormSection title="Notice Details" description="Define the message type, target audience, schedule, and content.">
             <div className="grid gap-5 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Title</label>
-                <input name="title" value={formData.title} onChange={onChange} className={inputClass} required />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Notice Type</label>
-                <select name="noticeType" value={formData.noticeType} onChange={onChange} className={inputClass}>
+              <FormField label="Title" required className="md:col-span-2">
+                <Input
+                  name="title"
+                  value={formData.title}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
+              <FormField label="Notice Type">
+                <Select
+                  name="noticeType"
+                  value={formData.noticeType}
+                  onChange={onChange}
+                >
                   {noticeTypeOptions.map((value) => (
                     <option key={value} value={value}>
                       {formatLabel(value)}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Audience</label>
-                <select name="audience" value={formData.audience} onChange={onChange} className={inputClass}>
+                </Select>
+              </FormField>
+              <FormField label="Audience">
+                <Select
+                  name="audience"
+                  value={formData.audience}
+                  onChange={onChange}
+                >
                   {noticeAudienceOptions.map((value) => (
                     <option key={value} value={value}>
                       {formatLabel(value)}
                     </option>
                   ))}
-                </select>
-              </div>
-              {formData.audience === "academic_group" ? (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Academic Group</label>
-                  <select name="academicGroupId" value={formData.academicGroupId} onChange={onChange} className={inputClass} required>
+                </Select>
+              </FormField>
+              {formData.audience === "academic_group" && (
+                <FormField label="Academic Group" required>
+                  <Select
+                    name="academicGroupId"
+                    value={formData.academicGroupId}
+                    onChange={onChange}
+                    required
+                  >
                     <option value="">Select Academic Group</option>
                     {academicGroups.map((group) => (
                       <option key={group._id} value={group._id}>
                         {getGroupLabel(group)}
                       </option>
                     ))}
-                  </select>
-                </div>
-              ) : null}
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Priority</label>
-                <select name="priority" value={formData.priority} onChange={onChange} className={inputClass}>
+                  </Select>
+                </FormField>
+              )}
+              <FormField label="Priority">
+                <Select
+                  name="priority"
+                  value={formData.priority}
+                  onChange={onChange}
+                >
                   {noticePriorityOptions.map((value) => (
                     <option key={value} value={value}>
                       {formatLabel(value)}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
-                <select name="status" value={formData.status} onChange={onChange} className={inputClass}>
+                </Select>
+              </FormField>
+              <FormField label="Status">
+                <Select
+                  name="status"
+                  value={formData.status}
+                  onChange={onChange}
+                >
                   {noticeStatusOptions.map((value) => (
                     <option key={value} value={value}>
                       {formatLabel(value)}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Publish Date</label>
-                <input type="date" name="publishDate" value={formData.publishDate} onChange={onChange} className={inputClass} required />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Expiry Date</label>
-                <input type="date" name="expiryDate" value={formData.expiryDate} onChange={onChange} className={inputClass} />
-              </div>
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
-                <textarea name="description" value={formData.description} onChange={onChange} rows="5" className={`${inputClass} resize-none`} required />
-              </div>
+                </Select>
+              </FormField>
+              <FormField label="Publish Date" required>
+                <Input
+                  name="publishDate"
+                  type="date"
+                  value={formData.publishDate}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
+              <FormField label="Expiry Date">
+                <Input
+                  name="expiryDate"
+                  type="date"
+                  value={formData.expiryDate}
+                  onChange={onChange}
+                />
+              </FormField>
+              <FormField label="Description" required className="md:col-span-2">
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={onChange}
+                  rows="5"
+                  className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none resize-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  required
+                />
+              </FormField>
             </div>
-          </div>
+          </FormSection>
         </div>
 
         <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
@@ -193,14 +197,11 @@ const NoticeForm = ({ title, description, formData, academicGroups, onChange, on
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Once details look right, save the notice and continue publishing flow.</p>
             <div className="mt-6 space-y-4">
               <AlertMessage tone="error" message={errorMessage} />
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-                className="w-full px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:opacity-95 disabled:opacity-60"
-              >
-                {submitting ? "Saving..." : "Save Notice"}
-              </button>
+              <FormActionBar
+                onSubmit={onSubmit}
+                submitting={submitting}
+                submitLabel="Save Notice"
+              />
             </div>
           </div>
         </div>

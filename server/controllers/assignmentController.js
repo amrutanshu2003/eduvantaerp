@@ -24,13 +24,7 @@ const populateAssignment = (query) =>
 
 const populateSubmission = (query) =>
   query
-    .populate({
-      path: "studentId",
-      populate: {
-        path: "userId",
-        select: "name email",
-      },
-    })
+    .populate("studentId")
     .populate("assignmentId", "title dueDate maxMarks status")
     .populate("reviewedBy", "name role");
 

@@ -10,6 +10,8 @@ import {
   FiUser,
 } from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
+import PageHeader from "../../components/PageHeader";
+import { Button, Input, Select, FormSection, FormField, FormActionBar } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 
 const inputClass =
@@ -71,139 +73,110 @@ const SubjectForm = ({ title, description, formData, groups, teachers, onChange,
 
   return (
     <section className="space-y-6">
-      <div
-        className={`${sectionCardClass} overflow-hidden`}
-        style={{
-          backgroundImage: `radial-gradient(circle at top right, ${settings.primaryColor}16, transparent 34%), radial-gradient(circle at bottom left, ${settings.secondaryColor}14, transparent 30%)`,
-        }}
-      >
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-teal-700 dark:text-emerald-300">Academic Setup</p>
-            <h1 className="mt-3 text-4xl font-semibold text-ink dark:text-white">{title}</h1>
-            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{description}</p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { label: "Type", value: formData.subjectType || "core", icon: FiLayers },
-              { label: "Status", value: formData.status || "active", icon: FiCheckCircle },
-              { label: "Teacher", value: formData.teacherId ? "Assigned" : "Open", icon: FiUser },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.label} className={statCardClass}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
-                    <Icon className="text-slate-400" size={15} />
-                  </div>
-                  <p className="mt-3 text-base font-semibold capitalize text-ink dark:text-white">{item.value}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={title}
+        description={description}
+      />
 
       <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
         <div className="space-y-6">
-          <div className={sectionCardClass}>
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-ink dark:text-white">Core Details</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Define the subject identity, code, and academic group mapping.</p>
-            </div>
-
+          <FormSection title="Core Details" description="Define the subject identity, code, and academic group mapping.">
             <div className="grid gap-5 md:grid-cols-2">
-              {renderField({
-                label: "Subject Name",
-                icon: FiBookOpen,
-                children: <input name="subjectName" value={formData.subjectName} onChange={onChange} className={`${inputClass} pl-12`} required />,
-              })}
-
-              {renderField({
-                label: "Subject Code",
-                icon: FiHash,
-                children: <input name="subjectCode" value={formData.subjectCode} onChange={onChange} className={`${inputClass} pl-12 uppercase`} required />,
-              })}
-
-              {renderField({
-                label: "Academic Group",
-                icon: FiLayers,
-                children: (
-                  <select name="academicGroupId" value={formData.academicGroupId} onChange={onChange} className={`${inputClass} pl-12`} required>
-                    <option value="">Select Academic Group</option>
-                    {groups.map((group) => (
-                      <option key={group._id} value={group._id}>
-                        {getGroupLabel(group)}
-                      </option>
-                    ))}
-                  </select>
-                ),
-              })}
-
-              {renderField({
-                label: "Teacher",
-                icon: FiUser,
-                children: (
-                  <select name="teacherId" value={formData.teacherId} onChange={onChange} className={`${inputClass} pl-12`}>
-                    <option value="">Unassigned</option>
-                    {teachers.map((teacher) => (
-                      <option key={teacher._id} value={teacher._id}>
-                        {teacher.name}
-                      </option>
-                    ))}
-                  </select>
-                ),
-              })}
+              <FormField label="Subject Name" required>
+                <Input
+                  name="subjectName"
+                  value={formData.subjectName}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
+              <FormField label="Subject Code" required helperText="Unique identifier for the subject">
+                <Input
+                  name="subjectCode"
+                  value={formData.subjectCode}
+                  onChange={onChange}
+                  required
+                  className="uppercase"
+                />
+              </FormField>
+              <FormField label="Academic Group" required helperText="Select the academic group for this subject">
+                <Select
+                  name="academicGroupId"
+                  value={formData.academicGroupId}
+                  onChange={onChange}
+                  required
+                >
+                  <option value="">Select Academic Group</option>
+                  {groups.map((group) => (
+                    <option key={group._id} value={group._id}>
+                      {getGroupLabel(group)}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+              <FormField label="Teacher" helperText="Assign a teacher to this subject">
+                <Select
+                  name="teacherId"
+                  value={formData.teacherId}
+                  onChange={onChange}
+                >
+                  <option value="">Unassigned</option>
+                  {teachers.map((teacher) => (
+                    <option key={teacher._id} value={teacher._id}>
+                      {teacher.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
             </div>
-          </div>
+          </FormSection>
 
-          <div className={sectionCardClass}>
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-ink dark:text-white">Assessment & Status</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Control the subject format, activation state, and marks structure.</p>
-            </div>
-
+          <FormSection title="Assessment & Status" description="Control the subject format, activation state, and marks structure.">
             <div className="grid gap-5 md:grid-cols-2">
-              {renderField({
-                label: "Subject Type",
-                icon: FiClipboard,
-                children: (
-                  <select name="subjectType" value={formData.subjectType} onChange={onChange} className={`${inputClass} pl-12`}>
-                    <option value="core">Core</option>
-                    <option value="elective">Elective</option>
-                    <option value="practical">Practical</option>
-                    <option value="lab">Lab</option>
-                    <option value="project">Project</option>
-                    <option value="research">Research</option>
-                  </select>
-                ),
-              })}
-
-              {renderField({
-                label: "Status",
-                icon: FiShield,
-                children: (
-                  <select name="status" value={formData.status} onChange={onChange} className={`${inputClass} pl-12`}>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                ),
-              })}
-
-              {renderField({
-                label: "Total Marks",
-                icon: FiTarget,
-                children: <input name="totalMarks" type="number" value={formData.totalMarks} onChange={onChange} className={`${inputClass} pl-12`} min="0" />,
-              })}
-
-              {renderField({
-                label: "Passing Marks",
-                icon: FiPenTool,
-                children: <input name="passingMarks" type="number" value={formData.passingMarks} onChange={onChange} className={`${inputClass} pl-12`} min="0" />,
-              })}
+              <FormField label="Subject Type">
+                <Select
+                  name="subjectType"
+                  value={formData.subjectType}
+                  onChange={onChange}
+                >
+                  <option value="core">Core</option>
+                  <option value="elective">Elective</option>
+                  <option value="practical">Practical</option>
+                  <option value="lab">Lab</option>
+                  <option value="project">Project</option>
+                  <option value="research">Research</option>
+                </Select>
+              </FormField>
+              <FormField label="Status">
+                <Select
+                  name="status"
+                  value={formData.status}
+                  onChange={onChange}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </Select>
+              </FormField>
+              <FormField label="Total Marks" helperText="Maximum marks for this subject">
+                <Input
+                  name="totalMarks"
+                  type="number"
+                  value={formData.totalMarks}
+                  onChange={onChange}
+                  min="0"
+                />
+              </FormField>
+              <FormField label="Passing Marks" helperText="Minimum marks required to pass">
+                <Input
+                  name="passingMarks"
+                  type="number"
+                  value={formData.passingMarks}
+                  onChange={onChange}
+                  min="0"
+                />
+              </FormField>
             </div>
-          </div>
+          </FormSection>
         </div>
 
         <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
@@ -293,14 +266,11 @@ const SubjectForm = ({ title, description, formData, groups, teachers, onChange,
 
             <div className="mt-6 space-y-4">
               <AlertMessage tone="error" message={errorMessage} />
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-                className="w-full px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {submitting ? "Saving..." : "Save Subject"}
-              </button>
+              <FormActionBar
+                onSubmit={onSubmit}
+                submitting={submitting}
+                submitLabel="Save Subject"
+              />
             </div>
           </div>
         </div>

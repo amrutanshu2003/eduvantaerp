@@ -6,22 +6,26 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
+import FilterBar from "../../components/ui/FilterBar";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { formatLabel } from "../../utils/formatters";
 import { canManageHostel, canViewHostel } from "../../utils/hostelAccess";
 import { hostelStatusOptions, hostelTypeOptions } from "../../utils/hostelOptions";
 
-const filterClass = "rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none";
-
 const ManageHostelsPage = ({ basePath, eyebrow, title, description }) => {
   const { user } = useAuth();
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const [hostels, setHostels] = useState([]);
   const [filters, setFilters] = useState({ search: "", hostelType: "all", status: "all" });
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const canManage = canManageHostel(user);
+  const isDark = resolvedTheme === "dark";
 
   useEffect(() => {
     const loadHostels = async () => {
@@ -38,28 +42,57 @@ const ManageHostelsPage = ({ basePath, eyebrow, title, description }) => {
     loadHostels();
   }, [filters.search, filters.hostelType, filters.status]);
 
-  const handleStatusUpdate = async (hostelId, status) => {
+  const handleStatusUpdate = async (hostel, status) => {
+    setConfirmModal({
+      type: "status",
+      hostel,
+      status,
+      title: `Mark hostel as ${status}?`,
+      message: `This hostel will be marked as ${status}.`,
+    });
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!confirmModal) return;
+    const { hostel, status } = confirmModal;
     try {
-      const { data } = await api.patch(`/hostels/${hostelId}/status`, { status });
-      setHostels((current) => current.map((hostel) => (hostel._id === hostelId ? data.hostel : hostel)));
-      window.alert(`Hostel marked ${status}`);
+      setActionLoading(true);
+      const { data } = await api.patch(`/hostels/${hostel._id}/status`, { status });
+      setHostels((current) => current.map((h) => (h._id === hostel._id ? data.hostel : h)));
+      setConfirmModal(null);
     } catch (error) {
-      window.alert(error.response?.data?.message || "Unable to update hostel status");
+      setErrorMessage(error.response?.data?.message || "Unable to update hostel status");
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleDelete = async (hostelId) => {
-    if (!(await window.confirm("Delete this hostel?"))) {
-      return;
-    }
+  const handleDelete = async (hostel) => {
+    setConfirmModal({
+      type: "delete",
+      hostel,
+      title: "Delete Hostel?",
+      message: "This action will remove the hostel record. This cannot be undone.",
+    });
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { hostel } = confirmModal;
     try {
-      await api.delete(`/hostels/${hostelId}`);
-      setHostels((current) => current.filter((hostel) => hostel._id !== hostelId));
-      window.alert("Hostel deleted successfully");
+      setActionLoading(true);
+      await api.delete(`/hostels/${hostel._id}`);
+      setHostels((current) => current.filter((h) => h._id !== hostel._id));
+      setConfirmModal(null);
     } catch (error) {
-      window.alert(error.response?.data?.message || "Unable to delete hostel");
+      setErrorMessage(error.response?.data?.message || "Unable to delete hostel");
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ search: "", hostelType: "all", status: "all" });
   };
 
   if (!canViewHostel(user)) return <Navigate to="/unauthorized" replace />;
@@ -83,50 +116,82 @@ const ManageHostelsPage = ({ basePath, eyebrow, title, description }) => {
           ) : null
         }
       />
-      <div className="grid gap-4 rounded-[1.75rem] bg-white p-6 shadow-card md:grid-cols-3">
-        <input placeholder="Search by hostel name, code, warden" value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} className={filterClass} />
-        <select value={filters.hostelType} onChange={(event) => setFilters((current) => ({ ...current, hostelType: event.target.value }))} className={filterClass}>
+      <FilterBar
+        filters={filters}
+        onFilterChange={(event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }))}
+        onSearch={() => {}}
+        onReset={handleResetFilters}
+        searchPlaceholder="Search by hostel name, code, warden"
+      >
+        <input
+          name="search"
+          placeholder="Search by hostel name, code, warden"
+          value={filters.search}
+          onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+        />
+        <select name="hostelType" value={filters.hostelType} onChange={(event) => setFilters((current) => ({ ...current, hostelType: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Types</option>
           {hostelTypeOptions.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
         </select>
-        <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className={filterClass}>
+        <select name="status" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Status</option>
           {hostelStatusOptions.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
         </select>
-      </div>
+      </FilterBar>
       <AlertMessage tone="error" message={errorMessage} />
       {hostels.length === 0 ? (
         <EmptyState title="No hostels found" description="Create the first hostel to start room and bed management." />
       ) : (
-        <div className="grid gap-4">
+        <TableShell
+          headers={["Hostel", "Warden", "Floors", "Contact", "Status", "Actions"]}
+        >
           {hostels.map((hostel) => (
-            <div key={hostel._id} className="rounded-[1.75rem] bg-white p-6 shadow-card">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <tr key={hostel._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
+              <td className="px-6 py-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-ink">{hostel.hostelName}</h3>
-                  <p className="mt-2 text-sm text-slate-600">{hostel.hostelCode} • {formatLabel(hostel.hostelType)}</p>
+                  <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{hostel.hostelName}</p>
+                  <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{hostel.hostelCode} • {formatLabel(hostel.hostelType)}</p>
                 </div>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{hostel.warden?.name || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{hostel.totalFloors}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{hostel.contactNumber || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
                 <StatusBadge value={hostel.status} />
-              </div>
-              <div className="mt-5 grid gap-4 md:grid-cols-4">
-                <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Warden</p><p className="mt-2 font-semibold text-ink">{hostel.warden?.name || "-"}</p></div>
-                <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Floors</p><p className="mt-2 font-semibold text-ink">{hostel.totalFloors}</p></div>
-                <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Contact</p><p className="mt-2 font-semibold text-ink">{hostel.contactNumber || "-"}</p></div>
-                <div><p className="text-xs uppercase tracking-[0.2em] text-slate-400">Address</p><p className="mt-2 font-semibold text-ink">{hostel.address || "-"}</p></div>
-              </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link to={`${basePath}/hostels/${hostel._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">View</Link>
-                <Link to={`${basePath}/hostels/${hostel._id}/rooms`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Rooms</Link>
-                {canManage ? <Link to={`${basePath}/hostels/${hostel._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Edit</Link> : null}
-                {canManage && hostel.status !== "active" ? <button type="button" onClick={() => handleStatusUpdate(hostel._id, "active")} className="rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700">Activate</button> : null}
-                {canManage && hostel.status !== "inactive" ? <button type="button" onClick={() => handleStatusUpdate(hostel._id, "inactive")} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Deactivate</button> : null}
-                {canManage && hostel.status !== "maintenance" ? <button type="button" onClick={() => handleStatusUpdate(hostel._id, "maintenance")} className="rounded-full border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700">Maintenance</button> : null}
-                {canManage ? <button type="button" onClick={() => handleDelete(hostel._id)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700">Delete</button> : null}
-              </div>
-            </div>
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={hostel}
+                  isActive={hostel.status === "active"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDeactivate={hostel.status === "active" ? () => handleStatusUpdate(hostel, "inactive") : undefined}
+                  onActivate={hostel.status === "inactive" ? () => handleStatusUpdate(hostel, "active") : undefined}
+                  onDelete={canManage ? () => handleDelete(hostel) : undefined}
+                />
+              </td>
+            </tr>
           ))}
-        </div>
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmModal?.type === "delete" ? confirmDelete : confirmStatusUpdate}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText={confirmModal?.type === "delete" ? "Delete" : confirmModal?.status}
+        variant={confirmModal?.type === "delete" ? "danger" : "primary"}
+        loading={actionLoading}
+      />
     </section>
   );
 };

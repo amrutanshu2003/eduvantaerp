@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { FiBookmark, FiCheckCircle, FiGrid, FiHome, FiLayers, FiMapPin } from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
+import PageHeader from "../../components/PageHeader";
+import { Button, Input, Select, FormSection, FormField, FormActionBar } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import api from "../../api/axios";
@@ -218,114 +220,103 @@ const AcademicGroupForm = ({
 
   return (
     <section className="space-y-6">
-      <div
-        className={`${cardClass} overflow-hidden`}
-        style={{
-          backgroundImage: `radial-gradient(circle at top right, ${settings.primaryColor}16, transparent 34%), radial-gradient(circle at bottom left, ${settings.secondaryColor}14, transparent 30%)`,
-        }}
-      >
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-teal-700 dark:text-emerald-300">Academic Setup</p>
-            <h1 className="mt-3 text-4xl font-semibold text-ink dark:text-slate-100">{title}</h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-400">{description}</p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { label: "Structure", value: instituteType || "pending", icon: FiLayers },
-              { label: "Status", value: formData.status || "active", icon: FiCheckCircle },
-              { label: "Preview", value: previewChips.length || 0, icon: FiBookmark },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.label} className={statCardClass}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
-                    <Icon className="text-slate-400" size={15} />
-                  </div>
-                  <p className="mt-3 text-base font-semibold capitalize text-ink dark:text-white">{item.value}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={title}
+        description={description}
+      />
 
       <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[1.5fr_0.9fr]">
         <div className="space-y-6">
-          <div className={cardClass}>
-            <div className="mb-5 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-ink dark:text-slate-100">Institute Connection</h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Choose the institute and verify the academic structure type.</p>
-              </div>
-              {instituteType ? (
-                <span className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-white dark:bg-slate-100 dark:text-slate-900">
-                  {instituteType}
-                </span>
-              ) : null}
-            </div>
-
+          <FormSection title="Institute Connection" description="Choose the institute and verify the academic structure type.">
             <div className="grid gap-5 md:grid-cols-2">
               {user?.role === "superadmin" ? (
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Institute</label>
-                  <select name="instituteId" value={formData.instituteId} onChange={onChange} className={inputClass} required>
+                <FormField label="Institute" required error={fieldErrors.instituteId}>
+                  <Select
+                    name="instituteId"
+                    value={formData.instituteId}
+                    onChange={onChange}
+                    required
+                  >
                     <option value="">Select Institute</option>
                     {institutes.map((inst) => (
                       <option key={inst._id} value={inst._id}>
                         {inst.name} ({inst.instituteCode}) - {inst.instituteType.toUpperCase()}
                       </option>
                     ))}
-                  </select>
-                  {fieldErrors.instituteId ? <p className="mt-2 text-xs font-medium text-rose-600">{fieldErrors.instituteId}</p> : null}
-                </div>
+                  </Select>
+                </FormField>
               ) : (
                 <>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Institute</label>
+                  <FormField label="Institute">
                     <div className={readOnlyClass}>{selectedInstitute?.name || "Linked institute"}</div>
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Institute Type</label>
+                  </FormField>
+                  <FormField label="Institute Type">
                     <div className={readOnlyClass}>{(instituteType || "Not available").toUpperCase()}</div>
-                  </div>
+                  </FormField>
                 </>
               )}
             </div>
-          </div>
+          </FormSection>
 
-          <div className={cardClass}>
-            <div className="mb-5">
-              <h2 className="text-lg font-semibold text-ink dark:text-slate-100">Academic Structure</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Fields adapt automatically for school, college, or university structures.</p>
-            </div>
-
+          <FormSection title="Academic Structure" description="Fields adapt automatically for school, college, or university structures.">
             {!instituteType ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
                 Select an institute to configure academic groups.
               </div>
             ) : (
-              <div className="grid gap-5 md:grid-cols-2">{structureFields.map(renderField)}</div>
-            )}
-          </div>
+              <div className="grid gap-5 md:grid-cols-2">
+                {structureFields.map((fieldKey) => {
+                  const field = fieldConfigMap[fieldKey];
+                  if (!field) return null;
 
-          <div className={cardClass}>
-            <div className="mb-5">
-              <h2 className="text-lg font-semibold text-ink dark:text-slate-100">Status</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Keep the academic group active to use it across students, subjects, and attendance.</p>
-            </div>
+                  if (field.type === "select") {
+                    return (
+                      <FormField key={fieldKey} label={field.label} required={field.required} error={fieldErrors[fieldKey]}>
+                        <Select
+                          name={fieldKey}
+                          value={formData[fieldKey] || ""}
+                          onChange={onChange}
+                        >
+                          <option value="">{field.placeholder}</option>
+                          {field.options.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </Select>
+                      </FormField>
+                    );
+                  }
+
+                  return (
+                    <FormField key={fieldKey} label={field.label} required={field.required} error={fieldErrors[fieldKey]}>
+                      <Input
+                        name={fieldKey}
+                        value={formData[fieldKey] || ""}
+                        onChange={onChange}
+                        placeholder={field.placeholder}
+                      />
+                    </FormField>
+                  );
+                })}
+              </div>
+            )}
+          </FormSection>
+
+          <FormSection title="Status" description="Keep the academic group active to use it across students, subjects, and attendance.">
             <div className="grid gap-5 md:grid-cols-2">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Status</label>
-                <select name="status" value={formData.status} onChange={onChange} className={inputClass}>
+              <FormField label="Status">
+                <Select
+                  name="status"
+                  value={formData.status}
+                  onChange={onChange}
+                >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
-                </select>
-              </div>
+                </Select>
+              </FormField>
             </div>
-          </div>
+          </FormSection>
         </div>
 
         <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
@@ -409,14 +400,11 @@ const AcademicGroupForm = ({
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Only required fields are validated before the request is sent.</p>
             <div className="mt-5 space-y-4">
               <AlertMessage tone="error" message={topErrorMessage} />
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-                className="w-full px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:opacity-95 disabled:opacity-60"
-              >
-                {submitting ? "Saving..." : "Save Academic Group"}
-              </button>
+              <FormActionBar
+                onSubmit={onSubmit}
+                submitting={submitting}
+                submitLabel="Save Academic Group"
+              />
               {settingsLoaded && !academicSettings ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Academic settings were not available, so the form is using institute-type fallback fields.

@@ -6,21 +6,25 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
+import FilterBar from "../../components/ui/FilterBar";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { formatDate, formatLabel } from "../../utils/formatters";
 import { canManageTransport } from "../../utils/transportAccess";
 import { vehicleStatusOptions, vehicleTypeOptions } from "../../utils/transportOptions";
 
-const filterClass = "rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none";
-
 const ManageVehiclesPage = ({ basePath, eyebrow, title, description }) => {
   const { user } = useAuth();
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const [vehicles, setVehicles] = useState([]);
   const [filters, setFilters] = useState({ search: "", vehicleType: "all", status: "all" });
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   useEffect(() => {
     const loadVehicles = async () => {
@@ -37,28 +41,57 @@ const ManageVehiclesPage = ({ basePath, eyebrow, title, description }) => {
     loadVehicles();
   }, [filters.search, filters.vehicleType, filters.status]);
 
-  const handleStatusUpdate = async (vehicleId, status) => {
+  const handleStatusUpdate = async (vehicle, status) => {
+    setConfirmModal({
+      type: "status",
+      vehicle,
+      status,
+      title: `Mark vehicle as ${status}?`,
+      message: `This vehicle will be marked as ${status}.`,
+    });
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!confirmModal) return;
+    const { vehicle, status } = confirmModal;
     try {
-      const { data } = await api.patch(`/transport/vehicles/${vehicleId}/status`, { status });
-      setVehicles((current) => current.map((vehicle) => (vehicle._id === vehicleId ? data.vehicle : vehicle)));
-      window.alert(`Vehicle marked ${status}`);
+      setActionLoading(true);
+      const { data } = await api.patch(`/transport/vehicles/${vehicle._id}/status`, { status });
+      setVehicles((current) => current.map((v) => (v._id === vehicle._id ? data.vehicle : v)));
+      setConfirmModal(null);
     } catch (error) {
-      window.alert(error.response?.data?.message || "Unable to update vehicle status");
+      setErrorMessage(error.response?.data?.message || "Unable to update vehicle status");
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleDelete = async (vehicleId) => {
-    if (!(await window.confirm("Delete this vehicle?"))) {
-      return;
-    }
+  const handleDelete = async (vehicle) => {
+    setConfirmModal({
+      type: "delete",
+      vehicle,
+      title: "Delete Vehicle?",
+      message: "This action will remove the vehicle record. This cannot be undone.",
+    });
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { vehicle } = confirmModal;
     try {
-      await api.delete(`/transport/vehicles/${vehicleId}`);
-      setVehicles((current) => current.filter((vehicle) => vehicle._id !== vehicleId));
-      window.alert("Vehicle deleted successfully");
+      setActionLoading(true);
+      await api.delete(`/transport/vehicles/${vehicle._id}`);
+      setVehicles((current) => current.filter((v) => v._id !== vehicle._id));
+      setConfirmModal(null);
     } catch (error) {
-      window.alert(error.response?.data?.message || "Unable to delete vehicle");
+      setErrorMessage(error.response?.data?.message || "Unable to delete vehicle");
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const handleResetFilters = () => {
+    setFilters({ search: "", vehicleType: "all", status: "all" });
   };
 
   if (!canManageTransport(user)) return <Navigate to="/unauthorized" replace />;
@@ -80,17 +113,25 @@ const ManageVehiclesPage = ({ basePath, eyebrow, title, description }) => {
           </Link>
         }
       />
-      <div className="grid gap-4 rounded-[1.75rem] bg-white p-6 shadow-card md:grid-cols-3">
+      <FilterBar
+        filters={filters}
+        onFilterChange={(event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }))}
+        onSearch={() => {}}
+        onReset={handleResetFilters}
+        searchPlaceholder="Search by number, type, or driver"
+      >
         <input
+          name="search"
           placeholder="Search by number, type, or driver"
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-          className={filterClass}
+          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
         />
         <select
+          name="vehicleType"
           value={filters.vehicleType}
           onChange={(event) => setFilters((current) => ({ ...current, vehicleType: event.target.value }))}
-          className={filterClass}
+          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
         >
           <option value="all">All Types</option>
           {vehicleTypeOptions.map((value) => (
@@ -100,9 +141,10 @@ const ManageVehiclesPage = ({ basePath, eyebrow, title, description }) => {
           ))}
         </select>
         <select
+          name="status"
           value={filters.status}
           onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}
-          className={filterClass}
+          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
         >
           <option value="all">All Status</option>
           {vehicleStatusOptions.map((value) => (
@@ -111,71 +153,63 @@ const ManageVehiclesPage = ({ basePath, eyebrow, title, description }) => {
             </option>
           ))}
         </select>
-      </div>
+      </FilterBar>
       <AlertMessage tone="error" message={errorMessage} />
       {vehicles.length === 0 ? (
         <EmptyState title="No vehicles found" description="Add the first institute vehicle to start transport operations." />
       ) : (
-        <div className="grid gap-4">
+        <TableShell
+          headers={["Vehicle", "Type", "Driver", "Helper", "Insurance Expiry", "Status", "Actions"]}
+        >
           {vehicles.map((vehicle) => (
-            <div key={vehicle._id} className="rounded-[1.75rem] bg-white p-6 shadow-card">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <tr key={vehicle._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
+              <td className="px-6 py-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-ink">{vehicle.vehicleNumber}</h3>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {formatLabel(vehicle.vehicleType)} • Capacity {vehicle.capacity}
-                  </p>
+                  <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{vehicle.vehicleNumber}</p>
+                  <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>Capacity {vehicle.capacity}</p>
                 </div>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{formatLabel(vehicle.vehicleType)}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{vehicle.driver?.name || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{vehicle.helper?.name || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{formatDate(vehicle.insuranceExpiry)}</p>
+              </td>
+              <td className="px-6 py-4">
                 <StatusBadge value={vehicle.status} />
-              </div>
-              <div className="mt-5 grid gap-4 md:grid-cols-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Driver</p>
-                  <p className="mt-2 font-semibold text-ink">{vehicle.driver?.name || "-"}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Helper</p>
-                  <p className="mt-2 font-semibold text-ink">{vehicle.helper?.name || "-"}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Insurance Expiry</p>
-                  <p className="mt-2 font-semibold text-ink">{formatDate(vehicle.insuranceExpiry)}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Fitness Expiry</p>
-                  <p className="mt-2 font-semibold text-ink">{formatDate(vehicle.fitnessExpiry)}</p>
-                </div>
-              </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link to={`${basePath}/vehicles/${vehicle._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                  View
-                </Link>
-                <Link to={`${basePath}/vehicles/${vehicle._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                  Edit
-                </Link>
-                {vehicle.status !== "active" ? (
-                  <button type="button" onClick={() => handleStatusUpdate(vehicle._id, "active")} className="rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700">
-                    Activate
-                  </button>
-                ) : null}
-                {vehicle.status !== "inactive" ? (
-                  <button type="button" onClick={() => handleStatusUpdate(vehicle._id, "inactive")} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">
-                    Deactivate
-                  </button>
-                ) : null}
-                {vehicle.status !== "maintenance" ? (
-                  <button type="button" onClick={() => handleStatusUpdate(vehicle._id, "maintenance")} className="rounded-full border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700">
-                    Maintenance
-                  </button>
-                ) : null}
-                <button type="button" onClick={() => handleDelete(vehicle._id)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700">
-                  Delete
-                </button>
-              </div>
-            </div>
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={vehicle}
+                  isActive={vehicle.status === "active"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDeactivate={vehicle.status === "active" ? () => handleStatusUpdate(vehicle, "inactive") : undefined}
+                  onActivate={vehicle.status === "inactive" ? () => handleStatusUpdate(vehicle, "active") : undefined}
+                  onDelete={() => handleDelete(vehicle)}
+                />
+              </td>
+            </tr>
           ))}
-        </div>
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmModal?.type === "delete" ? confirmDelete : confirmStatusUpdate}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText={confirmModal?.type === "delete" ? "Delete" : confirmModal?.status}
+        variant={confirmModal?.type === "delete" ? "danger" : "primary"}
+        loading={actionLoading}
+      />
     </section>
   );
 };

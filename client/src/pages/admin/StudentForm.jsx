@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { FiCopy, FiEye, FiEyeOff } from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
+import PageHeader from "../../components/PageHeader";
+import { Button, Input, Select, FormSection, FormField, FormActionBar } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 import api from "../../api/axios";
 
@@ -137,13 +139,13 @@ const StudentForm = ({
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <h1 className="text-3xl font-semibold text-ink">{title}</h1>
-        <p className="mt-3 text-sm text-slate-600">{description}</p>
-      </div>
+      <PageHeader
+        title={title}
+        description={description}
+      />
 
       {onToggleAutoGenerate && (
-        <div className="rounded-[1.75rem] bg-white p-6 shadow-card space-y-4">
+        <FormSection>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl bg-slate-50 border border-slate-100 p-4 transition-all duration-300">
             <div className="space-y-1">
               <h4 className="text-sm font-semibold text-slate-900">Smart Auto-Fill & Credentials Generation</h4>
@@ -229,157 +231,216 @@ const StudentForm = ({
               </div>
             </div>
           )}
-        </div>
+        </FormSection>
       )}
 
-      <form onSubmit={onSubmit} className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <div className="grid gap-5 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Name</label>
-            <input name="name" value={formData.name} onChange={onChange} className={inputClass} required />
+      <form onSubmit={onSubmit}>
+        <FormSection title="Basic Information">
+          <div className="grid gap-5 md:grid-cols-2">
+            <FormField label="Name" required>
+              <Input
+                name="name"
+                value={formData.name}
+                onChange={onChange}
+                required
+              />
+            </FormField>
+            <FormField label="Email" required helperText={isEmailManuallyEdited ? "Customized email" : "Auto-generated based on name and roll number"}>
+              <Input
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={onChange}
+                required
+              />
+              {isEmailManuallyEdited && (
+                <span className="ml-2 inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">
+                  Customized
+                </span>
+              )}
+            </FormField>
+            <FormField label="Phone" helperText="10 digit mobile number">
+              <Input
+                name="phone"
+                maxLength={10}
+                pattern="[0-9]{10}"
+                title="Phone number must be exactly 10 digits"
+                value={formData.phone}
+                onChange={onChange}
+              />
+            </FormField>
+            <FormField label="Password" helperText={isPasswordManuallyEdited ? "Customized password" : "Auto-generated based on name and roll number"}>
+              <Input
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={onChange}
+              />
+              {isPasswordManuallyEdited && (
+                <span className="ml-2 inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 ring-1 ring-inset ring-amber-600/20">
+                  Customized
+                </span>
+              )}
+            </FormField>
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Email
-              <AutoBadge isEdited={isEmailManuallyEdited} />
-            </label>
-            <input name="email" type="email" value={formData.email} onChange={onChange} className={inputClass} required />
+        </FormSection>
+
+        <FormSection title="Academic Information">
+          <div className="grid gap-5 md:grid-cols-2">
+            <FormField label={academicGroupLabel} required>
+              <Select
+                name="academicGroupId"
+                value={formData.academicGroupId}
+                onChange={onChange}
+                required
+              >
+                <option value="">Select {academicGroupLabel}</option>
+                {groups.map((group) => (
+                  <option key={group._id} value={group._id}>
+                    {group.className || `${group.department} - ${group.course}`}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField label="Roll Number" required helperText={autoGenerate ? "Auto-filled sequential number" : "Unique roll number"}>
+              <Input
+                name="rollNumber"
+                value={formData.rollNumber}
+                onChange={onChange}
+                required
+              />
+              {autoGenerate && (
+                <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                  Auto-filled
+                </span>
+              )}
+            </FormField>
+            <FormField label="Admission Number" required helperText={autoGenerate ? "Auto-filled sequential number" : "Unique admission number"}>
+              <Input
+                name="admissionNumber"
+                value={formData.admissionNumber}
+                onChange={onChange}
+                required
+              />
+              {autoGenerate && (
+                <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                  Auto-filled
+                </span>
+              )}
+            </FormField>
+            <FormField label="Registration Number" helperText={autoGenerate ? "Auto-filled sequential number" : "Unique registration number"}>
+              <Input
+                name="registrationNumber"
+                value={formData.registrationNumber}
+                onChange={onChange}
+              />
+              {autoGenerate && (
+                <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                  Auto-filled
+                </span>
+              )}
+            </FormField>
+            <FormField label="Admission Date" helperText={autoGenerate ? "Auto-filled to current date" : "Date of admission"}>
+              <Input
+                name="admissionDate"
+                type="date"
+                value={formData.admissionDate}
+                onChange={onChange}
+              />
+              {autoGenerate && (
+                <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                  Auto-filled
+                </span>
+              )}
+            </FormField>
+            <FormField label="Status">
+              <Select
+                name="status"
+                value={formData.status}
+                onChange={onChange}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </Select>
+            </FormField>
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Phone</label>
-            <input
-              name="phone"
-              maxLength={10}
-              pattern="[0-9]{10}"
-              title="Phone number must be exactly 10 digits"
-              value={formData.phone}
+        </FormSection>
+
+        <FormSection title="Personal Details">
+          <div className="grid gap-5 md:grid-cols-2">
+            <FormField label="Date of Birth">
+              <Input
+                name="dob"
+                type="date"
+                value={formData.dob}
+                onChange={onChange}
+              />
+            </FormField>
+            <FormField label="Gender">
+              <Select
+                name="gender"
+                value={formData.gender}
+                onChange={onChange}
+              >
+                <option value="">Select Gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </Select>
+            </FormField>
+            <FormField label="Blood Group">
+              <Input
+                name="bloodGroup"
+                value={formData.bloodGroup}
+                onChange={onChange}
+              />
+            </FormField>
+          </div>
+          <FormField label="Address">
+            <textarea
+              name="address"
+              value={formData.address}
               onChange={onChange}
-              className={inputClass}
+              rows="3"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none resize-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+          </FormField>
+        </FormSection>
+
+        {dynamicFormFields.length > 0 && (
+          <FormSection title="Additional Information">
+            <div className="grid gap-5 md:grid-cols-2">
+              {dynamicFormFields.map((field) => (
+                <FormField key={field.fieldKey} label={field.label} required={field.required} className={field.type === "textarea" ? "md:col-span-2" : ""}>
+                  {field.type === "textarea" ? (
+                    <textarea
+                      name={field.fieldKey}
+                      value={formData[field.fieldKey] || ""}
+                      onChange={onChange}
+                      rows="3"
+                      className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none resize-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      required={field.required}
+                      placeholder={field.placeholder}
+                    />
+                  ) : (
+                    renderDynamicField(field)
+                  )}
+                </FormField>
+              ))}
+            </div>
+          </FormSection>
+        )}
+
+        <FormSection>
+          <div className="space-y-4">
+            <AlertMessage tone="error" message={errorMessage} />
+            <FormActionBar
+              onSubmit={onSubmit}
+              submitting={submitting}
+              submitLabel={`Save ${studentLabel}`}
             />
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Password
-              <AutoBadge isEdited={isPasswordManuallyEdited} />
-            </label>
-            <input name="password" type="password" value={formData.password} onChange={onChange} className={inputClass} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{academicGroupLabel}</label>
-            <select name="academicGroupId" value={formData.academicGroupId} onChange={onChange} className={inputClass}>
-              <option value="">Select {academicGroupLabel}</option>
-              {groups.map((group) => (
-                <option key={group._id} value={group._id}>
-                  {group.className || `${group.department} - ${group.course}`}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Roll Number
-              {autoGenerate && (
-                <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                  Auto-filled
-                </span>
-              )}
-            </label>
-            <input name="rollNumber" value={formData.rollNumber} onChange={onChange} className={inputClass} required />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Admission Number
-              {autoGenerate && (
-                <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                  Auto-filled
-                </span>
-              )}
-            </label>
-            <input name="admissionNumber" value={formData.admissionNumber} onChange={onChange} className={inputClass} required />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Registration Number
-              {autoGenerate && (
-                <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                  Auto-filled
-                </span>
-              )}
-            </label>
-            <input name="registrationNumber" value={formData.registrationNumber} onChange={onChange} className={inputClass} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Date of Birth</label>
-            <input name="dob" type="date" value={formData.dob} onChange={onChange} className={inputClass} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Gender</label>
-            <select name="gender" value={formData.gender} onChange={onChange} className={inputClass}>
-              <option value="">Select Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Blood Group</label>
-            <input name="bloodGroup" value={formData.bloodGroup} onChange={onChange} className={inputClass} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Admission Date
-              {autoGenerate && (
-                <span className="ml-2 inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-                  Auto-filled
-                </span>
-              )}
-            </label>
-            <input name="admissionDate" type="date" value={formData.admissionDate} onChange={onChange} className={inputClass} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Status</label>
-            <select name="status" value={formData.status} onChange={onChange} className={inputClass}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-slate-700">Address</label>
-            <textarea name="address" value={formData.address} onChange={onChange} rows="3" className={`${inputClass} resize-none`} />
-          </div>
-          {dynamicFormFields.map((field) => (
-            <div key={field.fieldKey} className={field.type === "textarea" ? "md:col-span-2" : ""}>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                {field.label}
-                {field.required && <span className="text-red-500 ml-1">*</span>}
-              </label>
-              {field.type === "textarea" ? (
-                <textarea
-                  name={field.fieldKey}
-                  value={formData[field.fieldKey] || ""}
-                  onChange={onChange}
-                  rows="3"
-                  className={`${inputClass} resize-none`}
-                  required={field.required}
-                  placeholder={field.placeholder}
-                />
-              ) : (
-                renderDynamicField(field)
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 space-y-4">
-          <AlertMessage tone="error" message={errorMessage} />
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-            className="px-6 py-3 text-sm font-semibold text-white transition-all duration-300"
-          >
-            {submitting ? "Saving..." : `Save ${studentLabel}`}
-          </button>
-        </div>
+        </FormSection>
       </form>
     </section>
   );

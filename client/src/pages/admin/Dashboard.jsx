@@ -2,8 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
+import PageHeader from "../../components/PageHeader";
+import SectionCard from "../../components/ui/SectionCard";
 import LatestNoticesPanel from "../../components/LatestNoticesPanel";
 import StatCard, { StatCardSkeleton } from "../../components/StatCard";
+import LoadingBlock from "../../components/LoadingBlock";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { useLabelSettings } from "../../context/LabelSettingsContext";
@@ -28,6 +31,8 @@ import {
   FiMap,
   FiHome,
   FiPackage,
+  FiArrowRight,
+  FiPlus,
 } from "react-icons/fi";
 
 const Dashboard = () => {
@@ -97,13 +102,47 @@ const Dashboard = () => {
 
   const cards = allCards.filter(card => !card.module || isModuleEnabled(card.module));
 
+  if (loading) {
+    return <LoadingBlock message="Loading dashboard stats..." />;
+  }
+
+  const quickActions = [
+    ...(isModuleEnabled("students") ? [{ label: "Manage Students", route: "/admin/students", icon: FiUsers, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" }] : []),
+    ...(isModuleEnabled("academics") ? [{ label: `Manage ${getAcademicGroupLabel(user)}`, route: "/admin/academic-groups", icon: FiBookOpen, color: "bg-purple-500/10 text-purple-600 dark:text-purple-400" }] : []),
+    ...(isModuleEnabled("notices") ? [{ label: "Manage Notices", route: "/admin/notices", icon: FiFileText, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" }] : []),
+    ...(isModuleEnabled("fees") ? [{ label: "Manage Fees", route: "/admin/fees", icon: FiCreditCard, color: "bg-orange-500/10 text-orange-600 dark:text-orange-400" }] : []),
+    ...(isModuleEnabled("timetable") ? [{ label: "Manage Timetables", route: "/admin/timetables", icon: FiClock, color: "bg-pink-500/10 text-pink-600 dark:text-pink-400" }] : []),
+    ...(isModuleEnabled("assignments") ? [{ label: "View Assignments", route: "/admin/assignments", icon: FiEdit, color: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400" }] : []),
+    ...(isModuleEnabled("library") ? [{ label: "Manage Library", route: "/admin/library/books", icon: FiBookOpen, color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" }] : []),
+    ...(isModuleEnabled("transport") ? [{ label: "Manage Transport", route: "/admin/transport/vehicles", icon: FiTruck, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" }] : []),
+    ...(isModuleEnabled("hostel") ? [{ label: "Manage Hostels", route: "/admin/hostels", icon: FiHome, color: "bg-teal-500/10 text-teal-600 dark:text-teal-400" }] : []),
+    ...(isModuleEnabled("hostel") ? [{ label: "Review Outpasses", route: "/admin/hostel-outpasses", icon: FiShield, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" }] : []),
+  ];
+
   return (
     <section className="space-y-6">
       <AlertMessage tone="error" message={errorMessage} />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+      <PageHeader
+        eyebrow="Institute Admin"
+        title="Dashboard Overview"
+        description={`Manage your institute operations seamlessly with ${settings.appName}. Access integrated modules for academics, student records, fees, timetables, assignments, library, transport, and hostel management.`}
+        actions={
+          <Link
+            to="/admin/bulk-import"
+            style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
+            className="inline-flex items-center gap-2 px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:scale-[1.02] hover:brightness-110 hover:shadow-lg active:scale-95"
+          >
+            <FiPlus className="h-4 w-4" />
+            Bulk Import
+          </Link>
+        }
+      />
+
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {cards.map((card) => {
           const Icon = card.icon;
-          return loading || card.value === null ? (
+          return card.value === null ? (
             <StatCardSkeleton key={card.label} />
           ) : (
             <StatCard
@@ -118,44 +157,34 @@ const Dashboard = () => {
         })}
       </div>
 
-      <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <h2 className="text-2xl font-semibold text-ink">Institute Admin Dashboard</h2>
-        <p className="mt-3 max-w-3xl text-slate-600">
-          Manage your institute operations seamlessly with {settings.appName}. Access integrated modules for academics, student records, fees, timetables, assignments, library, transport, and hostel management.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          {isModuleEnabled("students") && (
-            <Link to="/admin/students" style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }} className="px-5 py-3 text-sm font-semibold text-white">Manage Students</Link>
-          )}
-          {isModuleEnabled("academics") && (
-            <Link to="/admin/academic-groups" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage {getAcademicGroupLabel(user)}</Link>
-          )}
-          {isModuleEnabled("notices") && (
-            <Link to="/admin/notices" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Notices</Link>
-          )}
-          {isModuleEnabled("fees") && (
-            <Link to="/admin/fees" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Fees</Link>
-          )}
-          {isModuleEnabled("timetable") && (
-            <Link to="/admin/timetables" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Timetables</Link>
-          )}
-          {isModuleEnabled("assignments") && (
-            <Link to="/admin/assignments" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">View Assignments</Link>
-          )}
-          {isModuleEnabled("library") && (
-            <Link to="/admin/library/books" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Library</Link>
-          )}
-          {isModuleEnabled("transport") && (
-            <Link to="/admin/transport/vehicles" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Transport</Link>
-          )}
-          {isModuleEnabled("hostel") && (
-            <Link to="/admin/hostels" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Manage Hostels</Link>
-          )}
-          {isModuleEnabled("hostel") && (
-            <Link to="/admin/hostel-outpasses" className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700">Review Outpasses</Link>
-          )}
+      <SectionCard>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Quick Actions</h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Common tasks for institute admin</p>
+          </div>
         </div>
-      </div>
+        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {quickActions.map((action) => {
+            const ActionIcon = action.icon;
+            return (
+              <Link
+                key={action.label}
+                to={action.route}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition-all duration-300 hover:border-slate-300 hover:shadow-md dark:border-slate-700 dark:bg-slate-800 dark:hover:border-slate-600"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${action.color}`}>
+                    <ActionIcon className="h-5 w-5" />
+                  </div>
+                  <span className="font-medium text-slate-900 dark:text-white">{action.label}</span>
+                </div>
+                <FiArrowRight className="h-4 w-4 text-slate-400" />
+              </Link>
+            );
+          })}
+        </div>
+      </SectionCard>
 
       <LatestNoticesPanel notices={latestNotices} description="Recently published notices for institute admins." />
     </section>

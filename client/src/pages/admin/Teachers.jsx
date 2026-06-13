@@ -6,14 +6,24 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
 import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { getTeacherLabel, getTeacherLabelPlural } from "../../utils/instituteLabels";
 
+const getInitials = (name) => {
+  if (!name) return "NA";
+  const words = name.trim().split(" ");
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 const Teachers = () => {
   const { user } = useAuth();
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const singularLabel = getTeacherLabel(user);
   const pluralLabel = getTeacherLabelPlural(user);
   const [teachers, setTeachers] = useState([]);
@@ -22,6 +32,7 @@ const Teachers = () => {
   const [messageTone, setMessageTone] = useState("success");
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   const fetchTeachers = async () => {
     try {
@@ -137,31 +148,40 @@ const Teachers = () => {
           headers={["Name", "Email", "Department", "Status", "Actions"]}
         >
           {teachers.map((teacher) => (
-            <tr key={teacher._id} className="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/40">
+            <tr key={teacher._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
               <td className="px-6 py-4">
-                <p className="font-medium text-slate-900 dark:text-white">{teacher.name}</p>
-              </td>
-              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{teacher.email}</td>
-              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{teacher.department || "-"}</td>
-              <td className="px-6 py-4"><StatusBadge value={teacher.status} /></td>
-              <td className="px-6 py-4">
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/teachers/${teacher._id}`}>
-                    View
-                  </Button>
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/teachers/${teacher._id}/edit`}>
-                    Edit
-                  </Button>
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/teachers/${teacher._id}/assign`}>
-                    Assign
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleStatusToggle(teacher)}>
-                    {teacher.status === "active" ? "Deactivate" : "Activate"}
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={() => handleDelete(teacher)}>
-                    Delete
-                  </Button>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">
+                    {getInitials(teacher.name)}
+                  </div>
+                  <div>
+                    <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{teacher.name}</p>
+                    <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{teacher.employeeId || "No ID"}</p>
+                  </div>
                 </div>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{teacher.email}</p>
+                {teacher.phone && (
+                  <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{teacher.phone}</p>
+                )}
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{teacher.department || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={teacher.status} />
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={teacher}
+                  isActive={teacher.status === "active"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDeactivate={teacher.status === "active" ? () => handleStatusToggle(teacher) : undefined}
+                  onActivate={teacher.status === "inactive" ? () => handleStatusToggle(teacher) : undefined}
+                  onDelete={() => handleDelete(teacher)}
+                />
               </td>
             </tr>
           ))}

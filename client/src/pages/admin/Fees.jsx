@@ -6,14 +6,15 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
+import FilterBar from "../../components/ui/FilterBar";
+import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 import { feeStatusOptions, feeTypeOptions } from "../../utils/feeOptions";
 import { formatCurrency, formatDate, formatLabel } from "../../utils/formatters";
 
-const filterClass = "rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none";
-
 const Fees = () => {
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const [fees, setFees] = useState([]);
   const [students, setStudents] = useState([]);
   const [academicGroups, setAcademicGroups] = useState([]);
@@ -26,6 +27,9 @@ const Fees = () => {
   });
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   const loadData = async () => {
     try {
@@ -60,16 +64,39 @@ const Fees = () => {
     );
   }, [fees, filters.search]);
 
-  const handleDelete = async (feeId) => {
-    if (!(await window.confirm("Delete this fee?"))) return;
+  const handleDelete = async (fee) => {
+    setConfirmModal({
+      type: "delete",
+      fee,
+      title: "Delete Fee?",
+      message: "This action will remove the fee record. This cannot be undone.",
+    });
+  };
 
+  const confirmDelete = async () => {
+    if (!confirmModal) return;
+    const { fee } = confirmModal;
     try {
-      await api.delete(`/fees/${feeId}`);
-      setFees((current) => current.filter((fee) => fee._id !== feeId));
-      window.alert("Fee deleted successfully");
+      setActionLoading(true);
+      await api.delete(`/fees/${fee._id}`);
+      setFees((current) => current.filter((f) => f._id !== fee._id));
+      setConfirmModal(null);
     } catch (error) {
-      window.alert(error.response?.data?.message || "Unable to delete fee");
+      setErrorMessage(error.response?.data?.message || "Unable to delete fee");
+    } finally {
+      setActionLoading(false);
     }
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      search: "",
+      studentId: "all",
+      academicGroupId: "all",
+      status: "all",
+      feeType: "all",
+    });
+    loadData();
   };
 
   if (loading) return <LoadingBlock message="Loading fees..." />;
@@ -91,30 +118,37 @@ const Fees = () => {
         }
       />
 
-      <div className="grid gap-4 rounded-[1.75rem] bg-white p-6 shadow-card md:grid-cols-5">
+      <FilterBar
+        filters={filters}
+        onFilterChange={(event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }))}
+        onSearch={() => loadData()}
+        onReset={handleResetFilters}
+        searchPlaceholder="Search fee or student"
+      >
         <input
+          name="search"
           placeholder="Search fee or student"
           value={filters.search}
           onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-          className={filterClass}
+          className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
         />
-        <select value={filters.studentId} onChange={(event) => setFilters((current) => ({ ...current, studentId: event.target.value }))} className={filterClass}>
+        <select name="studentId" value={filters.studentId} onChange={(event) => setFilters((current) => ({ ...current, studentId: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Students</option>
           {students.map((student) => <option key={student._id} value={student._id}>{student.name}</option>)}
         </select>
-        <select value={filters.academicGroupId} onChange={(event) => setFilters((current) => ({ ...current, academicGroupId: event.target.value }))} className={filterClass}>
+        <select name="academicGroupId" value={filters.academicGroupId} onChange={(event) => setFilters((current) => ({ ...current, academicGroupId: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Groups</option>
           {academicGroups.map((group) => <option key={group._id} value={group._id}>{group.className || [group.department, group.course, group.section].filter(Boolean).join(" - ")}</option>)}
         </select>
-        <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className={filterClass}>
+        <select name="status" value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Status</option>
           {feeStatusOptions.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
         </select>
-        <select value={filters.feeType} onChange={(event) => setFilters((current) => ({ ...current, feeType: event.target.value }))} className={filterClass}>
+        <select name="feeType" value={filters.feeType} onChange={(event) => setFilters((current) => ({ ...current, feeType: event.target.value }))} className="rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white">
           <option value="all">All Types</option>
           {feeTypeOptions.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
         </select>
-      </div>
+      </FilterBar>
 
       <AlertMessage tone="error" message={errorMessage} />
 
@@ -126,50 +160,55 @@ const Fees = () => {
           actionLink="/admin/fees/create"
         />
       ) : (
-        <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-card">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Student</th>
-                  <th className="px-6 py-4 font-medium">Fee</th>
-                  <th className="px-6 py-4 font-medium">Payable</th>
-                  <th className="px-6 py-4 font-medium">Paid</th>
-                  <th className="px-6 py-4 font-medium">Due Date</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredFees.map((fee) => (
-                  <tr key={fee._id} className="border-t border-slate-100">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-ink">{fee.studentId?.userId?.name || "-"}</p>
-                      <p className="text-xs text-slate-500">{fee.studentId?.rollNumber || "-"}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-ink">{fee.title}</p>
-                      <p className="text-xs text-slate-500">{formatLabel(fee.feeType)}</p>
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">{formatCurrency(fee.payableAmount)}</td>
-                    <td className="px-6 py-4 text-slate-600">{formatCurrency(fee.paidAmount)}</td>
-                    <td className="px-6 py-4 text-slate-600">{formatDate(fee.dueDate)}</td>
-                    <td className="px-6 py-4"><StatusBadge value={fee.status} /></td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Link to={`/admin/fees/${fee._id}`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">View</Link>
-                        <Link to={`/admin/fees/${fee._id}/edit`} className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700">Edit</Link>
-                        <Link to={`/admin/fees/${fee._id}/payment`} className="rounded-full border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700">Payment</Link>
-                        <button type="button" onClick={() => handleDelete(fee._id)} className="rounded-full border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600">Delete</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <TableShell
+          headers={["Student", "Fee", "Payable", "Paid", "Due Date", "Status", "Actions"]}
+        >
+          {filteredFees.map((fee) => (
+            <tr key={fee._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
+              <td className="px-6 py-4">
+                <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{fee.studentId?.userId?.name || "-"}</p>
+                <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{fee.studentId?.rollNumber || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{fee.title}</p>
+                <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{formatLabel(fee.feeType)}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{formatCurrency(fee.payableAmount)}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{formatCurrency(fee.paidAmount)}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{formatDate(fee.dueDate)}</p>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={fee.status} />
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={fee}
+                  isActive={fee.status === "paid"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDelete={() => handleDelete(fee)}
+                />
+              </td>
+            </tr>
+          ))}
+        </TableShell>
       )}
+
+      <ConfirmModal
+        open={Boolean(confirmModal)}
+        onClose={() => setConfirmModal(null)}
+        onConfirm={confirmDelete}
+        title={confirmModal?.title}
+        message={confirmModal?.message}
+        confirmText="Delete"
+        variant="danger"
+        loading={actionLoading}
+      />
     </section>
   );
 };

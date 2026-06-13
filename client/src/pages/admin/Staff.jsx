@@ -6,17 +6,28 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
 import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 
+const getInitials = (name) => {
+  if (!name) return "NA";
+  const words = name.trim().split(" ");
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 const Staff = () => {
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const [staffMembers, setStaffMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   const fetchStaff = async () => {
     try {
@@ -128,32 +139,37 @@ const Staff = () => {
           headers={["Name", "Designation", "Department", "Status", "Actions"]}
         >
           {staffMembers.map((member) => (
-            <tr key={member._id} className="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/40">
+            <tr key={member._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
               <td className="px-6 py-4">
-                <p className="font-medium text-slate-900 dark:text-white">{member.name}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{member.email}</p>
-              </td>
-              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{String(member.designation || "-").replaceAll("_", " ")}</td>
-              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{member.department || "-"}</td>
-              <td className="px-6 py-4"><StatusBadge value={member.status} /></td>
-              <td className="px-6 py-4">
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/staff/${member._id}`}>
-                    View
-                  </Button>
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/staff/${member._id}/edit`}>
-                    Edit
-                  </Button>
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/staff/${member._id}/permissions`}>
-                    Permissions
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleStatusToggle(member)}>
-                    {member.status === "active" ? "Deactivate" : "Activate"}
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={() => handleDelete(member)}>
-                    Delete
-                  </Button>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center text-white font-bold text-sm">
+                    {getInitials(member.name)}
+                  </div>
+                  <div>
+                    <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{member.name}</p>
+                    <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{member.email}</p>
+                  </div>
                 </div>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{String(member.designation || "-").replaceAll("_", " ")}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{member.department || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={member.status} />
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={member}
+                  isActive={member.status === "active"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDeactivate={member.status === "active" ? () => handleStatusToggle(member) : undefined}
+                  onActivate={member.status === "inactive" ? () => handleStatusToggle(member) : undefined}
+                  onDelete={() => handleDelete(member)}
+                />
               </td>
             </tr>
           ))}

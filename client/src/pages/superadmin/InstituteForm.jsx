@@ -14,15 +14,20 @@ import {
   FiUser,
 } from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
+import PageHeader from "../../components/PageHeader";
+import { Button, Input, Select, FormSection, FormField, FormActionBar } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 
 const inputClassName =
+  "h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500";
+const textAreaClassName =
   "w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500";
 
 const sectionCardClass = "rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-card dark:border-slate-800 dark:bg-slate-900";
 const softPanelClass = "rounded-[1.4rem] border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60";
 const statCardClass =
   "rounded-[1.25rem] border border-white/40 bg-white/70 p-4 backdrop-blur dark:border-white/10 dark:bg-slate-950/35";
+const placeholderClassName = "text-sm font-medium text-slate-400 dark:text-slate-500";
 
 const instituteTypeMeta = {
   school: {
@@ -60,9 +65,12 @@ const getInitials = (value = "") =>
     .map((segment) => segment[0]?.toUpperCase() || "")
     .join("") || "IN";
 
-const renderField = ({ label, icon: Icon, children }) => (
+const renderField = ({ label, icon: Icon, children, required = false }) => (
   <div>
-    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
+    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+      {label}
+      {required ? <span className="ml-1 text-rose-500">*</span> : null}
+    </label>
     <div className="relative">
       <span className="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center text-slate-400">
         <Icon size={17} />
@@ -72,118 +80,97 @@ const renderField = ({ label, icon: Icon, children }) => (
   </div>
 );
 
-const InstituteForm = ({ title, description, formData, onChange, onSubmit, submitting, errorMessage, submitLabel }) => {
+const InstituteForm = ({
+  title,
+  description,
+  formData,
+  onChange,
+  onSubmit,
+  submitting,
+  errorMessage,
+  submitLabel,
+  submittingLabel = "Saving...",
+}) => {
   const { settings, getButtonRadius } = useUISettings();
   const instituteMeta = instituteTypeMeta[formData.instituteType] || instituteTypeMeta.school;
+  const previewName = formData.name || "Institute Name";
+  const previewCode = formData.instituteCode || "Not assigned";
+  const hasHeadName = Boolean(formData.headName?.trim());
+  const hasEmail = Boolean(formData.email?.trim());
 
   return (
     <section className="space-y-6">
-      <div
-        className={`${sectionCardClass} overflow-hidden`}
-        style={{
-          backgroundImage: `radial-gradient(circle at top right, ${settings.primaryColor}16, transparent 34%), radial-gradient(circle at bottom left, ${settings.secondaryColor}14, transparent 30%)`,
-        }}
-      >
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-teal-700 dark:text-emerald-300">Institution Setup</p>
-            <h1 className="mt-3 text-4xl font-semibold text-ink dark:text-white">{title}</h1>
-            <p className="mt-4 text-sm leading-7 text-slate-600 dark:text-slate-300">{description}</p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              { label: "Type", value: instituteMeta.label, icon: FiGlobe },
-              { label: "Plan", value: formData.plan || "free", icon: FiCreditCard },
-              { label: "Status", value: formData.status || "active", icon: FiCheckCircle },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.label} className={statCardClass}>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">{item.label}</p>
-                    <Icon className="text-slate-400" size={15} />
-                  </div>
-                  <p className="mt-3 text-base font-semibold capitalize text-ink dark:text-white">{item.value}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={title}
+        description={description}
+      />
 
       <form onSubmit={onSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
-        <div className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-          <div className={sectionCardClass}>
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-ink dark:text-white">Core Identity</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Define the public-facing identity and leadership reference for this institute.</p>
-            </div>
-
+        <div className="space-y-6">
+          <FormSection title="Core Identity" description="Define the public-facing identity and leadership reference for this institute.">
             <div className="grid gap-5 md:grid-cols-2">
-              {renderField({
-                label: "Institute Name",
-                icon: FiBriefcase,
-                children: <input name="name" value={formData.name} onChange={onChange} className={`${inputClassName} pl-12`} required />,
-              })}
-
-              {renderField({
-                label: "Institute Code",
-                icon: FiHash,
-                children: <input name="instituteCode" value={formData.instituteCode} onChange={onChange} className={`${inputClassName} pl-12 uppercase`} required />,
-              })}
-
-              {renderField({
-                label: "Institute Type",
-                icon: FiGlobe,
-                children: (
-                  <select name="instituteType" value={formData.instituteType} onChange={onChange} className={`${inputClassName} pl-12`}>
-                    <option value="school">School</option>
-                    <option value="college">College</option>
-                    <option value="university">University</option>
-                  </select>
-                ),
-              })}
-
-              {renderField({
-                label: "Head Name",
-                icon: FiUser,
-                children: <input name="headName" value={formData.headName} onChange={onChange} className={`${inputClassName} pl-12`} required />,
-              })}
+              <FormField label="Institute Name" required>
+                <Input
+                  name="name"
+                  value={formData.name}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
+              <FormField label="Institute Code" required helperText="Unique identifier for the institute">
+                <Input
+                  name="instituteCode"
+                  value={formData.instituteCode}
+                  onChange={onChange}
+                  required
+                  className="uppercase"
+                />
+              </FormField>
+              <FormField label="Institute Type" required>
+                <Select
+                  name="instituteType"
+                  value={formData.instituteType}
+                  onChange={onChange}
+                  required
+                >
+                  <option value="school">School</option>
+                  <option value="college">College</option>
+                  <option value="university">University</option>
+                </Select>
+              </FormField>
+              <FormField label="Head Name" required helperText="Principal/Director name">
+                <Input
+                  name="headName"
+                  value={formData.headName}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
             </div>
-          </div>
+          </FormSection>
 
-          <div className={sectionCardClass}>
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-ink dark:text-white">Contact & Branding</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Add communication details, address, and institute logo for a polished setup.</p>
-            </div>
-
+          <FormSection title="Contact & Branding" description="Add communication details, address, and institute logo for a polished setup.">
             <div className="grid gap-5 md:grid-cols-2">
-              {renderField({
-                label: "Email",
-                icon: FiMail,
-                children: <input name="email" type="email" value={formData.email} onChange={onChange} className={`${inputClassName} pl-12`} required />,
-              })}
-
-              {renderField({
-                label: "Phone",
-                icon: FiPhone,
-                children: (
-                  <input
-                    name="phone"
-                    maxLength={10}
-                    pattern="[0-9]{10}"
-                    title="Phone number must be exactly 10 digits"
-                    value={formData.phone}
-                    onChange={onChange}
-                    className={`${inputClassName} pl-12`}
-                  />
-                ),
-              })}
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Logo</label>
+              <FormField label="Email" required helperText="Primary contact email">
+                <Input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={onChange}
+                  required
+                />
+              </FormField>
+              <FormField label="Phone" helperText="10 digit mobile number">
+                <Input
+                  name="phone"
+                  maxLength={10}
+                  pattern="[0-9]{10}"
+                  title="Phone number must be exactly 10 digits"
+                  value={formData.phone}
+                  onChange={onChange}
+                />
+              </FormField>
+              <FormField label="Logo" className="md:col-span-2">
                 <div className={`${softPanelClass} flex flex-col gap-4 sm:flex-row sm:items-center`}>
                   {formData.logo ? (
                     <img
@@ -236,73 +223,59 @@ const InstituteForm = ({ title, description, formData, onChange, onSubmit, submi
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Address</label>
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-0 top-0 flex h-12 w-12 items-center justify-center text-slate-400">
-                    <FiMapPin size={17} />
-                  </span>
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={onChange}
-                    rows="4"
-                    className={`${inputClassName} resize-none pl-12`}
-                  />
-                </div>
-              </div>
+              </FormField>
+              <FormField label="Address" className="md:col-span-2">
+                <textarea
+                  name="address"
+                  value={formData.address}
+                  onChange={onChange}
+                  rows="4"
+                  className={`${textAreaClassName} resize-none`}
+                />
+              </FormField>
             </div>
-          </div>
+          </FormSection>
 
-          <div className={sectionCardClass}>
-            <div className="mb-5">
-              <h2 className="text-xl font-semibold text-ink dark:text-white">Subscription & Status</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Control the commercial plan, payment standing, and operational status.</p>
-            </div>
-
+          <FormSection title="Subscription & Status" description="Control the commercial plan, payment standing, and operational status.">
             <div className="grid gap-5 md:grid-cols-3">
-              {renderField({
-                label: "Plan",
-                icon: FiBookmark,
-                children: (
-                  <select name="plan" value={formData.plan} onChange={onChange} className={`${inputClassName} pl-12`}>
-                    <option value="free">Free</option>
-                    <option value="basic">Basic</option>
-                    <option value="premium">Premium</option>
-                  </select>
-                ),
-              })}
-
-              {renderField({
-                label: "Payment Status",
-                icon: FiCreditCard,
-                children: (
-                  <select name="paymentStatus" value={formData.paymentStatus} onChange={onChange} className={`${inputClassName} pl-12`}>
-                    <option value="trial">Trial</option>
-                    <option value="paid">Paid</option>
-                    <option value="unpaid">Unpaid</option>
-                    <option value="expired">Expired</option>
-                  </select>
-                ),
-              })}
-
-              {renderField({
-                label: "Status",
-                icon: FiShield,
-                children: (
-                  <select name="status" value={formData.status} onChange={onChange} className={`${inputClassName} pl-12`}>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                ),
-              })}
+              <FormField label="Plan">
+                <Select
+                  name="plan"
+                  value={formData.plan}
+                  onChange={onChange}
+                >
+                  <option value="free">Free</option>
+                  <option value="basic">Basic</option>
+                  <option value="premium">Premium</option>
+                </Select>
+              </FormField>
+              <FormField label="Payment Status">
+                <Select
+                  name="paymentStatus"
+                  value={formData.paymentStatus}
+                  onChange={onChange}
+                >
+                  <option value="trial">Trial</option>
+                  <option value="paid">Paid</option>
+                  <option value="unpaid">Unpaid</option>
+                  <option value="expired">Expired</option>
+                </Select>
+              </FormField>
+              <FormField label="Status">
+                <Select
+                  name="status"
+                  value={formData.status}
+                  onChange={onChange}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </Select>
+              </FormField>
             </div>
-          </div>
+          </FormSection>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <div className={sectionCardClass}>
             <h2 className="text-xl font-semibold text-ink dark:text-white">Live Preview</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">A quick summary of how this institute setup currently looks.</p>
@@ -319,12 +292,12 @@ const InstituteForm = ({ title, description, formData, onChange, onSubmit, submi
                     <img
                       src={formData.logo}
                       alt="Institute Logo"
-                      className="h-16 w-16 rounded-3xl object-cover ring-1 ring-white/60"
+                      className="h-[42px] w-[42px] rounded-full object-cover ring-2 ring-white/70 shadow-sm"
                     />
                   ) : (
                     <div
-                      className="flex h-16 w-16 items-center justify-center rounded-3xl text-lg font-bold text-white"
-                      style={{ background: `linear-gradient(135deg, ${settings.primaryColor}, ${settings.secondaryColor})` }}
+                      className="flex h-[42px] w-[42px] items-center justify-center rounded-full text-sm font-bold text-white shadow-[0_10px_24px_rgba(15,23,42,0.16)] ring-1 ring-white/60"
+                      style={{ background: `linear-gradient(145deg, ${settings.primaryColor}, ${settings.secondaryColor})` }}
                     >
                       {getInitials(formData.name)}
                     </div>
@@ -332,10 +305,8 @@ const InstituteForm = ({ title, description, formData, onChange, onSubmit, submi
 
                   <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500 dark:text-slate-300">Institute Preview</p>
-                    <h3 className="mt-2 truncate text-xl font-semibold text-ink dark:text-white">{formData.name || "Institute Name"}</h3>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                      {[formData.instituteCode || "CODE", instituteMeta.label].join(" • ")}
-                    </p>
+                    <h3 className="mt-2 truncate text-xl font-semibold text-ink dark:text-white">{previewName}</h3>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{[previewCode, instituteMeta.label].join(" / ")}</p>
                   </div>
                 </div>
               </div>
@@ -344,11 +315,19 @@ const InstituteForm = ({ title, description, formData, onChange, onSubmit, submi
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className={softPanelClass}>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Head</p>
-                    <p className="mt-2 text-sm font-medium text-ink dark:text-white">{formData.headName || "Not assigned"}</p>
+                    {hasHeadName ? (
+                      <p className="mt-2 text-sm font-medium text-ink dark:text-white">{formData.headName}</p>
+                    ) : (
+                      <p className={`mt-2 ${placeholderClassName}`}>Not assigned</p>
+                    )}
                   </div>
                   <div className={softPanelClass}>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Contact</p>
-                    <p className="mt-2 text-sm font-medium text-ink dark:text-white">{formData.email || "No email added"}</p>
+                    {hasEmail ? (
+                      <p className="mt-2 text-sm font-medium text-ink dark:text-white">{formData.email}</p>
+                    ) : (
+                      <p className={`mt-2 ${placeholderClassName}`}>No email added</p>
+                    )}
                   </div>
                 </div>
 
@@ -395,16 +374,13 @@ const InstituteForm = ({ title, description, formData, onChange, onSubmit, submi
             <h2 className="text-xl font-semibold text-ink dark:text-white">Submit</h2>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Review the summary, then create the institute when ready.</p>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-5 space-y-4">
               <AlertMessage tone="error" message={errorMessage} />
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-                className="w-full px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-teal-500/20 transition hover:-translate-y-0.5 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {submitting ? "Saving..." : submitLabel}
-              </button>
+              <FormActionBar
+                onSubmit={onSubmit}
+                submitting={submitting}
+                submitLabel={submitLabel}
+              />
             </div>
           </div>
         </div>

@@ -422,10 +422,22 @@ const MarkAttendance = () => {
         <div className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-600 p-4 shadow-2xl z-[100]">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex flex-wrap gap-4 text-sm">
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Present Units: {counts.present * (formData.attendanceCount || 1)}</span>
-              <span className="text-red-600 dark:text-red-400 font-semibold">Absent Units: {counts.absent * (formData.attendanceCount || 1)}</span>
-              <span className="text-amber-600 dark:text-amber-400 font-semibold">Late Units: {counts.late * (formData.attendanceCount || 1)}</span>
-              <span className="text-blue-600 dark:text-blue-400 font-semibold">Leave Units: {counts.leave * (formData.attendanceCount || 1)}</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Present Units: {counts.present * (formData.attendanceCount || 1)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                <span className="text-red-600 dark:text-red-400 font-semibold">Absent Units: {counts.absent * (formData.attendanceCount || 1)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-amber-500"></div>
+                <span className="text-amber-600 dark:text-amber-400 font-semibold">Late Units: {counts.late * (formData.attendanceCount || 1)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-sky-500"></div>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">Leave Units: {counts.leave * (formData.attendanceCount || 1)}</span>
+              </div>
               <span className="text-slate-600 dark:text-slate-400 font-semibold">Marked: {counts.total}/{students.length}</span>
               <span className="text-indigo-600 dark:text-indigo-400 font-semibold">Attendance Count: {formData.attendanceCount || 1}</span>
             </div>
@@ -434,7 +446,7 @@ const MarkAttendance = () => {
               onClick={handleSubmit}
               disabled={submitting || loadingStudents}
               style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-              className="px-8 py-3 text-sm font-semibold text-white disabled:opacity-50 shadow-md hover:shadow-lg transition-shadow"
+              className="px-8 py-3 text-sm font-semibold text-white disabled:opacity-50 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 active:translate-y-0"
             >
               {submitting ? "Submitting..." : "Submit Attendance"}
             </button>

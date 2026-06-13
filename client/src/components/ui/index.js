@@ -6,3 +6,6 @@ export { default as TableShell } from "./TableShell";
 export { default as ConfirmModal } from "./ConfirmModal";
 export { default as SectionCard } from "./SectionCard";
 export { default as IconPicker } from "./IconPicker";
+export { default as FormSection } from "./FormSection";
+export { default as FormField } from "./FormField";
+export { default as FormActionBar } from "./FormActionBar";

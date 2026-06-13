@@ -3,7 +3,7 @@ import { SkeletonBlock, SkeletonButton, SkeletonCard, SkeletonLines } from "./Sk
 const AppShellSkeleton = ({ message = "Preparing your workspace..." }) => {
   return (
     <div
-      className="min-h-screen md:flex md:h-screen md:overflow-hidden"
+      className="h-screen w-full max-w-full overflow-hidden md:flex"
       style={{ background: "var(--theme-app-bg)" }}
     >
       <aside className="reveal-fade-up hidden w-72 flex-shrink-0 px-5 py-6 md:flex" aria-hidden="true">
@@ -25,7 +25,7 @@ const AppShellSkeleton = ({ message = "Preparing your workspace..." }) => {
         </div>
       </aside>
 
-      <div className="flex-1 md:flex md:min-h-0 md:flex-col md:overflow-hidden">
+      <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden">
         <header className="reveal-fade-up reveal-delay-1 border-b border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between" aria-hidden="true">
             <div>
@@ -41,7 +41,7 @@ const AppShellSkeleton = ({ message = "Preparing your workspace..." }) => {
           </div>
         </header>
 
-        <main className="flex-1 p-6 md:overflow-y-auto md:p-8">
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-6 md:p-8">
           <div className="reveal-stagger space-y-6">
             <div className="skeleton-surface rounded-[2rem] p-6 shadow-card">
               <SkeletonBlock className="h-4 w-32 rounded-full" />

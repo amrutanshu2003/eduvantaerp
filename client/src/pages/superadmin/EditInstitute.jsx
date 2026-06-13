@@ -74,6 +74,7 @@ const EditInstitute = () => {
       submitting={submitting}
       errorMessage={errorMessage}
       submitLabel="Save Changes"
+      submittingLabel="Saving..."
     />
   );
 };

@@ -6,14 +6,24 @@ import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
 import { Button, TableShell, ConfirmModal } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
 import { getParentLabel, getParentLabelPlural } from "../../utils/instituteLabels";
 
+const getInitials = (name) => {
+  if (!name) return "NA";
+  const words = name.trim().split(" ");
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 const Parents = () => {
   const { user } = useAuth();
-  const { settings, getButtonRadius } = useUISettings();
+  const { settings, getButtonRadius, resolvedTheme } = useUISettings();
   const singularLabel = getParentLabel(user);
   const pluralLabel = getParentLabelPlural(user);
   const [parents, setParents] = useState([]);
@@ -22,6 +32,7 @@ const Parents = () => {
   const [messageTone, setMessageTone] = useState("success");
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   const fetchParents = async () => {
     try {
@@ -133,32 +144,37 @@ const Parents = () => {
           headers={["Name", "Relation", "Linked Students", "Status", "Actions"]}
         >
           {parents.map((parent) => (
-            <tr key={parent._id} className="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/40">
+            <tr key={parent._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
               <td className="px-6 py-4">
-                <p className="font-medium text-slate-900 dark:text-white">{parent.name}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{parent.email}</p>
-              </td>
-              <td className="px-6 py-4 text-slate-600 dark:text-slate-300 capitalize">{parent.relation || "-"}</td>
-              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{parent.linkedStudentIds?.length || 0}</td>
-              <td className="px-6 py-4"><StatusBadge value={parent.status} /></td>
-              <td className="px-6 py-4">
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/parents/${parent._id}`}>
-                    View
-                  </Button>
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/parents/${parent._id}/edit`}>
-                    Edit
-                  </Button>
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/parents/${parent._id}/link-students`}>
-                    Link Students
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleStatusToggle(parent)}>
-                    {parent.status === "active" ? "Deactivate" : "Activate"}
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={() => handleDelete(parent)}>
-                    Delete
-                  </Button>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                    {getInitials(parent.name)}
+                  </div>
+                  <div>
+                    <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{parent.name}</p>
+                    <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{parent.email}</p>
+                  </div>
                 </div>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{parent.relation || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{parent.linkedStudentIds?.length || 0}</p>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={parent.status} />
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={parent}
+                  isActive={parent.status === "active"}
+                  onView={() => {}}
+                  onEdit={() => {}}
+                  onDeactivate={parent.status === "active" ? () => handleStatusToggle(parent) : undefined}
+                  onActivate={parent.status === "inactive" ? () => handleStatusToggle(parent) : undefined}
+                  onDelete={() => handleDelete(parent)}
+                />
               </td>
             </tr>
           ))}

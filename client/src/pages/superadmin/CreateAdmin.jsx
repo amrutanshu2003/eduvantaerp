@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import LoadingBlock from "../../components/LoadingBlock";
+import PageHeader from "../../components/PageHeader";
+import { Button, Input, Select, FormSection, FormField, FormActionBar } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 
 const formDefaults = {
@@ -78,72 +80,102 @@ const CreateAdmin = () => {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <h1 className="text-3xl font-semibold text-ink">Create Admin</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
-          Add a new institute admin account and link it to an active institute.
-        </p>
-      </div>
+      <PageHeader
+        title="Create Admin"
+        description="Add a new institute admin account and link it to an active institute."
+      />
+      <form onSubmit={handleSubmit}>
+        <FormSection title="Basic Information">
+          <div className="grid gap-5 md:grid-cols-2">
+            <FormField label="Name" required>
+              <Input
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+              />
+            </FormField>
+            <FormField label="Email" required helperText="Used for login">
+              <Input
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </FormField>
+            <FormField label="Phone" helperText="10 digit mobile number">
+              <Input
+                name="phone"
+                maxLength={10}
+                pattern="[0-9]{10}"
+                title="Phone number must be exactly 10 digits"
+                value={formData.phone}
+                onChange={handleChange}
+              />
+            </FormField>
+            <FormField label="Password" required helperText="Minimum 8 characters">
+              <Input
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength="8"
+              />
+            </FormField>
+          </div>
+        </FormSection>
 
-      <form onSubmit={handleSubmit} className="rounded-[1.75rem] bg-white p-6 shadow-card">
-        <div className="grid gap-5 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Name</label>
-            <input name="name" value={formData.name} onChange={handleChange} className={inputClassName} required />
+        <FormSection title="Institute & Permissions">
+          <div className="grid gap-5 md:grid-cols-2">
+            <FormField label="Institute" required helperText="Select the institute to link this admin to">
+              <Select
+                name="instituteId"
+                value={formData.instituteId}
+                onChange={handleChange}
+                required
+              >
+                {institutes.map((inst) => (
+                  <option key={inst._id} value={inst._id}>
+                    {inst.name} ({inst.instituteCode})
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField label="Status">
+              <Select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </Select>
+            </FormField>
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Email</label>
-            <input name="email" type="email" value={formData.email} onChange={handleChange} className={inputClassName} required />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Phone</label>
-            <input name="phone" maxLength={10} pattern="[0-9]{10}" title="Phone number must be exactly 10 digits" value={formData.phone} onChange={handleChange} className={inputClassName} />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Password</label>
-            <input name="password" type="password" value={formData.password} onChange={handleChange} className={inputClassName} required minLength="8" />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Institute Connection</label>
-            <select name="instituteId" value={formData.instituteId} onChange={handleChange} className={inputClassName} required>
-              {institutes.map((inst) => (
-                <option key={inst._id} value={inst._id}>
-                  {inst.name} ({inst.instituteCode})
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Status</label>
-            <select name="status" value={formData.status} onChange={handleChange} className={inputClassName}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-          <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-medium text-slate-700">Permissions</label>
+          <FormField label="Permissions" helperText="Comma-separated values like `students.view, ui.customize`">
             <textarea
               name="permissions"
               rows="4"
               value={formData.permissions}
               onChange={handleChange}
-              className={`${inputClassName} resize-none`}
+              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none resize-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
-            <p className="mt-2 text-xs text-slate-500">Comma-separated values like `students.view, ui.customize`</p>
-          </div>
-        </div>
+          </FormField>
+        </FormSection>
 
-        <div className="mt-6 space-y-4">
-          <AlertMessage tone="error" message={errorMessage} />
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-            className="px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {submitting ? "Creating..." : "Create Admin User"}
-          </button>
-        </div>
+        <FormSection>
+          <div className="space-y-4">
+            <AlertMessage tone="error" message={errorMessage} />
+            <FormActionBar
+              onSubmit={handleSubmit}
+              submitting={submitting}
+              submitLabel="Create Admin User"
+              onCancel={() => navigate("/super-admin/admins")}
+            />
+          </div>
+        </FormSection>
       </form>
     </section>
   );

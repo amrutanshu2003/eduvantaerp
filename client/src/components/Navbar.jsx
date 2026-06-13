@@ -460,30 +460,30 @@ const Navbar = ({ onThemeToggle, themeReveal, onSidebarToggle }) => {
   };
 
   return (
-    <header className="relative z-[200] flex h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85 md:px-6">
-      <div className="flex min-w-0 items-center gap-3">
+    <header className="relative z-[200] flex h-16 md:h-20 items-center justify-between border-b border-slate-200 bg-white/90 px-3 md:px-4 lg:px-6 backdrop-blur dark:border-slate-800 dark:bg-slate-950/85">
+      <div className="flex min-w-0 items-center gap-2 md:gap-3">
         <button
           type="button"
           onClick={onSidebarToggle}
-          className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 md:hidden"
+          className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl md:rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 md:hidden"
           aria-label="Open sidebar"
         >
           <FiMenu className="h-5 w-5" />
         </button>
-        <p className="text-xs font-semibold uppercase tracking-[0.25em] truncate" style={{ color: settings.primaryColor }}>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] truncate" style={{ color: settings.primaryColor }}>
           {settings.appName}
         </p>
-        <h1 className="hidden sm:block text-lg font-bold text-ink truncate mt-0.5">Welcome, {user?.name}</h1>
+        <h1 className="hidden sm:block text-sm md:text-lg font-bold text-ink truncate mt-0.5">Welcome, {user?.name}</h1>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         {user?.role === "superadmin" && institutes.length > 0 && (
-          <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-500 flex-shrink-0">
-            <span className="hidden md:inline text-xs font-semibold uppercase tracking-wider text-slate-400">Managing:</span>
+          <label className="flex items-center gap-1.5 md:gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 md:px-3 py-1.5 text-slate-500 flex-shrink-0">
+            <span className="hidden lg:inline text-xs font-semibold uppercase tracking-wider text-slate-400">Managing:</span>
             <select
               value={activeInstId}
               onChange={handleInstituteChange}
-              className="bg-transparent text-sm font-semibold text-slate-700 outline-none border-none cursor-pointer max-w-[120px] sm:max-w-[200px] truncate"
+              className="bg-transparent text-xs md:text-sm font-semibold text-slate-700 outline-none border-none cursor-pointer max-w-[80px] sm:max-w-[120px] md:max-w-[150px] lg:max-w-[200px] truncate"
             >
               {institutes.map((inst) => (
                 <option key={inst._id} value={inst._id}>
@@ -494,7 +494,7 @@ const Navbar = ({ onThemeToggle, themeReveal, onSidebarToggle }) => {
           </label>
         )}
 
-        <div ref={searchContainerRef} className="hidden sm:block relative">
+        <div ref={searchContainerRef} className="hidden md:block relative">
           <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-slate-500 transition-all focus-within:border-slate-400 focus-within:bg-white shadow-sm">
             <FiSearch />
             <input
@@ -583,16 +583,16 @@ const Navbar = ({ onThemeToggle, themeReveal, onSidebarToggle }) => {
           <button
             type="button"
             onClick={handleNotificationClick}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-90 flex-shrink-0 relative"
+            className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-90 flex-shrink-0 relative"
             title="Notifications"
           >
             <FiBell className="h-4 w-4" />
             {unreadCount > 0 && (
               <span
-                className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
+                className="absolute -top-1 -right-1 flex h-4 w-4 md:h-5 md:w-5 items-center justify-center rounded-full bg-red-500 text-[10px] md:text-xs font-bold text-white"
                 style={{
-                  fontSize: unreadCount > 99 ? "0.625rem" : "0.75rem",
-                  minWidth: unreadCount > 99 ? "1.25rem" : "1.25rem",
+                  fontSize: unreadCount > 99 ? "0.625rem" : unreadCount > 9 ? "0.6875rem" : "0.75rem",
+                  minWidth: unreadCount > 99 ? "1rem" : "1rem",
                 }}
               >
                 {unreadCount > 99 ? "99+" : unreadCount}
@@ -711,7 +711,7 @@ const Navbar = ({ onThemeToggle, themeReveal, onSidebarToggle }) => {
           type="button"
           onClick={handleThemeToggleClick}
           disabled={Boolean(themeReveal)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+          className="flex h-8 w-8 md:h-9 md:w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           title={isDark ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
         >
@@ -730,10 +730,10 @@ const Navbar = ({ onThemeToggle, themeReveal, onSidebarToggle }) => {
           type="button"
           onClick={handleLogout}
           style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-          className="flex h-9 w-9 sm:w-auto items-center justify-center gap-2 sm:px-4 text-sm font-medium text-white transition hover:opacity-90 flex-shrink-0"
+          className="flex h-8 w-8 md:h-9 md:w-auto items-center justify-center gap-2 md:px-4 text-sm font-medium text-white transition hover:opacity-90 flex-shrink-0"
         >
           <FiLogOut className="h-4 w-4" />
-          <span className="hidden sm:inline">Logout</span>
+          <span className="hidden md:inline">Logout</span>
         </button>
       </div>
     </header>

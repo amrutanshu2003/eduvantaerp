@@ -1,16 +1,28 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
 import StatusBadge from "../../components/StatusBadge";
+import ActionPopover from "../../components/ui/ActionPopover";
+import FilterBar from "../../components/ui/FilterBar";
 import { Button, TableShell, ConfirmModal, Input, Select } from "../../components/ui";
 import { useUISettings } from "../../context/UISettingsContext";
 
+const getInitials = (name) => {
+  if (!name) return "NA";
+  const words = name.trim().split(" ");
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 const Students = () => {
   const { settings, getButtonRadius, resolvedTheme } = useUISettings();
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [groups, setGroups] = useState([]);
   const [filters, setFilters] = useState({ search: "", status: "all", academicGroupId: "all" });
@@ -19,6 +31,7 @@ const Students = () => {
   const [messageTone, setMessageTone] = useState("success");
   const [confirmModal, setConfirmModal] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const isDark = resolvedTheme === "dark";
 
   const fetchData = async () => {
     try {
@@ -41,9 +54,13 @@ const Students = () => {
     fetchData();
   }, []);
 
-  const handleChange = (event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const handleFilterChange = (event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
   const handleSearch = (event) => {
     event.preventDefault();
+    fetchData();
+  };
+  const handleResetFilters = () => {
+    setFilters({ search: "", status: "all", academicGroupId: "all" });
     fetchData();
   };
 
@@ -128,17 +145,23 @@ const Students = () => {
         }
       />
       <AlertMessage tone={messageTone} message={message} />
-      <form onSubmit={handleSearch} className={`grid gap-4 rounded-[1.75rem] p-6 shadow-card md:grid-cols-4 ${resolvedTheme === "dark" ? "bg-slate-800" : "bg-white"}`}>
+      <FilterBar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onSearch={handleSearch}
+        onReset={handleResetFilters}
+        searchPlaceholder="Search by name or roll number"
+      >
         <Input
           name="search"
           value={filters.search}
-          onChange={handleChange}
+          onChange={handleFilterChange}
           placeholder="Search by name or roll number"
         />
         <Select
           name="status"
           value={filters.status}
-          onChange={handleChange}
+          onChange={handleFilterChange}
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -147,7 +170,7 @@ const Students = () => {
         <Select
           name="academicGroupId"
           value={filters.academicGroupId}
-          onChange={handleChange}
+          onChange={handleFilterChange}
         >
           <option value="all">All Academic Groups</option>
           {groups.map((group) => (
@@ -156,13 +179,7 @@ const Students = () => {
             </option>
           ))}
         </Select>
-        <Button
-          type="submit"
-          style={{ backgroundColor: settings.primaryColor, borderRadius: getButtonRadius(settings.buttonStyle) }}
-        >
-          Search
-        </Button>
-      </form>
+      </FilterBar>
       {students.length === 0 ? (
         <EmptyState
           title="No students yet"
@@ -175,29 +192,37 @@ const Students = () => {
           headers={["Student", "Roll Number", "Academic Group", "Status", "Actions"]}
         >
           {students.map((student) => (
-            <tr key={student._id} className="border-t border-slate-100 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/40">
+            <tr key={student._id} className={`border-t transition-colors ${isDark ? "border-slate-700 hover:bg-slate-700/40" : "border-slate-100 hover:bg-slate-50"}`}>
               <td className="px-6 py-4">
-                <p className="font-medium text-slate-900 dark:text-white">{student.name}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{student.email}</p>
-              </td>
-              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{student.rollNumber}</td>
-              <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{student.academicGroupId?.className || student.academicGroupId?.department || "-"}</td>
-              <td className="px-6 py-4"><StatusBadge value={student.status} /></td>
-              <td className="px-6 py-4">
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/students/${student._id}`}>
-                    View
-                  </Button>
-                  <Button variant="secondary" size="sm" as={Link} to={`/admin/students/${student._id}/edit`}>
-                    Edit
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => handleStatusToggle(student)}>
-                    {student.status === "active" ? "Deactivate" : "Activate"}
-                  </Button>
-                  <Button variant="danger" size="sm" onClick={() => handleDelete(student)}>
-                    Delete
-                  </Button>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white font-bold text-sm">
+                    {getInitials(student.name)}
+                  </div>
+                  <div>
+                    <p className={`font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{student.name}</p>
+                    <p className={`text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{student.email}</p>
+                  </div>
                 </div>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{student.rollNumber}</p>
+              </td>
+              <td className="px-6 py-4">
+                <p className={isDark ? "text-slate-300" : "text-slate-700"}>{student.academicGroupId?.className || student.academicGroupId?.department || "-"}</p>
+              </td>
+              <td className="px-6 py-4">
+                <StatusBadge value={student.status} />
+              </td>
+              <td className="px-6 py-4">
+                <ActionPopover
+                  item={student}
+                  isActive={student.status === "active"}
+                  onView={(item) => navigate(`/admin/students/${item._id}`)}
+                  onEdit={(item) => navigate(`/admin/students/${item._id}/edit`)}
+                  onDeactivate={student.status === "active" ? () => handleStatusToggle(student) : undefined}
+                  onActivate={student.status === "inactive" ? () => handleStatusToggle(student) : undefined}
+                  onDelete={() => handleDelete(student)}
+                />
               </td>
             </tr>
           ))}
