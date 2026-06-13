@@ -31,6 +31,12 @@
         color-scheme: light;
       }
 
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
       body {
         margin: 0;
         min-width: 320px;
@@ -91,7 +97,7 @@
       .boot-login {
         position: relative;
         display: flex;
-        min-height: 100vh;
+        min-height: 100dvh;
         align-items: center;
         justify-content: center;
         overflow-x: hidden;
@@ -110,7 +116,7 @@
       .boot-recovery {
         position: relative;
         display: none;
-        min-height: 100vh;
+        min-height: 100dvh;
         align-items: center;
         justify-content: center;
         overflow-x: hidden;
