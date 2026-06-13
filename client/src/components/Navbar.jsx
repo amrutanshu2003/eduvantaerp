@@ -4,7 +4,9 @@ import { FiBell, FiCheck, FiLogOut, FiMenu, FiMoon, FiSearch, FiSun, FiTrash2 } 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useUISettings } from "../context/UISettingsContext";
+import BrandMark from "./BrandMark";
 import api from "../api/axios";
+import useBranding from "../hooks/useBranding";
 import {
   getNotifications,
   getUnreadNotificationCount,
@@ -17,6 +19,7 @@ const Navbar = ({ onThemeToggle, themeReveal, onSidebarToggle }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { settings, getButtonRadius, resolvedTheme, toggleTheme } = useUISettings();
+  const branding = useBranding();
   const themeToggleRef = useRef(null);
   const [institutes, setInstitutes] = useState([]);
   const [activeInstId, setActiveInstId] = useState(
@@ -470,9 +473,18 @@ const Navbar = ({ onThemeToggle, themeReveal, onSidebarToggle }) => {
         >
           <FiMenu className="h-5 w-5" />
         </button>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] truncate" style={{ color: settings.primaryColor }}>
-          {settings.appName}
-        </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <BrandMark
+            appName={branding.appName}
+            logo={branding.logo}
+            size="sm"
+            className="hidden sm:flex ring-slate-200/80 dark:ring-white/10"
+            imageClassName="p-1"
+          />
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] truncate" style={{ color: settings.primaryColor }}>
+            {branding.appName}
+          </p>
+        </div>
         <h1 className="hidden sm:block text-sm md:text-lg font-bold text-ink truncate mt-0.5">Welcome, {user?.name}</h1>
       </div>
 

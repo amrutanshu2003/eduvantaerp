@@ -15,6 +15,7 @@ const DashboardLayout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const themeSwitchRef = useRef(null);
   const cleanupRef = useRef(null);
+  const disablePageReveal = location.pathname === "/super-admin/ui-settings";
 
   useEffect(() => {
     return () => {
@@ -184,7 +185,7 @@ const DashboardLayout = () => {
         )}
 
         <div className="flex min-w-0 max-w-full flex-1 flex-col overflow-hidden">
-          <div className="sticky top-0 z-40 shrink-0">
+          <div data-dashboard-navbar className="sticky top-0 z-40 shrink-0">
             <div className="reveal-fade-up reveal-delay-1">
               <Navbar
                 onThemeToggle={handleThemeToggle}
@@ -197,9 +198,13 @@ const DashboardLayout = () => {
           <div data-dashboard-scroll-root className="dashboard-main no-scrollbar relative flex-1 overflow-y-auto overflow-x-hidden">
             <main className="relative min-h-full max-w-full overflow-x-hidden p-5 pb-8 md:px-8 md:pb-10 md:pt-8">
               <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.12),transparent_60%)] dark:bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.14),transparent_60%)]" />
-              <div className="page-reveal">
+              {disablePageReveal ? (
                 <Outlet />
-              </div>
+              ) : (
+                <div className="page-reveal">
+                  <Outlet />
+                </div>
+              )}
 
               {settings.showFooter !== false ? (
                 <footer className="reveal-soft reveal-delay-2 mt-8 border-t border-slate-200/60 px-1 py-2 text-xs text-slate-400 dark:border-slate-800/60 dark:text-slate-500">

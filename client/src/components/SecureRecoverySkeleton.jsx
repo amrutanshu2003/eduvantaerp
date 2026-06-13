@@ -3,7 +3,7 @@ import { SkeletonBlock, SkeletonButton } from "./Skeleton";
 
 const SecureRecoverySkeleton = ({ message = "Loading secure recovery..." }) => {
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-8">
+    <div className="relative flex min-h-screen items-start justify-center overflow-y-auto overflow-x-hidden bg-slate-950 px-4 py-6 md:py-8 lg:pt-10 lg:pb-8">
       <div
         className="absolute inset-0"
         style={{

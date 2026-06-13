@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { FiMoon, FiSun } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import api from "../api/axios";
+import BrandMark from "../components/BrandMark";
 import SecureRecoverySkeleton from "../components/SecureRecoverySkeleton";
 import { useUISettings } from "../context/UISettingsContext";
+import useBranding from "../hooks/useBranding";
 
 const initialFormState = {
   role: "admin",
@@ -16,6 +18,7 @@ const initialFormState = {
 
 const SecureAccountRecovery = () => {
   const { settings, loading, getButtonRadius, resolvedTheme, toggleTheme } = useUISettings();
+  const branding = useBranding();
   const recoveryCardRef = useRef(null);
   const themeToggleRef = useRef(null);
   const [formData, setFormData] = useState(initialFormState);
@@ -128,7 +131,7 @@ const SecureAccountRecovery = () => {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-8"
+      className="relative flex min-h-screen items-start justify-center overflow-y-auto overflow-x-hidden bg-slate-950 px-4 py-6 md:py-8 lg:pt-10 lg:pb-8"
       style={
         settings.loginBackground
           ? {
@@ -236,7 +239,19 @@ const SecureAccountRecovery = () => {
           }}
         >
           <div className="flex items-start justify-between gap-4">
-            <p className="text-xs uppercase tracking-[0.35em] text-brand-100">Restricted Access</p>
+            <div className="flex items-center gap-3">
+              <BrandMark
+                appName={branding.appName}
+                logo={branding.logo}
+                size="md"
+                className="bg-white/12 ring-white/20"
+                imageClassName="p-1.5"
+              />
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-brand-100">{branding.appName}</p>
+                <p className="mt-1 text-xs text-white/70">Restricted Access</p>
+              </div>
+            </div>
             <button
               ref={themeToggleRef}
               type="button"

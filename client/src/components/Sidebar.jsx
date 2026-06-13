@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { FiBook, FiBookOpen, FiCalendar, FiCheckSquare, FiChevronDown, FiChevronRight, FiClock, FiCreditCard, FiEdit, FiFileText, FiHome, FiLayers, FiMap, FiPackage, FiPlusSquare, FiSettings, FiShield, FiTrash2, FiTruck, FiUser, FiUsers } from "react-icons/fi";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import BrandMark from "../components/BrandMark";
 import { useUISettings } from "../context/UISettingsContext";
 import { useLabelSettings } from "../context/LabelSettingsContext";
+import useBranding from "../hooks/useBranding";
 import { canManageHostel, isHostelSecurityUser } from "../utils/hostelAccess";
 import { canManageTransport, isDriverUser } from "../utils/transportAccess";
 import { normalizeCustomSidebarItem } from "../utils/iconRegistry";
@@ -262,6 +264,7 @@ const isServiceItemActive = (pathname, item) => {
 const Sidebar = () => {
   const { user } = useAuth();
   const { settings, resolvedTheme } = useUISettings();
+  const branding = useBranding();
   const { getLabel, isModuleEnabled } = useLabelSettings();
   const isDark = resolvedTheme === "dark";
   const sidebarStyle = isDark
@@ -731,8 +734,17 @@ const Sidebar = () => {
     >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className={`rounded-3xl p-5 shadow-card ${isDark ? "bg-white/10" : "bg-white/90 ring-1 ring-slate-200/80 backdrop-blur"}`}>
-          <p className={`text-xs uppercase tracking-[0.35em] ${isDark ? "text-brand-100" : "text-slate-500"}`}>Control Center</p>
-          <h2 className={`mt-3 text-2xl font-semibold ${isDark ? "text-white" : "text-slate-900"}`}>{settings.appName}</h2>
+          <div className="flex items-center gap-3">
+            <BrandMark
+              appName={branding.appName}
+              logo={branding.logo}
+              size="lg"
+              className={isDark ? "ring-white/10" : "ring-slate-200/80"}
+              imageClassName="p-1.5"
+            />
+            <p className={`text-xs uppercase tracking-[0.35em] ${isDark ? "text-brand-100" : "text-slate-500"}`}>Control Center</p>
+          </div>
+          <h2 className={`mt-3 text-2xl font-semibold break-words ${isDark ? "text-white" : "text-slate-900"}`}>{branding.appName}</h2>
           <p className={`mt-2 text-sm ${isDark ? "text-slate-300" : "text-slate-700"}`}>{roleLabels[user?.role] || "ERP User"}</p>
         </div>
 

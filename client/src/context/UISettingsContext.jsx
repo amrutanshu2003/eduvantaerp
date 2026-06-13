@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios";
 import { normalizeCustomSidebarItem, serializeCustomSidebarItem } from "../utils/iconRegistry";
+import { defaultBrandIcon } from "../utils/branding";
 
 const UISettingsContext = createContext(null);
-const defaultFavicon =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%230f766e'/%3E%3Cstop offset='100%25' stop-color='%2314b8a6'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='18' fill='url(%23g)'/%3E%3Cpath d='M19 20h17c7.2 0 12 4.4 12 11.1 0 4.8-2.4 8.3-6.6 10.1L48 51H38.4l-5.3-8.3h-5V51H19V20zm9.1 7.4v8h7c2.9 0 4.5-1.5 4.5-4s-1.6-4-4.5-4h-7z' fill='white'/%3E%3C/svg%3E";
+const defaultFavicon = defaultBrandIcon;
 
 const defaultSettings = {
   instituteId: null,
@@ -15,6 +15,48 @@ const defaultSettings = {
   secondaryColor: "#f59e0b",
   sidebarColor: "#0f172a",
   loginBackground: "",
+  loginBackgroundEnabled: false,
+  loginBackgroundImageUrl: "",
+  loginBackgroundOverlayEnabled: true,
+  loginBackgroundOverlayOpacity: 0.72,
+  loginBackgroundBlurEnabled: false,
+  loginPanelImageEnabled: false,
+  loginPanelImageUrl: "",
+  loginPanelImagePosition: "hidden",
+  loginPanelImageOverlayEnabled: true,
+  loginPanelImageOverlayOpacity: 0.36,
+  loginBrandEyebrow: "EDUVANTA ERP",
+  loginBrandSubtitle: "Connected campus operations",
+  loginHeroTitle: "Smart ERP for Schools, Colleges & Universities",
+  loginHeroDescription: "Manage academics, students, staff, fees, attendance, hostel, transport and more from one smart ERP platform.",
+  loginLeftPanelAccentColor: "#ccfbf1",
+  loginLeftPanelAccentLightColor: "#f0fdfa",
+  loginHeroTitleColor: "#ffffff",
+  loginHeroTitleLightColor: "#f8fafc",
+  loginHeroBodyColor: "#e2e8f0",
+  loginHeroBodyLightColor: "#f8fafc",
+  loginFooterText: "Smart ERP for Schools, Colleges & Universities",
+  loginFooterTextColor: "#e2e8f0",
+  loginFooterTextLightColor: "#f8fafc",
+  loginFormEyebrow: "SECURE SIGN IN",
+  loginFormTitle: "Access your role dashboard",
+  loginFormDescription: "Sign in to continue to Eduvanta ERP and manage your institute workflows securely.",
+  loginButtonText: "Login to Eduvanta ERP",
+  showLoginBrandBlock: true,
+  showLoginHeroTitle: true,
+  showLoginHeroDescription: true,
+  showLoginFeatureCards: true,
+  showLoginCopyright: true,
+  showLoginThemeToggle: true,
+  showLoginAcceptedUsernameHint: true,
+  showLoginRememberMe: true,
+  loginFeatureCard1Enabled: true,
+  loginFeatureCard1Title: "Academic operations",
+  loginFeatureCard1Description: "Centralize classes, notices, assignments, exams and attendance in one place.",
+  loginFeatureCard2Enabled: true,
+  loginFeatureCard2Title: "Campus services",
+  loginFeatureCard2Description: "Track hostel, transport, fees, library and staff workflows with role-based access.",
+  loginCleanModeEnabled: false,
   buttonStyle: "rounded",
   themeMode: "system",
   footerText: "Smart ERP for Schools, Colleges & Universities",
@@ -42,6 +84,7 @@ const defaultSettings = {
 const normalizeSettings = (settings = {}) => ({
   ...defaultSettings,
   ...settings,
+  loginBackgroundImageUrl: settings.loginBackgroundImageUrl || settings.loginBackground || defaultSettings.loginBackgroundImageUrl,
   customSidebarItems: Array.isArray(settings.customSidebarItems)
     ? settings.customSidebarItems.map(normalizeCustomSidebarItem)
     : defaultSettings.customSidebarItems,
@@ -136,18 +179,32 @@ const applyFaviconToDocument = (favicon) => {
 };
 
 export const UISettingsProvider = ({ children }) => {
+  const cachedThemeMode = localStorage.getItem("themeMode") || null;
+  const cachedAppName = localStorage.getItem("appNameCache") || defaultSettings.appName;
+  const cachedLogo = localStorage.getItem("logoCache") || "";
+  const cachedFavicon = localStorage.getItem("faviconCache") || "";
+
   const [localThemeMode, setLocalThemeMode] = useState(() => {
-    return localStorage.getItem("themeMode") || null;
+    return cachedThemeMode;
   });
   const [settings, setSettings] = useState(() => ({
     ...defaultSettings,
-    themeMode: localStorage.getItem("themeMode") || getBootstrappedThemeMode(),
+    appName: cachedAppName,
+    logo: cachedLogo,
+    favicon: cachedFavicon,
+    themeMode: cachedThemeMode || getBootstrappedThemeMode(),
   }));
   const [loading, setLoading] = useState(true);
   const [resolvedTheme, setResolvedTheme] = useState(() =>
     getResolvedTheme(
-      { ...defaultSettings, themeMode: localStorage.getItem("themeMode") || getBootstrappedThemeMode() },
-      localStorage.getItem("themeMode") || null
+      {
+        ...defaultSettings,
+        appName: cachedAppName,
+        logo: cachedLogo,
+        favicon: cachedFavicon,
+        themeMode: cachedThemeMode || getBootstrappedThemeMode(),
+      },
+      cachedThemeMode
     )
   );
 
@@ -187,6 +244,14 @@ export const UISettingsProvider = ({ children }) => {
       // Ignore storage write failures; favicon still updates for the current session.
     }
   }, [settings.favicon]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("logoCache", settings.logo?.trim() || "");
+    } catch (error) {
+      // Ignore storage write failures; the current session state still updates.
+    }
+  }, [settings.logo]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");

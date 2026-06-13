@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { FiEdit2, FiImage, FiMove, FiPlus, FiTrash2, FiUploadCloud } from "react-icons/fi";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FiEdit2, FiImage, FiLayout, FiLayers, FiMove, FiPlus, FiRefreshCw, FiSettings, FiShield, FiSliders, FiTrash2, FiUploadCloud } from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
 import PageHeader from "../../components/PageHeader";
 import IconPicker from "../../components/ui/IconPicker";
@@ -8,6 +8,23 @@ import { normalizeCustomSidebarItem, serializeCustomSidebarItem } from "../../ut
 
 const ALL_SCHOOL_LEVELS = ["Pre-Primary", "Primary", "Middle", "Secondary", "Higher Secondary"];
 const ALL_PROGRAM_LEVELS = ["UG", "PG", "PhD", "Diploma", "Certificate"];
+const LOGIN_VISIBILITY_TOGGLES = [
+  { name: "showLoginBrandBlock", label: "Show brand block", description: "Display logo, eyebrow, and subtitle in the login header." },
+  { name: "showLoginHeroTitle", label: "Show hero title", description: "Display the main left-panel heading." },
+  { name: "showLoginHeroDescription", label: "Show hero description", description: "Display supporting copy below the hero title." },
+  { name: "showLoginFeatureCards", label: "Show feature cards", description: "Display compact marketing cards on the left panel." },
+  { name: "showLoginCopyright", label: "Show copyright pill", description: "Display the footer/copyright text chip in the login panel." },
+  { name: "showLoginThemeToggle", label: "Show theme toggle", description: "Keep the light/dark mode switch on the login form." },
+  { name: "showLoginAcceptedUsernameHint", label: "Show username hint", description: "Show accepted username formats below the username field." },
+  { name: "showLoginRememberMe", label: "Show remember me", description: "Display remember me and session status text." },
+];
+const SETTINGS_TABS = [
+  { id: "branding", label: "Branding", icon: FiSettings, description: "App name, assets, colors and footer" },
+  { id: "login", label: "Login", icon: FiLayout, description: "Auth branding, text, imagery and visibility" },
+  { id: "security", label: "Security", icon: FiShield, description: "Captcha and admin recovery controls" },
+  { id: "academic", label: "Academic", icon: FiLayers, description: "Academic group configuration" },
+  { id: "sidebar", label: "Sidebar", icon: FiSliders, description: "Custom navigation items" },
+];
 
 const readFileAsDataUrl = (file) =>
   new Promise((resolve, reject) => {
@@ -114,11 +131,14 @@ const cropImageToDataUrl = async (src, cropState) => {
 };
 
 const GlobalUISettings = () => {
-  const { settings, updateGlobalSettings, refreshSettings, getButtonRadius } = useUISettings();
+  const { settings, updateGlobalSettings, refreshSettings, getButtonRadius, defaultSettings, resolvedTheme } = useUISettings();
   const [formData, setFormData] = useState(settings);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageTone, setMessageTone] = useState("success");
+  const [activeTab, setActiveTab] = useState("branding");
+  const [isTabsPinned, setIsTabsPinned] = useState(false);
+  const [tabsDockStyle, setTabsDockStyle] = useState({ top: 72, left: 0, width: 0, height: 0 });
   const [recoveryKey, setRecoveryKey] = useState("");
   const [clearRecoveryKey, setClearRecoveryKey] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState(null);
@@ -129,6 +149,8 @@ const GlobalUISettings = () => {
   const [cropperState, setCropperState] = useState(null);
   const [logoLetterInput, setLogoLetterInput] = useState("");
   const [faviconLetterInput, setFaviconLetterInput] = useState("");
+  const tabsAnchorRef = useRef(null);
+  const tabsCardRef = useRef(null);
 
   useEffect(() => {
     setFormData({
@@ -146,12 +168,188 @@ const GlobalUISettings = () => {
     setFaviconLetterInput("");
   }, [settings.logo, settings.favicon]);
 
+  useEffect(() => {
+    const scrollRoot = document.querySelector("[data-dashboard-scroll-root]");
+    const navbar = document.querySelector("[data-dashboard-navbar]");
+
+    if (!scrollRoot || !tabsAnchorRef.current) {
+      return undefined;
+    }
+
+    const updatePinnedTabs = () => {
+      if (!tabsAnchorRef.current) {
+        return;
+      }
+
+      const anchorRect = tabsAnchorRef.current.getBoundingClientRect();
+      const cardRect = tabsCardRef.current?.getBoundingClientRect();
+      const navbarRect = navbar?.getBoundingClientRect();
+      const pinTop = navbarRect ? Math.round(navbarRect.bottom) : 72;
+
+      setTabsDockStyle({
+        top: pinTop,
+        left: Math.round(anchorRect.left),
+        width: Math.round(anchorRect.width),
+        height: Math.round(cardRect?.height || anchorRect.height),
+      });
+
+      setIsTabsPinned(anchorRect.top <= pinTop);
+    };
+
+    updatePinnedTabs();
+    scrollRoot.addEventListener("scroll", updatePinnedTabs, { passive: true });
+    window.addEventListener("resize", updatePinnedTabs);
+
+    return () => {
+      scrollRoot.removeEventListener("scroll", updatePinnedTabs);
+      window.removeEventListener("resize", updatePinnedTabs);
+    };
+  }, [activeTab, resolvedTheme]);
+
+  const isDark = resolvedTheme === "dark";
+
+  const getDefaultFormData = () => ({
+    ...defaultSettings,
+    customSidebarItems: Array.isArray(defaultSettings.customSidebarItems)
+      ? defaultSettings.customSidebarItems.map(normalizeCustomSidebarItem)
+      : [],
+  });
+
   const handleChange = (event) => {
     setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
   };
 
+  const persistToggleUpdate = async (nextState, fieldName) => {
+    try {
+      await updateGlobalSettings({
+        ...nextState,
+        privilegedRecoveryHint: nextState.privilegedRecoveryHint || "",
+      });
+      setMessageTone("success");
+      setMessage(`${fieldName} updated instantly.`);
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.response?.data?.message || "Unable to save toggle change");
+      await refreshSettings();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleToggleChange = (event) => {
-    setFormData((current) => ({ ...current, [event.target.name]: event.target.checked }));
+    const { name, checked } = event.target;
+    setFormData((current) => {
+      const nextState = { ...current, [name]: checked };
+      setSubmitting(true);
+      void persistToggleUpdate(nextState, name.replace(/([A-Z])/g, " $1").trim());
+      return nextState;
+    });
+  };
+
+  const handleRangeChange = (event) => {
+    const nextValue = Number.parseFloat(event.target.value);
+    setFormData((current) => ({ ...current, [event.target.name]: Number.isNaN(nextValue) ? 0 : nextValue }));
+  };
+
+  const resetDraftSection = (section) => {
+    const defaults = getDefaultFormData();
+
+    const sectionResetMap = {
+      branding: (current) => ({
+        ...current,
+        appName: defaults.appName,
+        logo: defaults.logo,
+        favicon: defaults.favicon,
+        primaryColor: defaults.primaryColor,
+        secondaryColor: defaults.secondaryColor,
+        sidebarColor: defaults.sidebarColor,
+        buttonStyle: defaults.buttonStyle,
+        themeMode: defaults.themeMode,
+        footerText: defaults.footerText,
+        showFooter: defaults.showFooter,
+      }),
+      login: (current) => ({
+        ...current,
+        loginBackground: defaults.loginBackground,
+        loginBackgroundEnabled: defaults.loginBackgroundEnabled,
+        loginBackgroundImageUrl: defaults.loginBackgroundImageUrl,
+        loginBackgroundOverlayEnabled: defaults.loginBackgroundOverlayEnabled,
+        loginBackgroundOverlayOpacity: defaults.loginBackgroundOverlayOpacity,
+        loginBackgroundBlurEnabled: defaults.loginBackgroundBlurEnabled,
+        loginPanelImageEnabled: defaults.loginPanelImageEnabled,
+        loginPanelImageUrl: defaults.loginPanelImageUrl,
+        loginPanelImagePosition: defaults.loginPanelImagePosition,
+        loginPanelImageOverlayEnabled: defaults.loginPanelImageOverlayEnabled,
+        loginPanelImageOverlayOpacity: defaults.loginPanelImageOverlayOpacity,
+        loginBrandEyebrow: defaults.loginBrandEyebrow,
+        loginBrandSubtitle: defaults.loginBrandSubtitle,
+        loginHeroTitle: defaults.loginHeroTitle,
+        loginHeroDescription: defaults.loginHeroDescription,
+        loginLeftPanelAccentColor: defaults.loginLeftPanelAccentColor,
+        loginLeftPanelAccentLightColor: defaults.loginLeftPanelAccentLightColor,
+        loginHeroTitleColor: defaults.loginHeroTitleColor,
+        loginHeroTitleLightColor: defaults.loginHeroTitleLightColor,
+        loginHeroBodyColor: defaults.loginHeroBodyColor,
+        loginHeroBodyLightColor: defaults.loginHeroBodyLightColor,
+        loginFooterText: defaults.loginFooterText,
+        loginFooterTextColor: defaults.loginFooterTextColor,
+        loginFooterTextLightColor: defaults.loginFooterTextLightColor,
+        loginFormEyebrow: defaults.loginFormEyebrow,
+        loginFormTitle: defaults.loginFormTitle,
+        loginFormDescription: defaults.loginFormDescription,
+        loginButtonText: defaults.loginButtonText,
+        showLoginBrandBlock: defaults.showLoginBrandBlock,
+        showLoginHeroTitle: defaults.showLoginHeroTitle,
+        showLoginHeroDescription: defaults.showLoginHeroDescription,
+        showLoginFeatureCards: defaults.showLoginFeatureCards,
+        showLoginCopyright: defaults.showLoginCopyright,
+        showLoginThemeToggle: defaults.showLoginThemeToggle,
+        showLoginAcceptedUsernameHint: defaults.showLoginAcceptedUsernameHint,
+        showLoginRememberMe: defaults.showLoginRememberMe,
+        loginFeatureCard1Enabled: defaults.loginFeatureCard1Enabled,
+        loginFeatureCard1Title: defaults.loginFeatureCard1Title,
+        loginFeatureCard1Description: defaults.loginFeatureCard1Description,
+        loginFeatureCard2Enabled: defaults.loginFeatureCard2Enabled,
+        loginFeatureCard2Title: defaults.loginFeatureCard2Title,
+        loginFeatureCard2Description: defaults.loginFeatureCard2Description,
+        loginCleanModeEnabled: defaults.loginCleanModeEnabled,
+        captchaEnabled: defaults.captchaEnabled,
+      }),
+      security: (current) => ({
+        ...current,
+        privilegedRecoveryEnabled: defaults.privilegedRecoveryEnabled,
+        privilegedRecoveryHint: defaults.privilegedRecoveryHint,
+      }),
+      academic: (current) => ({
+        ...current,
+        academicConfig: defaults.academicConfig,
+      }),
+      sidebar: (current) => ({
+        ...current,
+        customSidebarItems: defaults.customSidebarItems,
+      }),
+    };
+
+    if (sectionResetMap[section]) {
+      setFormData((current) => sectionResetMap[section](current));
+      if (section === "security") {
+        setRecoveryKey("");
+        setClearRecoveryKey(false);
+      }
+      if (section === "sidebar") {
+        setNewMenuItem({ label: "", path: "", icon: null });
+      }
+      setMessageTone("success");
+      setMessage(`${section.charAt(0).toUpperCase() + section.slice(1)} section draft reset to default values. Save to apply.`);
+      return;
+    }
+
+    setFormData(getDefaultFormData());
+    setRecoveryKey("");
+    setClearRecoveryKey(false);
+    setNewMenuItem({ label: "", path: "", icon: null });
+    setMessageTone("success");
+    setMessage("All settings draft reset to default values. Save to apply.");
   };
 
   const handleImageUpload = async (event) => {
@@ -179,6 +377,33 @@ const GlobalUISettings = () => {
         fileName: file.name,
       });
       setMessage("");
+    } catch (error) {
+      setMessageTone("error");
+      setMessage(error.message || "Unable to load the selected image.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const handleDirectImageUpload = async (event) => {
+    const { name, files } = event.target;
+    const file = files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessageTone("error");
+      setMessage("Please select a valid image file.");
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setFormData((current) => ({ ...current, [name]: dataUrl }));
+      setMessageTone("success");
+      setMessage("Image uploaded successfully. Save settings to apply it.");
     } catch (error) {
       setMessageTone("error");
       setMessage(error.message || "Unable to load the selected image.");
@@ -353,7 +578,11 @@ const GlobalUISettings = () => {
   };
 
   const inputClassName =
-    "w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400";
+    `w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${
+      isDark
+        ? "border-slate-700 bg-slate-900 text-slate-100 placeholder:text-slate-500 focus:border-slate-500"
+        : "border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:border-slate-400"
+    }`;
 
   const ac = formData.academicConfig || {};
 
@@ -514,10 +743,37 @@ const GlobalUISettings = () => {
   const collegeLevelsCount = (ac.college?.allowedSchoolLevels || []).length + (ac.college?.allowedProgramLevels || []).length;
   const uniLevelsCount = (ac.university?.allowedProgramLevels || []).length;
   const brandUploadCardClass =
-    "rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/70";
+    `rounded-[1.5rem] border p-4 ${isDark ? "border-slate-700 bg-slate-900/80" : "border-slate-200 bg-slate-50/80"}`;
+  const toggleCardClass = `rounded-[1.25rem] border p-4 ${isDark ? "border-slate-700 bg-slate-900/70" : "border-slate-200 bg-slate-50/70"}`;
+  const activeTabMeta = SETTINGS_TABS.find((tab) => tab.id === activeTab) || SETTINGS_TABS[0];
+  const tabSectionClass = `rounded-[1.6rem] border p-5 ${isDark ? "border-slate-800 bg-slate-900/70" : "border-slate-200 bg-slate-50/70"}`;
+  const fieldLabelClass = isDark ? "mb-2 block text-sm font-medium text-slate-200" : "mb-2 block text-sm font-medium text-slate-700";
+  const fieldMetaClass = isDark ? "mt-1 text-sm text-slate-400" : "mt-1 text-sm text-slate-500";
+  const miniLabelClass = isDark ? "mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-slate-500" : "mb-2 block text-xs font-medium uppercase tracking-[0.18em] text-slate-400";
+
+  const renderSwitch = (name, checked, compact = false) => (
+    <label className={`relative inline-flex cursor-pointer items-center ${compact ? "" : ""}`}>
+      <input
+        type="checkbox"
+        name={name}
+        checked={Boolean(checked)}
+        onChange={handleToggleChange}
+        className="peer sr-only"
+      />
+      <span
+        className={`rounded-full transition-colors duration-200 ${compact ? "h-7 w-14" : "h-8 w-[3.75rem]"}`}
+        style={{ backgroundColor: checked ? formData.primaryColor : isDark ? "#334155" : "#cbd5e1" }}
+      />
+      <span
+        className={`absolute rounded-full bg-white shadow-sm transition-transform duration-200 ${compact ? "left-1 top-1 h-5 w-5" : "left-1 top-1 h-6 w-6"} ${
+          checked ? (compact ? "translate-x-7" : "translate-x-7") : "translate-x-0"
+        }`}
+      />
+    </label>
+  );
 
   return (
-    <section className="space-y-6">
+    <section className={`ui-settings-shell space-y-6 ${isDark ? "text-slate-100" : "text-slate-900"}`}>
       <PageHeader
         eyebrow="Super Admin"
         title="Global UI Settings"
@@ -526,9 +782,121 @@ const GlobalUISettings = () => {
 
       <AlertMessage tone={messageTone} message={message} />
 
+      <div ref={tabsAnchorRef} style={{ minHeight: isTabsPinned ? `${tabsDockStyle.height}px` : undefined }}>
+        <div
+          ref={tabsCardRef}
+          className={`border backdrop-blur-xl transition-all duration-300 ${
+            isTabsPinned ? "rounded-[1.1rem] px-2 py-2" : "rounded-[1.75rem] px-3 py-3"
+          } ${
+            isDark
+              ? "border-slate-700/60 bg-slate-950/85 shadow-lg shadow-black/10"
+              : "border-slate-200/90 bg-white/92 shadow-lg shadow-slate-200/40"
+          }`}
+          style={
+            isTabsPinned
+              ? {
+                  position: "fixed",
+                  top: `${tabsDockStyle.top}px`,
+                  left: `${tabsDockStyle.left}px`,
+                  width: `${tabsDockStyle.width}px`,
+                  zIndex: 30,
+                }
+              : undefined
+          }
+        >
+          <div className={`flex items-center justify-between gap-3 px-1 transition-all duration-300 ${isTabsPinned ? "mb-0 max-h-0 overflow-hidden opacity-0" : "mb-3 opacity-100"}`}>
+            <div>
+              <p className={`text-[11px] font-semibold uppercase tracking-[0.28em] ${isDark ? "text-slate-500" : "text-slate-400"}`}>Sections</p>
+              <p className={`mt-1 text-sm font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>Quick access settings tabs</p>
+            </div>
+          </div>
+
+          <div className={`-mx-1 overflow-x-auto px-1 no-scrollbar md:overflow-visible md:px-0 ${isTabsPinned ? "pb-0" : "pb-1 md:pb-0"}`}>
+            <div className={`flex min-w-max md:min-w-0 ${isTabsPinned ? "gap-2 md:grid md:grid-cols-5 md:gap-2 xl:grid-cols-5" : "gap-3 md:grid md:grid-cols-3 md:gap-3 xl:grid-cols-5"}`}>
+              {SETTINGS_TABS.map((tab) => {
+                const TabIcon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`group relative min-w-[230px] snap-start border text-left transition-all duration-300 md:min-w-0 ${
+                      isTabsPinned ? "rounded-[1rem] px-3 py-2.5" : "rounded-[1.35rem] px-4 py-3"
+                    } ${
+                      isActive
+                        ? "border-transparent text-white shadow-lg"
+                        : isDark
+                          ? "border-slate-700 bg-slate-900/95 text-slate-200 hover:border-slate-600 hover:bg-slate-800"
+                          : "border-slate-200 bg-slate-50/90 text-slate-700 hover:border-slate-300 hover:bg-white"
+                    }`}
+                    style={isActive ? { background: `linear-gradient(135deg, ${formData.sidebarColor} 0%, ${formData.primaryColor} 100%)` } : undefined}
+                  >
+                    <span
+                      className={`absolute inset-x-4 top-0 h-px transition-opacity ${isActive ? "bg-white/50 opacity-100" : isDark ? "bg-slate-700 opacity-40 group-hover:opacity-80" : "bg-slate-200 opacity-70 group-hover:opacity-100"}`}
+                    />
+                    <div className={`flex ${isTabsPinned ? "items-center justify-center" : "flex-col items-start gap-3"}`}>
+                      <span
+                        className={`flex shrink-0 items-center justify-center transition-all ${
+                          isTabsPinned ? "h-10 w-10 rounded-xl" : "h-11 w-11 rounded-2xl"
+                        } ${
+                          isActive
+                            ? "bg-white/15 text-white ring-1 ring-white/20"
+                            : isDark
+                              ? "bg-slate-800 text-slate-300 ring-1 ring-slate-700"
+                              : "bg-white text-slate-500 ring-1 ring-slate-200"
+                        }`}
+                      >
+                        <TabIcon size={18} />
+                      </span>
+                      <div className={`min-w-0 transition-all duration-200 ${isTabsPinned ? "hidden" : "block"}`}>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold">{tab.label}</p>
+                          {isActive ? <span className="h-2 w-2 rounded-full bg-white/80" /> : null}
+                        </div>
+                        <p className={`mt-1 text-xs leading-5 ${isActive ? "text-white/75" : isDark ? "text-slate-400" : "text-slate-500"}`}>{tab.description}</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-        <form onSubmit={handleSubmit} className="rounded-[1.75rem] bg-white p-6 shadow-card">
+        <form onSubmit={handleSubmit} className={`rounded-[1.75rem] border p-6 shadow-card ${isDark ? "border-slate-800 bg-slate-950" : "border-slate-200 bg-white"}`}>
+          <div className={`mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border px-4 py-3 ${isDark ? "border-slate-800 bg-slate-900/90" : "border-slate-200 bg-slate-50/80"}`}>
+            <div>
+              <p className={`text-xs font-semibold uppercase tracking-[0.22em] ${isDark ? "text-slate-500" : "text-slate-400"}`}>Editing</p>
+              <p className={`mt-1 text-sm font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>{activeTabMeta.label}</p>
+              <p className={`mt-1 text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{activeTabMeta.description}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeTab !== "login" && activeTab !== "academic" && activeTab !== "sidebar" && activeTab !== "branding" && activeTab !== "security" ? null : (
+                <button
+                  type="button"
+                  onClick={() => resetDraftSection(activeTab)}
+                  className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-xs font-semibold transition ${isDark ? "border-slate-700 bg-slate-950 text-slate-200 hover:border-slate-600 hover:bg-slate-900" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}
+                >
+                  <FiRefreshCw size={14} />
+                  {`Reset ${activeTabMeta.label}`}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => resetDraftSection("all")}
+                className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-xs font-semibold transition ${isDark ? "border-rose-900/60 bg-rose-950/40 text-rose-200 hover:bg-rose-950/60" : "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"}`}
+              >
+                <FiRefreshCw size={14} />
+                Reset All Draft
+              </button>
+            </div>
+          </div>
           <div className="grid gap-5 md:grid-cols-2">
+            {activeTab === "branding" ? (
+            <>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">Institute / App Name</label>
               <input
@@ -730,60 +1098,402 @@ const GlobalUISettings = () => {
                 <option value="square">Square</option>
               </select>
             </div>
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">Login Background URL</label>
-              <input name="loginBackground" value={formData.loginBackground || ""} onChange={handleChange} className={inputClassName} />
+            </>
+            ) : null}
+            {activeTab === "login" ? (
+            <>
+            <div className="md:col-span-2">
+              <div className={tabSectionClass}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className={`text-lg font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>Login Page Branding</h2>
+                    <p className={fieldMetaClass}>
+                      Control login page background, left panel imagery, text content, clean mode, and visibility toggles from one place.
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.22em] ${isDark ? "bg-slate-950 text-slate-100 ring-1 ring-slate-700" : "bg-slate-900 text-white"}`}>
+                    Global Auth UI
+                  </span>
+                </div>
+
+                <div className="mt-6 grid gap-4 xl:grid-cols-2">
+                  <div className={brandUploadCardClass}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className={`text-sm font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>Page Background Image</p>
+                        <p className={`mt-1 text-xs leading-5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                          Use a full-page login background with an adaptive overlay for dark and light themes.
+                        </p>
+                      </div>
+                      <div className={`h-16 w-20 overflow-hidden rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"}`}>
+                        {formData.loginBackgroundImageUrl ? (
+                          <img src={formData.loginBackgroundImageUrl} alt="Login background preview" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-slate-400"><FiImage size={18} /></div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      {renderSwitch("loginBackgroundEnabled", formData.loginBackgroundEnabled, true)}
+                      <span className={`text-xs font-semibold uppercase tracking-[0.2em] ${isDark ? "text-slate-400" : "text-slate-500"}`}>Enable background image</span>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <input
+                        id="login-background-upload"
+                        type="file"
+                        name="loginBackgroundImageUrl"
+                        accept="image/*"
+                        onChange={handleDirectImageUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="login-background-upload"
+                        className={`inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed px-4 py-2.5 text-xs font-semibold transition ${isDark ? "border-slate-600 bg-slate-950 text-slate-200 hover:border-slate-500 hover:bg-slate-900" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50"}`}
+                      >
+                        <FiUploadCloud size={15} />
+                        Upload Background
+                      </label>
+                      {formData.loginBackgroundImageUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setFormData((current) => ({ ...current, loginBackgroundImageUrl: "", loginBackground: "" }))}
+                          className="rounded-2xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <label className={miniLabelClass}>Background Image URL</label>
+                        <input
+                          name="loginBackgroundImageUrl"
+                          value={formData.loginBackgroundImageUrl || ""}
+                          onChange={handleChange}
+                          className={inputClassName}
+                          placeholder="https://example.com/login-background.jpg"
+                        />
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className={toggleCardClass}>
+                          <div className="flex flex-col gap-4">
+                            <div>
+                              <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Overlay</p>
+                              <p className={`mt-1 text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>Keep the form readable above the image.</p>
+                            </div>
+                            <div className="flex justify-start">
+                              {renderSwitch("loginBackgroundOverlayEnabled", formData.loginBackgroundOverlayEnabled, true)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className={toggleCardClass}>
+                          <div className="flex flex-col gap-4">
+                            <div>
+                              <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Blur Assist</p>
+                              <p className={`mt-1 text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>Slightly softens image-heavy backgrounds.</p>
+                            </div>
+                            <div className="flex justify-start">
+                              {renderSwitch("loginBackgroundBlurEnabled", formData.loginBackgroundBlurEnabled, true)}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between gap-3">
+                          <label className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Overlay Opacity</label>
+                          <span className={`text-xs font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>{Math.round((formData.loginBackgroundOverlayOpacity ?? 0.72) * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          name="loginBackgroundOverlayOpacity"
+                          value={formData.loginBackgroundOverlayOpacity ?? 0.72}
+                          onChange={handleRangeChange}
+                          className="mt-3 w-full accent-teal-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={brandUploadCardClass}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className={`text-sm font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>Left Panel / Marketing Image</p>
+                        <p className={`mt-1 text-xs leading-5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                          Add a campus image as a panel background or compact banner above the marketing copy.
+                        </p>
+                      </div>
+                      <div className={`h-16 w-20 overflow-hidden rounded-2xl border ${isDark ? "border-slate-700 bg-slate-800" : "border-slate-200 bg-white"}`}>
+                        {formData.loginPanelImageUrl ? (
+                          <img src={formData.loginPanelImageUrl} alt="Login panel preview" className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-slate-400"><FiImage size={18} /></div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      {renderSwitch("loginPanelImageEnabled", formData.loginPanelImageEnabled, true)}
+                      <span className={`text-xs font-semibold uppercase tracking-[0.2em] ${isDark ? "text-slate-400" : "text-slate-500"}`}>Enable panel image</span>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <input
+                        id="login-panel-image-upload"
+                        type="file"
+                        name="loginPanelImageUrl"
+                        accept="image/*"
+                        onChange={handleDirectImageUpload}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="login-panel-image-upload"
+                        className={`inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-dashed px-4 py-2.5 text-xs font-semibold transition ${isDark ? "border-slate-600 bg-slate-950 text-slate-200 hover:border-slate-500 hover:bg-slate-900" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50"}`}
+                      >
+                        <FiUploadCloud size={15} />
+                        Upload Panel Image
+                      </label>
+                      {formData.loginPanelImageUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setFormData((current) => ({ ...current, loginPanelImageUrl: "" }))}
+                          className="rounded-2xl border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <label className={miniLabelClass}>Panel Image URL</label>
+                        <input
+                          name="loginPanelImageUrl"
+                          value={formData.loginPanelImageUrl || ""}
+                          onChange={handleChange}
+                          className={inputClassName}
+                          placeholder="https://example.com/campus-image.jpg"
+                        />
+                      </div>
+                      <div>
+                        <label className={miniLabelClass}>Image Position</label>
+                        <select name="loginPanelImagePosition" value={formData.loginPanelImagePosition || "hidden"} onChange={handleChange} className={inputClassName}>
+                          <option value="background">Background</option>
+                          <option value="top">Top banner</option>
+                          <option value="hidden">Hidden</option>
+                        </select>
+                      </div>
+                      <div className={toggleCardClass}>
+                        <div className="flex flex-col gap-4">
+                          <div>
+                            <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Panel Image Overlay</p>
+                            <p className={`mt-1 text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>Adds contrast over the left panel image.</p>
+                          </div>
+                          <div className="flex justify-start">
+                            {renderSwitch("loginPanelImageOverlayEnabled", formData.loginPanelImageOverlayEnabled, true)}
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between gap-3">
+                          <label className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Panel Overlay Opacity</label>
+                          <span className={`text-xs font-semibold ${isDark ? "text-slate-400" : "text-slate-500"}`}>{Math.round((formData.loginPanelImageOverlayOpacity ?? 0.36) * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          name="loginPanelImageOverlayOpacity"
+                          value={formData.loginPanelImageOverlayOpacity ?? 0.36}
+                          onChange={handleRangeChange}
+                          className="mt-3 w-full accent-teal-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                  <div className={brandUploadCardClass}>
+                    <p className={`text-sm font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>Login Text Content</p>
+                    <p className={`mt-1 text-xs leading-5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                      Edit the brand line, hero message, and form messaging shown on the login page.
+                    </p>
+                    <div className="mt-4 grid gap-4">
+                      <input name="loginBrandEyebrow" value={formData.loginBrandEyebrow || ""} onChange={handleChange} className={inputClassName} placeholder="Brand eyebrow" />
+                      <input name="loginBrandSubtitle" value={formData.loginBrandSubtitle || ""} onChange={handleChange} className={inputClassName} placeholder="Brand subtitle" />
+                      <textarea name="loginHeroTitle" value={formData.loginHeroTitle || ""} onChange={handleChange} rows="2" className={`${inputClassName} resize-none`} placeholder="Hero title" />
+                      <textarea name="loginHeroDescription" value={formData.loginHeroDescription || ""} onChange={handleChange} rows="3" className={`${inputClassName} resize-none`} placeholder="Hero description" />
+                      <textarea name="loginFooterText" value={formData.loginFooterText || ""} onChange={handleChange} rows="2" className={`${inputClassName} resize-none`} placeholder="Bottom footer card text" />
+                      <input name="loginFormEyebrow" value={formData.loginFormEyebrow || ""} onChange={handleChange} className={inputClassName} placeholder="Form eyebrow" />
+                      <input name="loginFormTitle" value={formData.loginFormTitle || ""} onChange={handleChange} className={inputClassName} placeholder="Form title" />
+                      <textarea name="loginFormDescription" value={formData.loginFormDescription || ""} onChange={handleChange} rows="3" className={`${inputClassName} resize-none`} placeholder="Form description" />
+                      <input name="loginButtonText" value={formData.loginButtonText || ""} onChange={handleChange} className={inputClassName} placeholder="Login button text" />
+                    </div>
+                    <div className="mt-5 grid gap-4 md:grid-cols-3">
+                      <div>
+                        <label className={miniLabelClass}>Accent Dark Mode</label>
+                        <input
+                          name="loginLeftPanelAccentColor"
+                          type="color"
+                          value={formData.loginLeftPanelAccentColor || "#ccfbf1"}
+                          onChange={handleChange}
+                          className={`${inputClassName} h-12`}
+                        />
+                      </div>
+                      <div>
+                        <label className={miniLabelClass}>Accent Light Mode</label>
+                        <input
+                          name="loginLeftPanelAccentLightColor"
+                          type="color"
+                          value={formData.loginLeftPanelAccentLightColor || "#f0fdfa"}
+                          onChange={handleChange}
+                          className={`${inputClassName} h-12`}
+                        />
+                      </div>
+                      <div>
+                        <label className={miniLabelClass}>Hero Title Dark</label>
+                        <input
+                          name="loginHeroTitleColor"
+                          type="color"
+                          value={formData.loginHeroTitleColor || "#ffffff"}
+                          onChange={handleChange}
+                          className={`${inputClassName} h-12`}
+                        />
+                      </div>
+                      <div>
+                        <label className={miniLabelClass}>Hero Title Light</label>
+                        <input
+                          name="loginHeroTitleLightColor"
+                          type="color"
+                          value={formData.loginHeroTitleLightColor || "#f8fafc"}
+                          onChange={handleChange}
+                          className={`${inputClassName} h-12`}
+                        />
+                      </div>
+                      <div>
+                        <label className={miniLabelClass}>Hero Body Dark</label>
+                        <input
+                          name="loginHeroBodyColor"
+                          type="color"
+                          value={formData.loginHeroBodyColor || "#e2e8f0"}
+                          onChange={handleChange}
+                          className={`${inputClassName} h-12`}
+                        />
+                      </div>
+                      <div>
+                        <label className={miniLabelClass}>Hero Body Light</label>
+                        <input
+                          name="loginHeroBodyLightColor"
+                          type="color"
+                          value={formData.loginHeroBodyLightColor || "#f8fafc"}
+                          onChange={handleChange}
+                          className={`${inputClassName} h-12`}
+                        />
+                      </div>
+                      <div>
+                        <label className={miniLabelClass}>Footer Text Dark</label>
+                        <input
+                          name="loginFooterTextColor"
+                          type="color"
+                          value={formData.loginFooterTextColor || "#e2e8f0"}
+                          onChange={handleChange}
+                          className={`${inputClassName} h-12`}
+                        />
+                      </div>
+                      <div>
+                        <label className={miniLabelClass}>Footer Text Light</label>
+                        <input
+                          name="loginFooterTextLightColor"
+                          type="color"
+                          value={formData.loginFooterTextLightColor || "#f8fafc"}
+                          onChange={handleChange}
+                          className={`${inputClassName} h-12`}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={brandUploadCardClass}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className={`text-sm font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>Visibility & Clean Mode</p>
+                        <p className={`mt-1 text-xs leading-5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                          Toggle optional sections without leaving awkward gaps in the auth card layout.
+                        </p>
+                      </div>
+                      <div className={`flex items-center gap-3 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] ${isDark ? "bg-slate-800 text-slate-100" : "bg-slate-900 text-white"}`}>
+                        {renderSwitch("loginCleanModeEnabled", formData.loginCleanModeEnabled, true)}
+                        Clean Mode
+                      </div>
+                    </div>
+                    <div className="mt-4 grid gap-3">
+                      {LOGIN_VISIBILITY_TOGGLES.map((toggle) => (
+                        <div key={toggle.name} className={toggleCardClass}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>{toggle.label}</p>
+                              <p className={`mt-1 text-xs leading-5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>{toggle.description}</p>
+                            </div>
+                            {renderSwitch(toggle.name, formData[toggle.name], true)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                  <div className={brandUploadCardClass}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className={`text-sm font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>Feature Card 1</p>
+                      {renderSwitch("loginFeatureCard1Enabled", formData.loginFeatureCard1Enabled, true)}
+                    </div>
+                    <div className="mt-4 grid gap-4">
+                      <input name="loginFeatureCard1Title" value={formData.loginFeatureCard1Title || ""} onChange={handleChange} className={inputClassName} placeholder="Feature card 1 title" />
+                      <textarea name="loginFeatureCard1Description" value={formData.loginFeatureCard1Description || ""} onChange={handleChange} rows="3" className={`${inputClassName} resize-none`} placeholder="Feature card 1 description" />
+                    </div>
+                  </div>
+                  <div className={brandUploadCardClass}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className={`text-sm font-semibold ${isDark ? "text-slate-100" : "text-slate-800"}`}>Feature Card 2</p>
+                      {renderSwitch("loginFeatureCard2Enabled", formData.loginFeatureCard2Enabled, true)}
+                    </div>
+                    <div className="mt-4 grid gap-4">
+                      <input name="loginFeatureCard2Title" value={formData.loginFeatureCard2Title || ""} onChange={handleChange} className={inputClassName} placeholder="Feature card 2 title" />
+                      <textarea name="loginFeatureCard2Description" value={formData.loginFeatureCard2Description || ""} onChange={handleChange} rows="3" className={`${inputClassName} resize-none`} placeholder="Feature card 2 description" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 p-4 md:col-span-2">
+            <div className={`${tabSectionClass} md:col-span-2`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Show Captcha On Login Page</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Show Captcha On Login Page</p>
+                  <p className={fieldMetaClass}>
                     Turn this on if you want the login page to require captcha verification.
                   </p>
                 </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    name="captchaEnabled"
-                    checked={Boolean(formData.captchaEnabled)}
-                    onChange={handleToggleChange}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className="h-7 w-14 rounded-full transition-colors duration-200"
-                    style={{ backgroundColor: formData.captchaEnabled ? formData.primaryColor : "#cbd5e1" }}
-                  />
-                  <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${formData.captchaEnabled ? "translate-x-7" : "translate-x-0"}`} />
-                </label>
+                {renderSwitch("captchaEnabled", formData.captchaEnabled, true)}
               </div>
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 p-4 md:col-span-2">
+            </>
+            ) : null}
+            {activeTab === "security" ? (
+            <div className={`${tabSectionClass} md:col-span-2`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Enable Secure Admin Recovery URL</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Enable Secure Admin Recovery URL</p>
+                  <p className={fieldMetaClass}>
                     Let Admin and Super Admin recover their own password from a hidden URL using email, mobile number, and a separate recovery key.
                   </p>
                 </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    name="privilegedRecoveryEnabled"
-                    checked={Boolean(formData.privilegedRecoveryEnabled)}
-                    onChange={handleToggleChange}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className="h-7 w-14 rounded-full transition-colors duration-200"
-                    style={{ backgroundColor: formData.privilegedRecoveryEnabled ? formData.primaryColor : "#cbd5e1" }}
-                  />
-                  <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${formData.privilegedRecoveryEnabled ? "translate-x-7" : "translate-x-0"}`} />
-                </label>
+                {renderSwitch("privilegedRecoveryEnabled", formData.privilegedRecoveryEnabled, true)}
               </div>
               <div className="mt-5 grid gap-5 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Recovery Key Hint</label>
+                  <label className={fieldLabelClass}>Recovery Key Hint</label>
                   <input
                     name="privilegedRecoveryHint"
                     value={formData.privilegedRecoveryHint || ""}
@@ -793,7 +1503,7 @@ const GlobalUISettings = () => {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Set New Recovery Key</label>
+                  <label className={fieldLabelClass}>Set New Recovery Key</label>
                   <input
                     type="password"
                     value={recoveryKey}
@@ -803,7 +1513,7 @@ const GlobalUISettings = () => {
                   />
                 </div>
               </div>
-              <label className="mt-4 flex items-center gap-3 text-sm text-slate-600">
+              <label className={`mt-4 flex items-center gap-3 text-sm ${isDark ? "text-slate-300" : "text-slate-600"}`}>
                 <input
                   type="checkbox"
                   checked={clearRecoveryKey}
@@ -812,12 +1522,15 @@ const GlobalUISettings = () => {
                 />
                 Clear existing recovery key and disable secure recovery
               </label>
-              <p className="mt-3 text-xs leading-5 text-slate-500">
-                Hidden recovery URLs: <span className="font-semibold text-slate-700">/secure/super-admin/recovery</span> and <span className="font-semibold text-slate-700">/secure/account-recovery</span>
+              <p className={`mt-3 text-xs leading-5 ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+                Hidden recovery URLs: <span className={`font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>/secure/super-admin/recovery</span> and <span className={`font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>/secure/account-recovery</span>
               </p>
             </div>
+            ) : null}
+            {activeTab === "branding" ? (
+            <>
             <div className="md:col-span-2">
-              <label className="mb-2 block text-sm font-medium text-slate-700">Footer Text</label>
+              <label className={fieldLabelClass}>Footer Text</label>
               <textarea
                 name="footerText"
                 value={formData.footerText || ""}
@@ -826,33 +1539,23 @@ const GlobalUISettings = () => {
                 className={`${inputClassName} resize-none`}
               />
             </div>
-            <div className="rounded-[1.5rem] border border-slate-200 p-4 md:col-span-2">
+            <div className={`${tabSectionClass} md:col-span-2`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Show Footer</p>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Show Footer</p>
+                  <p className={fieldMetaClass}>
                     Turn this off if you want to hide the ERP footer across dashboard pages.
                   </p>
                 </div>
-                <label className="relative inline-flex cursor-pointer items-center">
-                  <input
-                    type="checkbox"
-                    name="showFooter"
-                    checked={Boolean(formData.showFooter)}
-                    onChange={handleToggleChange}
-                    className="peer sr-only"
-                  />
-                  <span
-                    className="h-7 w-14 rounded-full transition-colors duration-200"
-                    style={{ backgroundColor: formData.showFooter ? formData.primaryColor : "#cbd5e1" }}
-                  />
-                  <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${formData.showFooter ? "translate-x-7" : "translate-x-0"}`} />
-                </label>
+                {renderSwitch("showFooter", formData.showFooter, true)}
               </div>
             </div>
+            </>
+            ) : null}
           </div>
 
           {/* Academic Group Configuration */}
+          {activeTab === "academic" ? (
           <div className="mt-8 border-t border-slate-200 pt-6">
             <div className="mb-5">
               <h2 className="text-lg font-semibold text-slate-800">Academic Group Configuration</h2>
@@ -950,8 +1653,10 @@ const GlobalUISettings = () => {
               </div>
             </div>
           </div>
+          ) : null}
 
           {/* Sidebar Customization */}
+          {activeTab === "sidebar" ? (
           <div className="mt-8 border-t border-slate-200 pt-6">
             <div className="mb-5">
               <h2 className="text-lg font-semibold text-slate-800">Sidebar Customization</h2>
@@ -1047,6 +1752,7 @@ const GlobalUISettings = () => {
               )}
             </div>
           </div>
+          ) : null}
 
           <button
             type="submit"
@@ -1058,23 +1764,41 @@ const GlobalUISettings = () => {
           </button>
         </form>
 
-        <div className="rounded-[1.75rem] bg-white p-6 shadow-card">
-          <p className="text-sm uppercase tracking-[0.25em] text-slate-400">Preview</p>
-          <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-200">
+        <div className={`rounded-[1.75rem] border p-6 shadow-card ${isDark ? "border-slate-800 bg-slate-950" : "border-slate-200 bg-white"}`}>
+          <p className={`text-sm uppercase tracking-[0.25em] ${isDark ? "text-slate-500" : "text-slate-400"}`}>Preview</p>
+          <div className={`mt-5 overflow-hidden rounded-[1.5rem] border ${isDark ? "border-slate-800" : "border-slate-200"}`}>
             <div
               className="p-6 text-white"
               style={{
-                background: formData.loginBackground
-                  ? `linear-gradient(rgba(15,23,42,0.65), rgba(15,23,42,0.7)), url(${formData.loginBackground}) center/cover`
+                background: formData.loginBackgroundEnabled && (formData.loginBackgroundImageUrl || formData.loginBackground)
+                  ? `linear-gradient(rgba(15,23,42,${formData.loginBackgroundOverlayEnabled ? (formData.loginBackgroundOverlayOpacity ?? 0.72) : 0}), rgba(15,23,42,${formData.loginBackgroundOverlayEnabled ? (formData.loginBackgroundOverlayOpacity ?? 0.72) : 0})), url(${formData.loginBackgroundImageUrl || formData.loginBackground}) center/cover`
                   : `linear-gradient(160deg, ${formData.sidebarColor} 0%, ${formData.primaryColor} 100%)`,
               }}
             >
-              <p className="text-xs uppercase tracking-[0.35em] text-white/70">{formData.appName}</p>
-              <h3 className="mt-4 text-3xl font-semibold">Live Login Theme Preview</h3>
-              <p className="mt-3 text-sm text-white/80">{formData.footerText}</p>
+              <p className="text-xs uppercase tracking-[0.35em] text-white/70">{formData.loginBrandEyebrow || formData.appName}</p>
+              <h3 className="mt-4 text-3xl font-semibold">{formData.loginHeroTitle || "Live Login Theme Preview"}</h3>
+              <p className="mt-3 text-sm text-white/80">{formData.loginHeroDescription || formData.footerText}</p>
             </div>
             <div className="space-y-4 p-6">
-              <div className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+              <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${isDark ? "border-slate-800 bg-slate-900/70 text-slate-300" : "border-slate-200 text-slate-600"}`}>
+                <span>Login background</span>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.loginBackgroundEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                  {formData.loginBackgroundEnabled ? "Enabled" : "Default gradient"}
+                </span>
+              </div>
+              <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${isDark ? "border-slate-800 bg-slate-900/70 text-slate-300" : "border-slate-200 text-slate-600"}`}>
+                <span>Left panel image</span>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.loginPanelImageEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                  {formData.loginPanelImageEnabled ? (formData.loginPanelImagePosition || "Enabled") : "Hidden"}
+                </span>
+              </div>
+              <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${isDark ? "border-slate-800 bg-slate-900/70 text-slate-300" : "border-slate-200 text-slate-600"}`}>
+                <span>Clean mode</span>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.loginCleanModeEnabled ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>
+                  {formData.loginCleanModeEnabled ? "Enabled" : "Standard"}
+                </span>
+              </div>
+              <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${isDark ? "border-slate-800 bg-slate-900/70 text-slate-300" : "border-slate-200 text-slate-600"}`}>
                 <span>Brand assets</span>
                 <div className="flex items-center gap-2">
                   <span
@@ -1093,13 +1817,13 @@ const GlobalUISettings = () => {
                   </span>
                 </div>
               </div>
-              <div className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+              <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${isDark ? "border-slate-800 bg-slate-900/70 text-slate-300" : "border-slate-200 text-slate-600"}`}>
                 <span>Captcha on login</span>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.captchaEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
                   {formData.captchaEnabled ? "Enabled" : "Disabled"}
                 </span>
               </div>
-              <div className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-600">
+              <div className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm ${isDark ? "border-slate-800 bg-slate-900/70 text-slate-300" : "border-slate-200 text-slate-600"}`}>
                 <span>Secure admin recovery</span>
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${formData.privilegedRecoveryEnabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
                   {formData.privilegedRecoveryEnabled ? "Enabled" : "Disabled"}
@@ -1114,7 +1838,7 @@ const GlobalUISettings = () => {
                 }}
                 className="px-5 py-3 text-sm font-semibold"
               >
-                Primary Button
+                {formData.loginButtonText || "Primary Button"}
               </button>
               <div className="flex gap-3">
                 <span className="h-10 w-10 rounded-full border border-slate-200" style={{ backgroundColor: formData.primaryColor }} />

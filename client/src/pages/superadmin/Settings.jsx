@@ -20,7 +20,6 @@ import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import EmptyState from "../../components/EmptyState";
 import LoadingBlock from "../../components/LoadingBlock";
-import PageHeader from "../../components/PageHeader";
 import { SkeletonCard } from "../../components/Skeleton";
 import { useAuth } from "../../context/AuthContext";
 import { useUISettings } from "../../context/UISettingsContext";
@@ -288,11 +287,6 @@ const Settings = () => {
   if (initialLoading) {
     return (
       <section className="space-y-6 pb-8">
-        <PageHeader
-          eyebrow="Super Admin"
-          title="My Profile"
-          description="Manage your profile, password and super admin team access."
-        />
         <div className="grid gap-6 xl:grid-cols-[1.05fr_1.95fr]">
           <SkeletonCard lines={["w-1/2", "w-3/4", "w-2/3"]} />
           <SkeletonCard lines={["w-full", "w-5/6", "w-3/4"]} />
@@ -303,12 +297,6 @@ const Settings = () => {
 
   return (
     <section className="space-y-6 pb-8">
-      <PageHeader
-        eyebrow="Super Admin"
-        title="My Profile"
-        description="Manage your profile, password and super admin team access."
-      />
-
       {alertText ? <AlertMessage tone={alertTone} message={alertText} /> : null}
 
       <div
@@ -321,9 +309,9 @@ const Settings = () => {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className={`text-xs font-semibold uppercase tracking-[0.32em] ${isDark ? "text-emerald-300" : "text-teal-700"}`}>
-              Super Admin Workspace
+              Super Admin
             </p>
-            <h2 className={`mt-3 text-3xl font-semibold sm:text-4xl ${isDark ? "text-white" : "text-ink"}`}>My Profile</h2>
+            <h2 className={`text-3xl font-semibold sm:text-4xl ${isDark ? "text-white" : "text-ink"}`}>My Profile</h2>
             <p className={`mt-3 text-sm leading-7 sm:text-base ${isDark ? "text-slate-300" : "text-slate-600"}`}>
               Manage your profile, password and super admin team access.
             </p>

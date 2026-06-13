@@ -141,7 +141,7 @@ a[class*="px-"][class*="py-"]:not([href^="#"]):not([href="javascript:void(0)"]):
 .skeleton-surface {
   position: relative;
   overflow: hidden;
-  background-color: color-mix(in srgb, var(--theme-surface-strong) 92%, transparent);
+  background-color: rgba(226, 232, 240, 0.7);
   border: 1px solid color-mix(in srgb, var(--theme-border) 92%, transparent);
   isolation: isolate;
 }
@@ -150,52 +150,50 @@ a[class*="px-"][class*="py-"]:not([href^="#"]):not([href="javascript:void(0)"]):
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(105deg,
+  background: linear-gradient(90deg,
       transparent 0%,
-      transparent 38%,
+      rgba(255, 255, 255, 0.22) 44%,
       rgba(255, 255, 255, 0.42) 50%,
-      transparent 62%,
+      rgba(255, 255, 255, 0.22) 56%,
       transparent 100%);
-  transform: translateX(-130%);
-  animation: skeleton-surface-shimmer 1.8s ease-in-out infinite;
+  background-size: 220% 100%;
+  animation: skeleton-surface-shimmer 2.2s linear 0s infinite normal none;
   pointer-events: none;
+  opacity: 0.72;
 }
 
 .skeleton-block {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(110deg, #d9e3ef 8%, #ffffff 18%, #d9e3ef 33%);
-  background-size: 240% 100%;
-  animation: skeleton-shimmer 1.3s linear infinite;
+  background-color: rgba(226, 232, 240, 0.7);
+  background-image: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.24) 42%,
+      rgba(255, 255, 255, 0.58) 50%,
+      rgba(255, 255, 255, 0.24) 58%,
+      transparent 100%);
+  background-size: 220% 100%;
+  animation: skeleton-shimmer 2.2s linear 0s infinite normal none;
+  will-change: background-position;
 }
 
 @keyframes skeleton-shimmer {
   0% {
-    background-position: 200% 0;
+    background-position: -220% 0;
   }
 
   100% {
-    background-position: -200% 0;
+    background-position: 220% 0;
   }
 }
 
 @keyframes skeleton-surface-shimmer {
   0% {
-    transform: translateX(-130%);
-    opacity: 0;
-  }
-
-  18% {
-    opacity: 0.28;
-  }
-
-  52% {
-    opacity: 0.62;
+    background-position: -220% 0;
   }
 
   100% {
-    transform: translateX(130%);
-    opacity: 0;
+    background-position: 220% 0;
   }
 }
 
@@ -288,6 +286,13 @@ a[class*="px-"][class*="py-"]:not([href^="#"]):not([href="javascript:void(0)"]):
   animation-delay: 70ms;
 }
 
+.page-reveal>.ui-settings-shell {
+  opacity: 1;
+  animation: none;
+  transform: none !important;
+  filter: none !important;
+}
+
 .page-reveal>*>*:is(.rounded-\[1\.75rem\], .rounded-\[2rem\], .shadow-card, .bg-white, table, form) {
   animation: reveal-soft 0.54s ease both;
 }
@@ -321,6 +326,12 @@ a[class*="px-"][class*="py-"]:not([href^="#"]):not([href="javascript:void(0)"]):
     transform: none !important;
     filter: none !important;
   }
+
+  .skeleton-block,
+  .skeleton-surface::after {
+    animation: none !important;
+    background-position: 0 0 !important;
+  }
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -345,22 +356,30 @@ a[class*="px-"][class*="py-"]:not([href^="#"]):not([href="javascript:void(0)"]):
 }
 
 :root.theme-dark .skeleton-surface {
-  background-color: color-mix(in srgb, var(--theme-surface-strong) 90%, transparent) !important;
+  background-color: rgba(30, 41, 59, 0.5) !important;
   border-color: var(--theme-border) !important;
 }
 
 :root.theme-dark .skeleton-block {
-  background: linear-gradient(110deg, #162437 8%, #31445d 18%, #162437 33%);
-  background-size: 240% 100%;
+  background-color: rgba(30, 41, 59, 0.5);
+  background-image: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.025) 42%,
+      rgba(255, 255, 255, 0.07) 50%,
+      rgba(255, 255, 255, 0.025) 58%,
+      transparent 100%);
+  background-size: 220% 100%;
 }
 
 :root.theme-dark .skeleton-surface::after {
-  background: linear-gradient(105deg,
+  background: linear-gradient(90deg,
       transparent 0%,
-      transparent 36%,
-      rgba(148, 163, 184, 0.16) 50%,
-      transparent 64%,
+      rgba(255, 255, 255, 0.03) 42%,
+      rgba(255, 255, 255, 0.075) 50%,
+      rgba(255, 255, 255, 0.03) 58%,
       transparent 100%);
+  background-size: 220% 100%;
+  opacity: 0.58;
 }
 
 body,
