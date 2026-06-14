@@ -244,6 +244,33 @@ const uiSettingsSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    attendanceGoodThreshold: {
+      type: Number,
+      default: 80,
+      min: 0,
+      max: 100,
+    },
+    attendanceWarningThreshold: {
+      type: Number,
+      default: 60,
+      min: 0,
+      max: 100,
+    },
+    attendanceGoodColor: {
+      type: String,
+      default: "#16a34a",
+      trim: true,
+    },
+    attendanceWarningColor: {
+      type: String,
+      default: "#f8e58c",
+      trim: true,
+    },
+    attendanceCriticalColor: {
+      type: String,
+      default: "#ef4444",
+      trim: true,
+    },
     privilegedRecoveryEnabled: {
       type: Boolean,
       default: false,

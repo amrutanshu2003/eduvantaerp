@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import api from "../api/axios";
 import { normalizeCustomSidebarItem, serializeCustomSidebarItem } from "../utils/iconRegistry";
 import { defaultBrandIcon } from "../utils/branding";
+import { DEFAULT_ATTENDANCE_UI_SETTINGS } from "../utils/attendanceSettings";
 
 const UISettingsContext = createContext(null);
 const defaultFavicon = defaultBrandIcon;
@@ -62,6 +63,11 @@ const defaultSettings = {
   footerText: "Smart ERP for Schools, Colleges & Universities",
   showFooter: true,
   captchaEnabled: true,
+  attendanceGoodThreshold: DEFAULT_ATTENDANCE_UI_SETTINGS.attendanceGoodThreshold,
+  attendanceWarningThreshold: DEFAULT_ATTENDANCE_UI_SETTINGS.attendanceWarningThreshold,
+  attendanceGoodColor: DEFAULT_ATTENDANCE_UI_SETTINGS.attendanceGoodColor,
+  attendanceWarningColor: DEFAULT_ATTENDANCE_UI_SETTINGS.attendanceWarningColor,
+  attendanceCriticalColor: DEFAULT_ATTENDANCE_UI_SETTINGS.attendanceCriticalColor,
   privilegedRecoveryEnabled: false,
   privilegedRecoveryHint: "",
   customSidebarItems: [],

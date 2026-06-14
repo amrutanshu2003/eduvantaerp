@@ -18,6 +18,8 @@ import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
 import LoadingBlock from "../../components/LoadingBlock";
 import PageHeader from "../../components/PageHeader";
+import { useUISettings } from "../../context/UISettingsContext";
+import { getAttendanceBand, withAlpha } from "../../utils/attendanceSettings";
 
 const getSubjectAbbreviation = (subjectName, subjectCode, shortName) => {
   if (shortName) return shortName.toUpperCase();
@@ -67,6 +69,7 @@ const getSubjectAbbreviation = (subjectName, subjectCode, shortName) => {
 
 const ChildAttendance = () => {
   const { studentId } = useParams();
+  const { settings } = useUISettings();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -218,13 +221,8 @@ const ChildAttendance = () => {
       if (totalUnits > 0) {
         label = `${presentUnits}/${totalUnits}`;
         percentage = (presentUnits / totalUnits) * 100;
-        if (percentage >= 75) {
-          type = "present";
-        } else if (percentage >= 50) {
-          type = "mixed";
-        } else {
-          type = "absent";
-        }
+        const subjectBand = getAttendanceBand(percentage, totalUnits, settings);
+        type = subjectBand.key === "good" ? "present" : subjectBand.key === "warning" ? "mixed" : "absent";
       }
 
       return {
@@ -292,7 +290,7 @@ const ChildAttendance = () => {
     return Object.values(subjectMap).map((subject) => ({
       ...subject,
       percentage: subject.totalUnits > 0 ? Math.round((subject.presentUnits / subject.totalUnits) * 100) : 0,
-      status: subject.totalUnits > 0 && (subject.presentUnits / subject.totalUnits) * 100 >= 75 ? "safe" : "warning",
+      status: getAttendanceBand((subject.presentUnits / Math.max(subject.totalUnits, 1)) * 100, subject.totalUnits, settings).key === "good" ? "safe" : "warning",
     }));
   }, [report?.attendance]);
 
@@ -376,31 +374,6 @@ const ChildAttendance = () => {
     }
   };
 
-  const getAttendanceStatus = (percentage) => {
-    if (percentage >= 90) {
-      return {
-        message: "Excellent attendance",
-        color: "text-emerald-600 dark:text-emerald-400",
-        bgColor: "bg-emerald-50 dark:bg-emerald-900/20",
-        borderColor: "border-emerald-200 dark:border-emerald-800",
-      };
-    } else if (percentage >= 75) {
-      return {
-        message: "Good, keep maintaining",
-        color: "text-amber-600 dark:text-amber-400",
-        bgColor: "bg-amber-50 dark:bg-amber-900/20",
-        borderColor: "border-amber-200 dark:border-amber-800",
-      };
-    } else {
-      return {
-        message: "Warning: Attendance below requirement",
-        color: "text-red-600 dark:text-red-400",
-        bgColor: "bg-red-50 dark:bg-red-900/20",
-        borderColor: "border-red-200 dark:border-red-800",
-      };
-    }
-  };
-
   const getStatusDetails = (status) => {
     switch (status) {
       case "present":
@@ -470,6 +443,24 @@ const ChildAttendance = () => {
 
   const overallSummary = matrixData.overallSummary;
   const overallPercentage = overallSummary.percentage || 0;
+  const attendanceBand = getAttendanceBand(overallPercentage, overallSummary.totalUnits || 0, settings);
+  const attendanceTone = attendanceBand.key === "good"
+    ? {
+        message: `Good standing at ${attendanceBand.goodThreshold}%+`,
+        panelLabel: "Good Standing",
+        alertTitle: "",
+      }
+    : attendanceBand.key === "warning"
+      ? {
+          message: `Below minimum attendance (${attendanceBand.goodThreshold}% required)`,
+          panelLabel: "Needs Attention",
+          alertTitle: `Attendance Below ${attendanceBand.goodThreshold}%`,
+        }
+      : {
+          message: `Critical attendance below ${attendanceBand.warningThreshold}%`,
+          panelLabel: "Critical",
+          alertTitle: `Attendance Below ${attendanceBand.warningThreshold}%`,
+        };
 
   return (
     <section className="space-y-6 pb-28">
@@ -494,48 +485,57 @@ const ChildAttendance = () => {
                     <span className="text-5xl font-bold text-slate-900 dark:text-slate-100 tabular-nums">
                       {overallPercentage.toFixed(1)}%
                     </span>
-                    <span className={`text-sm font-medium mb-2 ${getAttendanceStatus(overallPercentage).color}`}>
-                      {getAttendanceStatus(overallPercentage).message}
+                    <span className="mb-2 text-sm font-medium" style={{ color: attendanceBand.toneColor }}>
+                      {attendanceTone.message}
                     </span>
                   </div>
                   <div className="mt-4 h-3 w-full max-w-md rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${overallPercentage >= 90
-                        ? "bg-emerald-500"
-                        : overallPercentage >= 75
-                          ? "bg-amber-500"
-                          : "bg-red-500"
-                        }`}
-                      style={{ width: `${Math.min(100, overallPercentage)}%` }}
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, overallPercentage)}%`, backgroundColor: attendanceBand.toneColor }}
                     ></div>
                   </div>
                 </div>
               </div>
-              <div className={`rounded-2xl p-4 border ${getAttendanceStatus(overallPercentage).bgColor} ${getAttendanceStatus(overallPercentage).borderColor}`}>
+              <div
+                className="rounded-2xl border p-4"
+                style={{
+                  borderColor: withAlpha(attendanceBand.toneColor, 0.32),
+                  backgroundColor: withAlpha(attendanceBand.toneColor, 0.12),
+                }}
+              >
                 <div className="flex items-center gap-2">
-                  {overallPercentage >= 90 ? (
-                    <FiCheckCircle className={`w-5 h-5 ${getAttendanceStatus(overallPercentage).color}`} />
-                  ) : overallPercentage >= 75 ? (
-                    <FiTrendingUp className={`w-5 h-5 ${getAttendanceStatus(overallPercentage).color}`} />
+                  {attendanceBand.key === "good" ? (
+                    <FiCheckCircle className="h-5 w-5" style={{ color: attendanceBand.toneColor }} />
+                  ) : attendanceBand.key === "warning" ? (
+                    <FiTrendingUp className="h-5 w-5" style={{ color: attendanceBand.toneColor }} />
                   ) : (
-                    <FiAlertCircle className={`w-5 h-5 ${getAttendanceStatus(overallPercentage).color}`} />
+                    <FiAlertCircle className="h-5 w-5" style={{ color: attendanceBand.toneColor }} />
                   )}
-                  <span className={`text-sm font-semibold ${getAttendanceStatus(overallPercentage).color}`}>
-                    {overallPercentage >= 75 ? "Safe Range" : "Below Requirement"}
+                  <span className="text-sm font-semibold" style={{ color: attendanceBand.toneColor }}>
+                    {attendanceTone.panelLabel}
                   </span>
                 </div>
               </div>
             </div>
           </div>
 
-          {overallPercentage < 75 && (
-            <div className="rounded-2xl bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-800">
+          {attendanceBand.key !== "good" && (
+            <div
+              className="rounded-2xl border p-4"
+              style={{
+                borderColor: withAlpha(attendanceBand.toneColor, 0.28),
+                backgroundColor: withAlpha(attendanceBand.toneColor, 0.12),
+              }}
+            >
               <div className="flex items-start gap-3">
-                <FiAlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                <FiAlertCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: attendanceBand.toneColor }} />
                 <div>
-                  <p className="font-semibold text-red-800 dark:text-red-300">Attendance Below 75%</p>
-                  <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                    Your child's attendance is below 75%. Please ensure regular class attendance.
+                  <p className="font-semibold" style={{ color: attendanceBand.toneColor }}>{attendanceTone.alertTitle}</p>
+                  <p className="mt-1 text-sm" style={{ color: attendanceBand.toneColor }}>
+                    {attendanceBand.key === "warning"
+                      ? `Your child's attendance is below ${attendanceBand.goodThreshold}%. Please ensure regular class attendance.`
+                      : `Your child's attendance is below ${attendanceBand.warningThreshold}%. Please ensure regular class attendance immediately.`}
                   </p>
                 </div>
               </div>
@@ -656,13 +656,11 @@ const ChildAttendance = () => {
                     </div>
                     <div className="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${month.percentage >= 90
-                          ? "bg-emerald-500"
-                          : month.percentage >= 75
-                            ? "bg-amber-500"
-                            : "bg-red-500"
-                          }`}
-                        style={{ width: `${month.percentage}%` }}
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${month.percentage}%`,
+                          backgroundColor: getAttendanceBand(month.percentage, 1, settings).toneColor,
+                        }}
                       ></div>
                     </div>
                   </div>
@@ -846,7 +844,7 @@ const ChildAttendance = () => {
                           <td className={`sticky right-0 bg-slate-200 dark:bg-slate-600/50 py-2 px-1 text-center z-10 border-l-2 border-slate-300 dark:border-slate-600 ${dailyTotalWidthClass}`}>
                             <div
                               className={`${cellClass} mx-auto ${getCellColorClasses(
-                                overallPercentage >= 75 ? "present" : overallPercentage >= 50 ? "mixed" : "absent"
+                                attendanceBand.key === "good" ? "present" : attendanceBand.key === "warning" ? "mixed" : "absent"
                               )}`}
                               title={`Overall Attendance Total: ${overallSummary.presentUnits}/${overallSummary.totalUnits} (${overallPercentage.toFixed(1)}%)`}
                             >

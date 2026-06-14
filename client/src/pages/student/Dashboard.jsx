@@ -26,6 +26,7 @@ import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
 import SectionCard from "../../components/ui/SectionCard";
 import { useUISettings } from "../../context/UISettingsContext";
+import { getAttendanceBand, withAlpha } from "../../utils/attendanceSettings";
 import { formatLabel } from "../../utils/formatters";
 
 const CARD_COLORS = [
@@ -62,12 +63,14 @@ const getStatIcon = (label) => {
   return FiInfo;
 };
 
-const getAttendanceTone = (percentage, totalUnits) => {
-  if (!totalUnits) {
+const getAttendanceTone = (percentage, totalUnits, settings) => {
+  const band = getAttendanceBand(percentage, totalUnits, settings);
+
+  if (band.key === "no-data") {
     return {
       ring: "#64748b",
       track: "#e2e8f0",
-      centerText: "text-slate-600 dark:text-slate-300",
+      centerText: "text-slate-900 dark:text-white",
       helperText: "text-slate-500 dark:text-slate-400",
       glow: "shadow-[0_16px_40px_rgba(100,116,139,0.12)]",
       chip: "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-600/40 dark:bg-slate-700/30 dark:text-slate-200",
@@ -77,11 +80,11 @@ const getAttendanceTone = (percentage, totalUnits) => {
     };
   }
 
-  if (percentage >= 80) {
+  if (band.key === "good") {
     return {
-      ring: "#15803d",
-      track: "#d1fae5",
-      centerText: "text-emerald-700 dark:text-emerald-300",
+      ring: band.toneColor,
+      track: withAlpha(band.toneColor, 0.18),
+      centerText: "text-slate-900 dark:text-white",
       helperText: "text-slate-500 dark:text-slate-400",
       glow: "shadow-[0_18px_46px_rgba(21,128,61,0.16)]",
       chip: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
@@ -91,11 +94,11 @@ const getAttendanceTone = (percentage, totalUnits) => {
     };
   }
 
-  if (percentage >= 60) {
+  if (band.key === "warning") {
     return {
-      ring: "#d97706",
-      track: "#fef3c7",
-      centerText: "text-amber-700 dark:text-amber-300",
+      ring: band.toneColor,
+      track: withAlpha(band.toneColor, 0.22),
+      centerText: "text-slate-900 dark:text-white",
       helperText: "text-slate-500 dark:text-slate-400",
       glow: "shadow-[0_18px_46px_rgba(217,119,6,0.16)]",
       chip: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300",
@@ -106,9 +109,9 @@ const getAttendanceTone = (percentage, totalUnits) => {
   }
 
   return {
-    ring: "#dc2626",
-    track: "#fee2e2",
-    centerText: "text-rose-700 dark:text-rose-300",
+    ring: band.toneColor,
+    track: withAlpha(band.toneColor, 0.18),
+    centerText: "text-slate-900 dark:text-white",
     helperText: "text-slate-500 dark:text-slate-400",
     glow: "shadow-[0_18px_46px_rgba(220,38,38,0.16)]",
     chip: "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300",
@@ -131,10 +134,10 @@ const formatPercentage = (value, totalUnits) => {
   return Number.isInteger(rounded) ? `${rounded}%` : `${rounded}%`;
 };
 
-const CircularAttendanceCard = ({ label, summary, animated }) => {
+const CircularAttendanceCard = ({ label, summary, animated, settings }) => {
   const percentage = Number(summary?.percentage || 0);
   const totalUnits = Number(summary?.totalUnits || 0);
-  const { ring, track, centerText, helperText, badge } = getAttendanceTone(percentage, totalUnits);
+  const { ring, track, centerText, helperText } = getAttendanceTone(percentage, totalUnits, settings);
   const compactLabel = label.replace(" Attendance", "");
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
@@ -144,7 +147,7 @@ const CircularAttendanceCard = ({ label, summary, animated }) => {
 
   return (
     <div className="flex flex-col items-center text-center">
-      <p className="text-[0.92rem] font-semibold leading-tight text-white sm:text-base sm:text-slate-900 dark:sm:text-slate-100">
+      <p className="text-[0.92rem] font-semibold leading-tight text-slate-900 dark:text-white sm:text-base">
         {compactLabel}
       </p>
 
@@ -262,7 +265,7 @@ const Dashboard = () => {
       <div className="py-1">
         <div className="grid grid-cols-3 gap-3 sm:gap-6">
           {attendanceCards.map((card) => (
-            <CircularAttendanceCard key={card.label} label={card.label} summary={card.summary} animated={animateRings} />
+            <CircularAttendanceCard key={card.label} label={card.label} summary={card.summary} animated={animateRings} settings={settings} />
           ))}
         </div>
       </div>

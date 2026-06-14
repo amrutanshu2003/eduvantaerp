@@ -73,6 +73,11 @@ const defaultGlobalSettings = {
   footerText: "Smart ERP for Schools, Colleges & Universities",
   showFooter: true,
   captchaEnabled: true,
+  attendanceGoodThreshold: 80,
+  attendanceWarningThreshold: 60,
+  attendanceGoodColor: "#16a34a",
+  attendanceWarningColor: "#f8e58c",
+  attendanceCriticalColor: "#ef4444",
   privilegedRecoveryEnabled: false,
   privilegedRecoveryHint: "",
   customSidebarItems: [],
@@ -100,6 +105,20 @@ const clampOpacity = (value, fallback) => {
   }
 
   return Math.min(Math.max(numericValue, 0), 1);
+};
+
+const clampPercentage = (value, fallback) => {
+  const numericValue = typeof value === "number" ? value : Number.parseFloat(value);
+  if (Number.isNaN(numericValue)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(numericValue, 0), 100);
+};
+
+const sanitizeHexColor = (value, fallback) => {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return /^#([0-9a-fA-F]{6})$/.test(trimmed) ? trimmed : fallback;
 };
 
 const getGlobalUISettings = async (req, res, next) => {
@@ -234,6 +253,11 @@ const updateGlobalUISettings = async (req, res, next) => {
       footerText: req.body.footerText?.trim() || defaultGlobalSettings.footerText,
       showFooter: typeof req.body.showFooter === "boolean" ? req.body.showFooter : defaultGlobalSettings.showFooter,
       captchaEnabled: typeof req.body.captchaEnabled === "boolean" ? req.body.captchaEnabled : defaultGlobalSettings.captchaEnabled,
+      attendanceGoodThreshold: clampPercentage(req.body.attendanceGoodThreshold, defaultGlobalSettings.attendanceGoodThreshold),
+      attendanceWarningThreshold: clampPercentage(req.body.attendanceWarningThreshold, defaultGlobalSettings.attendanceWarningThreshold),
+      attendanceGoodColor: sanitizeHexColor(req.body.attendanceGoodColor, defaultGlobalSettings.attendanceGoodColor),
+      attendanceWarningColor: sanitizeHexColor(req.body.attendanceWarningColor, defaultGlobalSettings.attendanceWarningColor),
+      attendanceCriticalColor: sanitizeHexColor(req.body.attendanceCriticalColor, defaultGlobalSettings.attendanceCriticalColor),
       customSidebarItems: Array.isArray(req.body.customSidebarItems)
         ? req.body.customSidebarItems
             .filter((item) => item && typeof item === "object")
@@ -295,6 +319,10 @@ const updateGlobalUISettings = async (req, res, next) => {
     if (!["background", "top", "hidden"].includes(payload.loginPanelImagePosition)) {
       res.status(400);
       throw new Error("Login panel image position must be background, top, or hidden");
+    }
+
+    if (payload.attendanceWarningThreshold > payload.attendanceGoodThreshold) {
+      payload.attendanceWarningThreshold = payload.attendanceGoodThreshold;
     }
 
     if (req.body.clearPrivilegedRecoveryKey === true) {

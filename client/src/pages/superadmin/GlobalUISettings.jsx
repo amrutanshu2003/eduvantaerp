@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiEdit2, FiImage, FiLayout, FiLayers, FiMove, FiPlus, FiRefreshCw, FiSettings, FiShield, FiSliders, FiTrash2, FiUploadCloud } from "react-icons/fi";
+import { FiAlertCircle, FiCheckCircle, FiEdit2, FiImage, FiLayout, FiLayers, FiMove, FiPlus, FiRefreshCw, FiSettings, FiShield, FiSliders, FiTrash2, FiUploadCloud } from "react-icons/fi";
 import AlertMessage from "../../components/AlertMessage";
 import PageHeader from "../../components/PageHeader";
 import IconPicker from "../../components/ui/IconPicker";
@@ -22,6 +22,7 @@ const SETTINGS_TABS = [
   { id: "branding", label: "Branding", icon: FiSettings, description: "App name, assets, colors and footer" },
   { id: "login", label: "Login", icon: FiLayout, description: "Auth branding, text, imagery and visibility" },
   { id: "security", label: "Security", icon: FiShield, description: "Captcha and admin recovery controls" },
+  { id: "attendance", label: "Attendance", icon: FiCheckCircle, description: "Global attendance thresholds and tone colors" },
   { id: "academic", label: "Academic", icon: FiLayers, description: "Academic group configuration" },
   { id: "sidebar", label: "Sidebar", icon: FiSliders, description: "Custom navigation items" },
 ];
@@ -319,6 +320,14 @@ const GlobalUISettings = () => {
         ...current,
         privilegedRecoveryEnabled: defaults.privilegedRecoveryEnabled,
         privilegedRecoveryHint: defaults.privilegedRecoveryHint,
+      }),
+      attendance: (current) => ({
+        ...current,
+        attendanceGoodThreshold: defaults.attendanceGoodThreshold,
+        attendanceWarningThreshold: defaults.attendanceWarningThreshold,
+        attendanceGoodColor: defaults.attendanceGoodColor,
+        attendanceWarningColor: defaults.attendanceWarningColor,
+        attendanceCriticalColor: defaults.attendanceCriticalColor,
       }),
       academic: (current) => ({
         ...current,
@@ -874,7 +883,7 @@ const GlobalUISettings = () => {
               <p className={`mt-1 text-xs ${isDark ? "text-slate-400" : "text-slate-500"}`}>{activeTabMeta.description}</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {activeTab !== "login" && activeTab !== "academic" && activeTab !== "sidebar" && activeTab !== "branding" && activeTab !== "security" ? null : (
+              {activeTab !== "login" && activeTab !== "academic" && activeTab !== "sidebar" && activeTab !== "branding" && activeTab !== "security" && activeTab !== "attendance" ? null : (
                 <button
                   type="button"
                   onClick={() => resetDraftSection(activeTab)}
@@ -1526,6 +1535,91 @@ const GlobalUISettings = () => {
                 Hidden recovery URLs: <span className={`font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>/secure/super-admin/recovery</span> and <span className={`font-semibold ${isDark ? "text-slate-200" : "text-slate-700"}`}>/secure/account-recovery</span>
               </p>
             </div>
+            ) : null}
+            {activeTab === "attendance" ? (
+            <>
+            <div className={`${tabSectionClass} md:col-span-2`}>
+              <div className="flex items-start gap-3">
+                <span className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl ${isDark ? "bg-slate-800 text-slate-200" : "bg-slate-100 text-slate-700"}`}>
+                  <FiAlertCircle className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Global attendance thresholds</p>
+                  <p className={fieldMetaClass}>
+                    Set the minimum attendance requirement and the warning threshold used across student, parent, and admin attendance panels.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-5 md:grid-cols-2">
+                <div>
+                  <label className={fieldLabelClass}>Good Standing Threshold (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    name="attendanceGoodThreshold"
+                    value={formData.attendanceGoodThreshold ?? 80}
+                    onChange={handleChange}
+                    className={inputClassName}
+                  />
+                  <p className={fieldMetaClass}>Students at or above this percentage show green/good status. Example: `80`.</p>
+                </div>
+                <div>
+                  <label className={fieldLabelClass}>Warning Threshold (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    name="attendanceWarningThreshold"
+                    value={formData.attendanceWarningThreshold ?? 60}
+                    onChange={handleChange}
+                    className={inputClassName}
+                  />
+                  <p className={fieldMetaClass}>Students between warning and good threshold show yellow/attention status. Below this becomes red.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className={`${tabSectionClass} md:col-span-2`}>
+              <div className="mb-4">
+                <p className={`text-sm font-medium ${isDark ? "text-slate-100" : "text-slate-700"}`}>Attendance status colors</p>
+                <p className={fieldMetaClass}>
+                  Choose the colors used for good, warning, and critical attendance indicators in the ERP panels.
+                </p>
+              </div>
+              <div className="grid gap-5 md:grid-cols-3">
+                {[
+                  { field: "attendanceGoodColor", label: "Good color" },
+                  { field: "attendanceWarningColor", label: "Warning color" },
+                  { field: "attendanceCriticalColor", label: "Critical color" },
+                ].map((item) => (
+                  <div key={item.field} className={`rounded-[1.25rem] border p-4 ${isDark ? "border-slate-700 bg-slate-900/70" : "border-slate-200 bg-white"}`}>
+                    <label className={fieldLabelClass}>{item.label}</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        name={item.field}
+                        value={formData[item.field] || "#000000"}
+                        onChange={handleChange}
+                        className="h-11 w-14 cursor-pointer rounded-xl border border-slate-300 bg-transparent p-1"
+                      />
+                      <input
+                        type="text"
+                        name={item.field}
+                        value={formData[item.field] || ""}
+                        onChange={handleChange}
+                        className={inputClassName}
+                        placeholder="#000000"
+                      />
+                    </div>
+                    <div className="mt-3 rounded-xl border px-3 py-2 text-sm font-semibold" style={{ borderColor: `${formData[item.field] || "#000000"}55`, backgroundColor: `${formData[item.field] || "#000000"}18`, color: formData[item.field] || "#000000" }}>
+                      Preview
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            </>
             ) : null}
             {activeTab === "branding" ? (
             <>
