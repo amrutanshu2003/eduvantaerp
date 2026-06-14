@@ -14,6 +14,7 @@ import {
   FiInfo,
   FiList,
   FiTable,
+  FiArrowRight,
 } from "react-icons/fi";
 import api from "../../api/axios";
 import AlertMessage from "../../components/AlertMessage";
@@ -790,32 +791,35 @@ const Attendance = () => {
 
             {/* Matrix View */}
             {viewMode === "matrix" && (
-              <div className="overflow-x-auto scroll-smooth rounded-2xl border border-slate-200 dark:border-slate-700/60 overflow-hidden">
-                {matrixData.rows.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <FiGrid className="text-4xl text-slate-300 dark:text-slate-600 mb-3" />
-                    <p className="font-semibold text-slate-500 dark:text-slate-400">No attendance records found</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                      Your attendance register will appear here once teachers mark attendance.
-                    </p>
-                  </div>
-                ) : (() => {
-                  const subjectCount = matrixData.subjects.length;
-                  const isBalancedMode = subjectCount <= 7;
-                  const isCompactMode = subjectCount > 7 && subjectCount <= 12;
-                  const isDenseMode = subjectCount > 12;
-                  
-                  const tableWidthClass = isBalancedMode ? "w-full" : "w-max";
-                  const dateWidthClass = isBalancedMode ? "w-[120px] min-w-[120px] max-w-[120px]" : "w-[96px] min-w-[96px] max-w-[96px]";
-                  const subjectWidthClass = isBalancedMode ? "" : "w-[48px] min-w-[48px] max-w-[48px]";
-                  const dailyTotalWidthClass = isBalancedMode ? "w-[90px] min-w-[90px] max-w-[90px]" : "w-[78px] min-w-[78px] max-w-[78px]";
-                  const cellClass = isDenseMode ? "attendance-matrix-cell-dense" : "attendance-matrix-cell";
-                  
-                  return (
-                    <table className={`${tableWidthClass} border-collapse table-fixed`}>
+              <>
+                <div className="mb-3 flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
+                  <span>Swipe left/right to view all subjects</span>
+                  <FiArrowRight className="h-3.5 w-3.5 shrink-0" />
+                </div>
+                <div className="relative isolate max-w-full overflow-x-auto overflow-y-visible rounded-2xl border border-slate-200 bg-white dark:border-slate-700/60 dark:bg-slate-800 no-scrollbar scroll-smooth">
+                  {matrixData.rows.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <FiGrid className="text-4xl text-slate-300 dark:text-slate-600 mb-3" />
+                      <p className="font-semibold text-slate-500 dark:text-slate-400">No attendance records found</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                        Your attendance register will appear here once teachers mark attendance.
+                      </p>
+                    </div>
+                  ) : (() => {
+                    const subjectCount = matrixData.subjects.length;
+                    const isDenseMode = subjectCount > 12;
+                    const dateWidthClass = "w-[112px] min-w-[112px] max-w-[112px]";
+                    const subjectWidthClass = isDenseMode ? "w-[40px] min-w-[40px] max-w-[40px] sm:w-[46px] sm:min-w-[46px] sm:max-w-[46px]" : "w-[44px] min-w-[44px] max-w-[44px] sm:w-[52px] sm:min-w-[52px] sm:max-w-[52px]";
+                    const dailyTotalWidthClass = "w-[88px] min-w-[88px] max-w-[88px]";
+                    const subjectColumnWidth = isDenseMode ? 46 : 52;
+                    const minTableWidth = 112 + 88 + (subjectCount * subjectColumnWidth);
+                    const cellClass = isDenseMode ? "attendance-matrix-cell-dense" : "attendance-matrix-cell";
+                    
+                    return (
+                      <table className="w-max min-w-[720px] border-collapse table-fixed" style={{ minWidth: `${Math.max(720, minTableWidth)}px` }}>
                       <thead>
                         <tr className="border-b border-slate-200 dark:border-slate-700">
-                          <th className={`sticky left-0 top-0 bg-white dark:bg-slate-800 text-left py-2 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 z-20 ${dateWidthClass} border-r border-slate-200/70 dark:border-slate-700/40`}>Date</th>
+                          <th className={`bg-white text-left py-2 px-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:bg-slate-800 dark:text-slate-400 ${dateWidthClass} border-r border-slate-200/80 dark:border-slate-700/70`}>Date</th>
                           {matrixData.subjects.map((subject) => (
                             <th
                               key={subject.subjectId}
@@ -829,13 +833,13 @@ const Attendance = () => {
                               </div>
                             </th>
                           ))}
-                          <th className={`sticky right-0 top-0 bg-slate-50 dark:bg-slate-700/50 text-center py-2 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 ${dailyTotalWidthClass} z-20 border-l-2 border-slate-300 dark:border-slate-600`}>Daily Total</th>
+                          <th className={`bg-slate-50 text-center py-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:bg-slate-700 dark:text-slate-200 sm:text-[11px] ${dailyTotalWidthClass} border-l-2 border-slate-300 dark:border-slate-600`}>Daily Total</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {matrixData.rows.map((row) => (
+                          {matrixData.rows.map((row) => (
                           <tr key={row.date} className="border-b border-slate-100 dark:border-slate-700">
-                            <td className={`sticky left-0 bg-white dark:bg-slate-800 py-2 px-2.5 text-xs font-medium text-slate-900 dark:text-slate-100 whitespace-nowrap z-10 ${dateWidthClass} border-r border-slate-200/70 dark:border-slate-700/40`}>
+                            <td className={`bg-white py-2 px-2.5 text-xs font-medium text-slate-900 whitespace-nowrap dark:bg-slate-800 dark:text-slate-100 ${dateWidthClass} border-r border-slate-200/80 dark:border-slate-700/70`}>
                               {row.date}
                             </td>
                             {row.cells.map((cell) => (
@@ -859,7 +863,7 @@ const Attendance = () => {
                                 </div>
                               </td>
                             ))}
-                            <td className={`sticky right-0 bg-slate-50/50 dark:bg-slate-700/30 py-2 px-1 text-center z-10 border-l-2 border-slate-300 dark:border-slate-600 ${dailyTotalWidthClass}`}>
+                            <td className={`bg-slate-50 py-2 px-1 text-center dark:bg-slate-700 border-l-2 border-slate-300 dark:border-slate-600 ${dailyTotalWidthClass}`}>
                               <div
                                 className={`${cellClass} mx-auto ${getCellColorClasses(row.dailyTotalType)}`}
                               >
@@ -870,7 +874,7 @@ const Attendance = () => {
                         ))}
                         {/* Subject Totals Row */}
                         <tr className="border-t-2 border-slate-300 dark:border-slate-500 bg-slate-100 dark:bg-slate-700/50">
-                          <td className={`sticky left-0 bg-slate-100 dark:bg-slate-700/50 py-2 px-2.5 text-xs font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap z-10 ${dateWidthClass} border-r border-slate-200/70 dark:border-slate-700/40`}>
+                          <td className={`bg-slate-100 py-2 px-2.5 text-xs font-bold text-slate-900 whitespace-nowrap dark:bg-slate-700 dark:text-slate-100 ${dateWidthClass} border-r border-slate-200/80 dark:border-slate-700/70`}>
                             Total
                           </td>
                           {matrixData.subjectTotals.map((total) => (
@@ -883,7 +887,7 @@ const Attendance = () => {
                               </div>
                             </td>
                           ))}
-                          <td className={`sticky right-0 bg-slate-200 dark:bg-slate-600/50 py-2 px-1 text-center z-10 border-l-2 border-slate-300 dark:border-slate-600 ${dailyTotalWidthClass}`}>
+                          <td className={`bg-slate-200 py-2 px-1 text-center dark:bg-slate-600 border-l-2 border-slate-300 dark:border-slate-600 ${dailyTotalWidthClass}`}>
                             <div
                               className={`${cellClass} mx-auto ${getCellColorClasses(
                                 overallPercentage >= 75 ? "present" : overallPercentage >= 50 ? "mixed" : "absent"
@@ -895,10 +899,11 @@ const Attendance = () => {
                           </td>
                         </tr>
                       </tbody>
-                    </table>
-                  );
-                })()}
-              </div>
+                      </table>
+                    );
+                  })()}
+                </div>
+              </>
             )}
 
             {/* List View */}

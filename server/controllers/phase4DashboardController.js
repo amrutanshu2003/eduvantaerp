@@ -20,6 +20,7 @@ import TransportAllocation from "../models/TransportAllocation.js";
 import TransportRoute from "../models/TransportRoute.js";
 import TransportVehicle from "../models/TransportVehicle.js";
 import StaffMember from "../models/StaffMember.js";
+import { getFeeStatus, getPayableAmount } from "../utils/feeUtils.js";
 import { canManageHostel, isHostelSecurityUser } from "../utils/hostelAccess.js";
 import { canManageLibrary } from "../utils/libraryAccess.js";
 import { getIssueStatus } from "../utils/libraryUtils.js";
@@ -86,6 +87,45 @@ const countFeesByStatus = async (query) => {
 
 const getCurrentDayKey = () =>
   new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+
+const toUnitValue = (value) => {
+  const count = Number(value || 1);
+  return Number.isFinite(count) && count > 0 ? count : 1;
+};
+
+const toPercent = (presentUnits, totalUnits) =>
+  totalUnits > 0 ? Number(((presentUnits / totalUnits) * 100).toFixed(2)) : 0;
+
+const buildAttendanceSummary = (attendanceRecords, studentId) => {
+  const summary = {
+    theory: { presentUnits: 0, totalUnits: 0, percentage: 0 },
+    practical: { presentUnits: 0, totalUnits: 0, percentage: 0 },
+    total: { presentUnits: 0, totalUnits: 0, percentage: 0 },
+  };
+
+  attendanceRecords.forEach((entry) => {
+    const record = entry.records.find((item) => String(item.studentId) === String(studentId));
+    if (!record) return;
+
+    const units = toUnitValue(entry.attendanceCount);
+    const subjectType = entry.subjectId?.subjectType || "core";
+    const bucket = subjectType === "practical" || subjectType === "lab" ? "practical" : "theory";
+
+    summary[bucket].totalUnits += units;
+    summary.total.totalUnits += units;
+
+    if (record.status === "present") {
+      summary[bucket].presentUnits += units;
+      summary.total.presentUnits += units;
+    }
+  });
+
+  summary.theory.percentage = toPercent(summary.theory.presentUnits, summary.theory.totalUnits);
+  summary.practical.percentage = toPercent(summary.practical.presentUnits, summary.practical.totalUnits);
+  summary.total.percentage = toPercent(summary.total.presentUnits, summary.total.totalUnits);
+
+  return summary;
+};
 
 const countTeacherTodayPeriods = async (teacherId, instituteId) => {
   const today = getCurrentDayKey();
@@ -273,17 +313,11 @@ const getStudentPhase4Stats = async (req, res, next) => {
       instituteId: student.instituteId,
       "records.studentId": student._id,
       isDeleted: false,
-    });
-    let presentLike = 0;
-    let total = 0;
-    attendanceRecords.forEach((entry) => {
-      const record = entry.records.find((item) => String(item.studentId) === String(student._id));
-      if (!record) return;
-      if (record.status === "present" || record.status === "late") presentLike += 1;
-      total += 1;
-    });
-    const attendancePercentage = total ? Number(((presentLike / total) * 100).toFixed(2)) : 0;
-    const [latestExam, latestResult, totalSubjects, latestNotices, studentFees, todayTimetable, pendingAssignments, studentBookIssues, transportAllocation, hostelAllocation, pendingOutpasses, openComplaints] = await Promise.all([
+    })
+      .populate("subjectId", "subjectName subjectCode subjectType")
+      .sort({ date: -1 });
+    const attendanceSummary = buildAttendanceSummary(attendanceRecords, student._id);
+    const [latestExam, latestResult, totalSubjects, latestNotices, studentFees, todayTimetable, assignments, assignmentSubmissions, studentBookIssues, transportAllocation, hostelAllocation, pendingOutpasses, openComplaints] = await Promise.all([
       Exam.findOne({ instituteId: student.instituteId, academicGroupId: student.academicGroupId, isDeleted: false }).sort({ startDate: -1 }),
       Marks.findOne({ instituteId: student.instituteId, studentId: student._id, isDeleted: false, status: "published" })
         .populate("examId", "examName")
@@ -292,7 +326,20 @@ const getStudentPhase4Stats = async (req, res, next) => {
       getLatestNotices({ instituteId: student.instituteId, role: "student", academicGroupIds: student.academicGroupId ? [student.academicGroupId] : [] }),
       Fee.find({ instituteId: student.instituteId, studentId: student._id, isDeleted: false }).select("amount discount fine paidAmount dueDate"),
       countStudentTodayPeriods(student.instituteId, student.academicGroupId),
-      Assignment.countDocuments({ instituteId: student.instituteId, academicGroupId: student.academicGroupId, isDeleted: false, status: "published" }),
+      Assignment.find({
+        instituteId: student.instituteId,
+        academicGroupId: student.academicGroupId,
+        isDeleted: false,
+        status: "published",
+      })
+        .populate("subjectId", "subjectName")
+        .sort({ dueDate: 1, createdAt: -1 })
+        .limit(4),
+      AssignmentSubmission.find({
+        instituteId: student.instituteId,
+        studentId: student._id,
+        isDeleted: false,
+      }).select("assignmentId status submittedAt"),
       BookIssue.find({ instituteId: student.instituteId, studentId: student._id, isDeleted: false }).select("dueDate returnDate status"),
       TransportAllocation.findOne({ instituteId: student.instituteId, studentId: student._id, isDeleted: false, status: "active" }).populate("routeId", "routeName"),
       HostelAllocation.findOne({ instituteId: student.instituteId, studentId: student._id, isDeleted: false, status: "active" }).populate("roomId", "roomNumber"),
@@ -302,15 +349,57 @@ const getStudentPhase4Stats = async (req, res, next) => {
     const pendingFees = studentFees.filter((fee) => ["unpaid", "partial", "overdue"].includes(getFeeStatus(fee))).length;
     const myIssuedBooks = studentBookIssues.filter((issue) => ["issued", "overdue", "lost"].includes(getIssueStatus(issue))).length;
     const myOverdueBooks = studentBookIssues.filter((issue) => getIssueStatus(issue) === "overdue").length;
+    const submissionMap = new Map(
+      assignmentSubmissions.map((submission) => [String(submission.assignmentId), submission])
+    );
+    const recentAssignments = assignments.map((assignment) => {
+      const submission = submissionMap.get(String(assignment._id));
+      return {
+        _id: assignment._id,
+        title: assignment.title,
+        dueDate: assignment.dueDate,
+        subjectName: assignment.subjectId?.subjectName || "Subject",
+        submissionStatus: submission?.status || null,
+        submittedAt: submission?.submittedAt || null,
+      };
+    });
+    const recentAttendance = attendanceRecords.slice(0, 5).map((entry) => {
+      const record = entry.records.find((item) => String(item.studentId) === String(student._id));
+      return {
+        _id: entry._id,
+        date: entry.date,
+        attendanceCount: toUnitValue(entry.attendanceCount),
+        subjectName: entry.subjectId?.subjectName || "General Class",
+        studentStatus: record?.status || null,
+      };
+    });
+    const feeSummary = studentFees.reduce((accumulator, fee) => {
+      const status = getFeeStatus(fee);
+      const outstanding = Math.max(getPayableAmount(fee) - Number(fee.paidAmount || 0), 0);
+
+      accumulator.outstandingAmount += outstanding;
+      if (status === "paid") accumulator.paidCount += 1;
+      if (status === "partial") accumulator.partialCount += 1;
+      if (status === "overdue") accumulator.overdueCount += 1;
+      if (["unpaid", "partial", "overdue"].includes(status)) accumulator.pendingCount += 1;
+      return accumulator;
+    }, {
+      paidCount: 0,
+      partialCount: 0,
+      overdueCount: 0,
+      pendingCount: 0,
+      outstandingAmount: 0,
+    });
+
     res.json({
       stats: {
-        attendancePercentage,
+        attendancePercentage: attendanceSummary.total.percentage,
         latestExam: latestExam?.examName || "N/A",
         latestResult: latestResult?.grade || "N/A",
         totalSubjects,
         pendingFees,
         todayTimetable,
-        pendingAssignments,
+        pendingAssignments: assignments.length,
         myIssuedBooks,
         myOverdueBooks,
         myTransportRoute: transportAllocation?.routeId?.routeName || "N/A",
@@ -320,6 +409,10 @@ const getStudentPhase4Stats = async (req, res, next) => {
         openComplaints,
       },
       latestNotices,
+      attendanceSummary,
+      recentAttendance,
+      recentAssignments,
+      feeSummary,
     });
   } catch (error) {
     next(error);

@@ -402,21 +402,29 @@ This starts:
 
 ## Initial Setup
 
-Run the seed script locally to create the first superadmin. Change the default password immediately after first login. Never use default credentials in production.
+Run the demo seed locally to populate one full institute with realistic ERP data. For a superadmin-only bootstrap without demo records, use `npm run seed:superadmin`.
 
 ```bash
-cd server
 npm run seed
 ```
 
 ### Seeding Demo Data
 
-To seed the database with pre-configured demo data including 1 school, 1 college, admins, teachers, students, parents, staff, academic groups, notices, and fees:
+`npm run seed` now creates one fully populated demo institute with attendance, fees, notices, assignments, transport, hostel, library, exams, marks, timetable, and notifications.
 
 ```bash
-cd server
-npm run seed:demo
+npm run seed
 ```
+
+Demo logins created by the seed:
+
+- Super Admin: `demo+superadmin@eduvanta.com` / `Demo@123`
+- Institute Admin: `demo+admin1@eduvanta.com` / `Demo@123`
+- Operations Admin: `demo+admin2@eduvanta.com` / `Demo@123`
+- Teacher: `demo+teacher1@eduvanta.com` / `Demo@123`
+- Student: `demo+student1@eduvanta.com` / `Demo@123`
+- Parent: `demo+parent1@eduvanta.com` / `Demo@123`
+- Staff: `demo+staff1@eduvanta.com` / `Demo@123`
 
 ### Login Flow
 
@@ -1071,16 +1079,25 @@ npm start
 
 ## Demo Data Seeding
 
-To populate the database with comprehensive demo records for testing school, college, and university flows, run the following command in the server folder:
+Run the root seed command to rebuild the full demo institute dataset:
 
 ```bash
-cd server
-npm run seed:demo
+npm run seed
 ```
 
-This seeds:
-- 3 Institutes (Sunrise Public School `SPS`, Eduvanta Degree College `EDC`, Eduvanta University `EDU`)
-- 3 Admins, 5 Teachers, 20 Students, 10 Parents, 5 Staff members, 5 Subjects, 5 Notices, 5 Fees, 3 Timetable records, 3 Library books, 2 Transport routes, and 1 Hostel with rooms and beds.
+This demo seed is idempotent and recreates a single institute named `Eduvanta Demo Senior Secondary School` with:
+
+- 1 super admin, 2 institute admins, 8 teachers, 40 students, 20 parents, and 8 staff members
+- 4 academic groups, 8 subjects, weekday timetables, exam records, and published marks
+- 30 days of attendance with theory/practical units, mixed present/absent/late/leave records, and `attendanceCount`
+- Fees with paid, pending, overdue, and partial states plus receipt-style transaction IDs
+- 8 notices, 10 assignments with submission states, 20 library books with issue history, 3 vehicles, 3 routes, 2 hostels, room/bed allocations, complaints, outpasses, and role-based notifications
+
+If you only need the base superadmin account without demo institute data:
+
+```bash
+npm run seed:superadmin
+```
 
 Optional individual commands:
 

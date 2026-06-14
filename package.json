@@ -10,6 +10,7 @@
     "install:all": "npm install --prefix server && npm install --prefix client",
     "build": "npm run build --prefix client",
     "seed": "npm run seed --prefix server",
+    "seed:superadmin": "npm run seed:superadmin --prefix server",
     "seed:demo": "npm run seed:demo --prefix server"
   }
 }

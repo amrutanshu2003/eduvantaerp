@@ -179,21 +179,21 @@ a[class*="px-"][class*="py-"]:not([href^="#"]):not([href="javascript:void(0)"]):
 
 @keyframes skeleton-shimmer {
   0% {
-    background-position: -220% 0;
+    background-position: 220% 0;
   }
 
   100% {
-    background-position: 220% 0;
+    background-position: -220% 0;
   }
 }
 
 @keyframes skeleton-surface-shimmer {
   0% {
-    background-position: -220% 0;
+    background-position: 220% 0;
   }
 
   100% {
-    background-position: 220% 0;
+    background-position: -220% 0;
   }
 }
 
@@ -788,4 +788,27 @@ html.theme-transition-to-light::view-transition-new(root) {
 .attendance-matrix-cell-dense:hover {
   transform: scale(1.05);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 640px) {
+  .attendance-matrix-cell {
+    height: 31px;
+    width: 31px;
+    padding: 0.2rem;
+    border-radius: 0.45rem;
+    font-size: 0.6875rem;
+  }
+
+  .attendance-matrix-cell-dense {
+    height: 28px;
+    width: 28px;
+    padding: 0.15rem;
+    border-radius: 0.4rem;
+    font-size: 0.625rem;
+  }
+
+  .attendance-matrix-cell:hover,
+  .attendance-matrix-cell-dense:hover {
+    transform: none;
+  }
 }
