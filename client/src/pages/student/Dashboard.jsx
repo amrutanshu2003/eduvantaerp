@@ -134,9 +134,8 @@ const formatPercentage = (value, totalUnits) => {
 const CircularAttendanceCard = ({ label, summary, animated }) => {
   const percentage = Number(summary?.percentage || 0);
   const totalUnits = Number(summary?.totalUnits || 0);
-  const { ring, track, centerText, helperText, chip, badge, helper } = getAttendanceTone(percentage, totalUnits);
+  const { ring, track, centerText, helperText, badge } = getAttendanceTone(percentage, totalUnits);
   const compactLabel = label.replace(" Attendance", "");
-  const compactHelper = badge === "No Data" ? "No records" : helper;
   const radius = 56;
   const circumference = 2 * Math.PI * radius;
   const safePercentage = Math.min(Math.max(percentage, 0), 100);
@@ -144,21 +143,13 @@ const CircularAttendanceCard = ({ label, summary, animated }) => {
   const dashOffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="rounded-[1.35rem] border border-white/10 bg-white/6 p-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-sm sm:rounded-3xl sm:border-slate-200/80 sm:bg-white/90 sm:p-4 sm:shadow-none dark:sm:border-slate-700/70 dark:sm:bg-slate-900/80">
-      <div className="flex items-start justify-between gap-1.5 text-left">
-        <div className="min-w-0">
-          <p className="text-[0.92rem] font-semibold leading-tight text-white sm:hidden">{compactLabel}</p>
-          <p className="hidden text-base font-semibold text-slate-900 dark:text-slate-100 sm:block">{label}</p>
-          <p className="mt-1 text-[11px] leading-4 text-slate-300 sm:text-sm sm:text-slate-500 dark:sm:text-slate-400">
-            {summary?.presentUnits || 0}/{summary?.totalUnits || 0}
-            <span className="hidden sm:inline"> units</span>
-          </p>
-        </div>
-        <span className={`inline-flex rounded-full border px-2 py-1 text-[9px] font-semibold leading-none sm:hidden ${chip}`}>{badge === "Good Standing" ? "Good" : badge}</span>
-      </div>
+    <div className="flex flex-col items-center text-center">
+      <p className="text-[0.92rem] font-semibold leading-tight text-white sm:text-base sm:text-slate-900 dark:sm:text-slate-100">
+        {compactLabel}
+      </p>
 
       <div className="mt-3 flex items-center justify-center sm:mt-4">
-        <div className="relative h-[70px] w-[70px] sm:h-[108px] sm:w-[108px] lg:h-[146px] lg:w-[146px]">
+        <div className="relative h-[74px] w-[74px] sm:h-[112px] sm:w-[112px] lg:h-[146px] lg:w-[146px]">
           <svg viewBox="0 0 144 144" className="h-full w-full -rotate-90">
             <circle
               cx="72"
@@ -188,14 +179,7 @@ const CircularAttendanceCard = ({ label, summary, animated }) => {
         </div>
       </div>
 
-      {totalUnits === 0 ? (
-        <p className={`mt-3 text-[11px] font-medium leading-4 ${helperText} sm:text-sm sm:leading-5`}>
-          <span className="sm:hidden">{compactHelper}</span>
-          <span className="hidden sm:inline">{helper}</span>
-        </p>
-      ) : (
-        <p className="mt-3 text-[11px] font-medium leading-4 text-slate-200 sm:hidden">{badge === "Good Standing" ? "Good Standing" : badge === "Needs Attention" ? "Needs Attention" : "Critical"}</p>
-      )}
+      {totalUnits === 0 ? <p className={`mt-3 text-[11px] font-medium leading-4 ${helperText} sm:text-sm`}>No records</p> : null}
     </div>
   );
 };
@@ -275,18 +259,8 @@ const Dashboard = () => {
         description={`Welcome to ${settings.appName}. Track your attendance, view exam results, check fees, assignments, and more.`}
       />
 
-      <div className="overflow-hidden rounded-[1.75rem] border border-slate-800/70 bg-[radial-gradient(circle_at_top,#14243f_0%,#0f1b30_48%,#0b1525_100%)] p-3 shadow-[0_20px_48px_rgba(2,6,23,0.22)] sm:rounded-3xl sm:border-slate-200/80 sm:bg-white/70 sm:p-4 sm:shadow-none dark:sm:border-slate-700/70 dark:sm:bg-slate-900/70">
-        <div className="mb-3 flex items-center justify-between sm:hidden">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">Attendance</p>
-            <p className="mt-1 text-sm font-semibold text-white">Mobile Summary</p>
-          </div>
-          <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-semibold text-slate-200">
-            Last 30 Days
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      <div className="py-1">
+        <div className="grid grid-cols-3 gap-3 sm:gap-6">
           {attendanceCards.map((card) => (
             <CircularAttendanceCard key={card.label} label={card.label} summary={card.summary} animated={animateRings} />
           ))}
